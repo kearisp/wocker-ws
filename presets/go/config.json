@@ -1,0 +1,13 @@
+{
+    "dockerfile": "./Dockerfile",
+    "DocumentRoot": "/usr/app",
+    "volumes": [
+        "./:/usr/app"
+    ],
+    "env": {
+        "GO_RUN": {
+            "type": "string",
+            "default": "go run src/main.go"
+        }
+    }
+}

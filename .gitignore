@@ -3,7 +3,6 @@
 .vscode/
 
 # Local data
-/data/*
 /lib
 /dist
 /dist-ts

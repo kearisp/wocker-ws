@@ -1,0 +1,6 @@
+const tty = () => {
+    //
+};
+
+
+export {tty};

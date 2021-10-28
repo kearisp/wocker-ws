@@ -1,0 +1,57 @@
+#!/bin/bash
+
+
+CERT_DIR=./data/certs
+
+NAME="index.workspace"
+
+if [ "${1}" != "" ]; then
+  NAME=$1
+fi
+
+echo "NAME: $NAME"
+
+S_OU="Workspace"
+S_O="Workspace"
+S_L="Ukraine"
+S_ST="Ukraine"
+S_C="UA"
+S_UID=""
+
+SUBJ="/CN=${S_CN}/OU=${S_OU}/O=${S_O}/L=${S_L}/ST=${S_ST}/C=${S_C}"
+
+if [ "${S_UID}" != "" ]; then
+    SUBJ="${SUBJ}/UID=${S_UID}"
+fi
+
+echo "subj: ${SUBJ}"
+
+mkdir -p $CERT_DIR
+rm -f $CERT_DIR/*
+
+openssl genrsa \
+    -out "${CERT_DIR}/${NAME}.pem" \
+    2048
+
+openssl req \
+    -new \
+    -sha256 \
+    -subj "${SUBJ}" \
+    -key "${CERT_DIR}/${NAME}.pem" \
+    -out "${CERT_DIR}/${NAME}.csr"
+
+openssl req \
+    -x509 \
+    -newkey rsa:4096 \
+    -sha256 \
+    -days 3650 \
+    -nodes \
+    -keyout "${CERT_DIR}/${NAME}.key" \
+    -out "${CERT_DIR}/${NAME}.crt" \
+    -subj "${SUBJ}" # \
+#    -addext "subjectAltName=DNS:${S_CN},DNS:${S_CN},IP:10.0.0.1"
+
+#openssl x509 \
+#    -inform der \
+#    -in ./certs/key.pem \
+#    -out ./certs/key.crt

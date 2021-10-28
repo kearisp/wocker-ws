@@ -1,0 +1,3 @@
+#!/bin/bash
+
+printf '%s\n%s\n' "$2" "$1" | sort --check=quiet --version-sort

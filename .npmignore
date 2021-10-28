@@ -1,0 +1,18 @@
+# misc
+/.idea
+/.git
+
+# dependencies
+/node_modules
+/packages
+/src
+/test
+/.babelrc.js
+/.eslintrc.js
+/.gitignore
+/.gitmodules
+/jest.config.ts
+/package-lock.json
+/tsconfig.json
+/webpack.config.js
+*.spec.js

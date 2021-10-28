@@ -1,0 +1,47 @@
+{
+    "dockerfile": "./Dockerfile",
+    "buildArgsOptions": {
+        "PHP_VERSION": {
+            "hash": false,
+            "message": "PHP version",
+            "type": "select",
+            "options": [
+                "5.6",
+                "7.3",
+                "7.4",
+                "8.0"
+            ]
+        },
+        "MYSQLI_ENABLE": {
+            "message": "Enable mysqli?",
+            "type": "boolean"
+        },
+        "PDO_MYSQL_ENABLE": {
+            "message": "Enable PDO Mysql?",
+            "type": "boolean"
+        },
+        "GD_ENABLE": {
+            "message": "Enable GD?",
+            "type": "boolean"
+        },
+        "COMPOSER_ENABLE": {
+            "message": "Install composer?",
+            "type": "boolean"
+        },
+        "ZIP_ENABLE": {
+            "message": "Enable zip?",
+            "type": "boolean"
+        },
+        "NODE_VERSION": {
+            "type": "select",
+            "message": "Node version",
+            "options": [
+                "none",
+                "v17.9.1"
+            ]
+        }
+    },
+    "volumes": [
+        "./:/var/www/html"
+    ]
+}

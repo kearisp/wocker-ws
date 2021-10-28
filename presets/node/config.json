@@ -1,0 +1,36 @@
+{
+    "dockerfile": "./Dockerfile",
+    "DocumentRoot": "/usr/app",
+    "buildArgs": {
+        "NODE_VERSION": {
+            "type": "select",
+            "select": [
+                "11-alpine3.14",
+                "12-alpine3.14",
+                "14-alpine3.14",
+                "16-alpine3.14",
+                "17-alpine3.14"
+            ]
+        }
+    },
+    "env": {
+        "APP_PORT": {
+            "type": "integer",
+            "default": 80
+        },
+        "NPM_RUN": {
+            "type": "string",
+            "default": "npm start"
+        },
+        "PACKAGE_MANAGER": {
+            "type": "select",
+            "select": [
+                "npm",
+                "yarn"
+            ]
+        }
+    },
+    "volumes": [
+        "./:/usr/app"
+    ]
+}
