@@ -1,4 +1,4 @@
-# Workspace
+# Wocker
 
 ###### Docker workspace for web projects
 
@@ -13,7 +13,7 @@
 ### Installation
 
 ```shell
-npm i -g @kearisp/workspace
+npm i -g @wocker/ws
 ```
 
 ### Project initialization
