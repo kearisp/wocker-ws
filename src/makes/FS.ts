@@ -246,17 +246,22 @@ class FS {
         return fs.createWriteStream(path);
     }
 
-    static async readJSON(filePath: PathLike | number): Promise<any> {
-        return FS.readFile(filePath).then((res) => {
-            try {
-                const str = res.toString();
+    static async readJSON(...paths: string[]): Promise<any> {
+        const res: Buffer = await new Promise((resolve, reject) => {
+            const filePath = Path.join(...paths);
 
-                return JSON.parse(str);
-            }
-            catch(ignore: unknown) {
-                return {};
-            }
+            fs.readFile(filePath, (err, data) => {
+                if(err) {
+                    reject(err);
+
+                    return;
+                }
+
+                resolve(data);
+            });
         });
+
+        return JSON.parse(res.toString());
     }
 
     static async writeJSON(filePath: PathLike | number, data: any): Promise<void> {

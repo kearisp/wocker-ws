@@ -1,16 +1,29 @@
+import {
+    DI,
+    AppConfigService as CoreAppConfigService,
+    AppEventsService as CoreAppEventsService,
+    DockerService,
+    ProjectService as CoreProjectService,
+    ProjectServiceSearchParams as SearchParams,
+    Project
+} from "@wocker/core";
 import * as Path from "path";
 
-import {Docker, Logger} from "src/makes";
-import {Project} from "src/models";
-import {AppConfigService} from "./AppConfigService";
-import {AppEventsService} from "./AppEventsService";
+import {Docker, FS} from "src/makes";
 
 
-class ProjectService {
-    public constructor(
-        protected appConfigService: AppConfigService,
-        protected appEventsService: AppEventsService
-    ) {}
+class ProjectService extends CoreProjectService {
+    protected appConfigService: CoreAppConfigService;
+    protected appEventsService: CoreAppEventsService;
+    protected dockerService: DockerService;
+
+    public constructor(di: DI) {
+        super();
+
+        this.appConfigService = di.resolveService<CoreAppConfigService>(CoreAppConfigService);
+        this.appEventsService = di.resolveService<CoreAppEventsService>(CoreAppEventsService);
+        this.dockerService = di.resolveService<DockerService>(DockerService);
+    }
 
     public async cdProject(name: string) {
         const project = await Project.searchOne({
@@ -26,7 +39,7 @@ class ProjectService {
 
     public async get() {
         const project = await Project.searchOne({
-            src: this.appConfigService.getPWD()
+            path: this.appConfigService.getPWD()
         });
 
         if(!project) {
@@ -59,7 +72,7 @@ class ProjectService {
 
         const containerName = `${project.name}.workspace`;
 
-        let container = await Docker.getContainer(containerName);
+        let container = await this.dockerService.getContainer(containerName);
 
         if(!container) {
             container = await Docker.createContainer({
@@ -74,7 +87,8 @@ class ProjectService {
                     const [, source, destination, options] = regVolume.exec(volume);
 
                     return `${Path.join(this.appConfigService.getPWD(), source)}:${destination}` + (options ? `:${options}` : "");
-                })
+                }),
+                ports: project.ports || []
             });
         }
         else {
@@ -106,6 +120,68 @@ class ProjectService {
 
             await Docker.removeContainer(`${project.name}.workspace`);
         }
+    }
+
+    public async save(project: Project) {
+        if(!project.name) {
+            throw new Error("Project should has a name");
+        }
+
+        if(!project.path) {
+            throw new Error("Project should has a path");
+        }
+
+        if(!project.id) {
+            project.id = project.name;
+        }
+
+        const projectDirPath = this.appConfigService.dataPath("projects", project.id);
+        const configPath = this.appConfigService.dataPath("projects", project.id, "config.json");
+
+        if(!FS.existsSync(projectDirPath)) {
+            await FS.mkdir(projectDirPath, {
+                recursive: true
+            });
+        }
+
+        await this.appConfigService.setProjectConfig(project.id, project.path);
+
+        await FS.writeJSON(configPath, project);
+    }
+
+    public async search(params: Partial<SearchParams> = {}): Promise<Project[]> {
+        const {id, name, path} = params;
+
+        const {
+            projects: configs
+        } = await this.appConfigService.getAppConfig();
+
+        const projects: Project[] = [];
+
+        for(const config of configs) {
+            if(id && config.id !== id) {
+                continue;
+            }
+
+            if(path && config.src !== path) {
+                continue;
+            }
+
+            const projectData = await FS.readJSON(this.appConfigService.dataPath("projects", config.id, "config.json"));
+
+            if(name && projectData.name !== name) {
+                continue;
+            }
+
+            const project = Project.fromObject({
+                id: config.id,
+                ...projectData
+            });
+
+            projects.push(project);
+        }
+
+        return projects;
     }
 }
 

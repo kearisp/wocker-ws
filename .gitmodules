@@ -1,3 +1,12 @@
 [submodule "packages/cli"]
 	path = packages/cli
 	url = git@github.com:kearisp/kp-cli.git
+[submodule "packages/core"]
+	path = packages/core
+	url = git@github.com:kearisp/wocker-core.git
+[submodule "packages/utils"]
+	path = packages/utils
+	url = git@github.com:kearisp/wocker-utils.git
+[submodule "packages/serveo-plugin"]
+	path = packages/serveo-plugin
+	url = git@github.com:kearisp/wocker-serveo-plugin.git

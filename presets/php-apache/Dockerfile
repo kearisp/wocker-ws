@@ -23,22 +23,17 @@ RUN apt-get install -y curl git
 #      libssl-dev \
 #      zlib1g-dev
 
-RUN a2enmod rewrite
-RUN a2enmod headers
-
-# Git
-#RUN apt-get install -y git
-
 # Mysqli
-ARG MYSQLI_ENABLE=true
+ARG MYSQLI_ENABLE=false
 RUN if [ "$MYSQLI_ENABLE" = "true" ]; then \
+        echo "Install mysqli" && \
         docker-php-ext-install -j "$(nproc)" mysqli && \
         docker-php-ext-enable mysqli; \
     fi
 
 # pdo
-ARG PDO_MYSQL_ENABLE=true
-RUN if [ "$PDO_ENABLE" = "true" ]; then \
+ARG PDO_MYSQL_ENABLE=false
+RUN if [ "$PDO_MYSQL_ENABLE" = "true" ]; then \
         docker-php-ext-install pdo pdo_mysql &&  \
         docker-php-ext-enable pdo_mysql; \
     fi
@@ -57,14 +52,6 @@ RUN if [ "$GD_ENABLE" = "true" ]; then \
         docker-php-ext-install exif; \
     fi
 
-#RUN compare-version $PHP_VERSION "7.3" && \
-#        docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include || \
-#        docker-php-ext-configure gd --with-freetype --with-jpeg
-
-#RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/
-#RUN docker-php-ext-configure gd --with-freetype=/usr/include/ --with-jpeg=/usr/include/
-#RUN docker-php-ext-install gd
-
 # Zip
 ARG ZIP_ENABLE=false
 RUN if [ "$ZIP_ENABLE" = "true" ]; then \
@@ -78,21 +65,6 @@ RUN if [ "$ZIP_ENABLE" = "true" ]; then \
 #RUN compare-version $PHP_VERSION "7.3" && \
 #    docker-php-ext-configure zip || \
 #    docker-php-ext-configure zip --with-libzip
-
-ADD ./etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf
-ADD ./etc/apache2/apache2.conf /etc/apache2/apache2.conf
-COPY ./etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-available/
-
-#RUN touch /usr/local/etc/php/conf.d/mail.ini && \
-#    echo "SMTP = maildev.workspace" >> /usr/local/etc/php/conf.d/mail.ini && \
-#    echo "smtp_port = 25" >> /usr/local/etc/php/conf.d/mail.ini
-
-#RUN touch /usr/local/etc/php/conf.d/uploads.ini && \
-#    echo "upload_max_filesize = 100M;" >> /usr/local/etc/php/conf.d/uploads.ini && \
-#    echo "post_max_size = 100M;" >> /usr/local/etc/php/conf.d/uploads.ini
-
-#RUN touch /usr/local/etc/php/conf.d/memory.ini && \
-#    echo "memory_limit = 256M;" >> /usr/local/etc/php/conf.d/memory.ini
 
 # Composer
 ARG COMPOSER_ENABLE=false
@@ -110,11 +82,10 @@ RUN if [ "$COMPOSER_ENABLE" = "true" ]; then \
     fi
 SHELL ["/bin/sh", "-c"]
 
-USER $USER
-
 # NodeJS
+#USER $USER
 ARG NODE_VERSION=''
-ENV NVM_DIR=/home/$USER/.nvm
+ENV NVM_DIR=/root/.nvm
 
 RUN if [ "$NODE_VERSION" != "" ] && [ "$NODE_VERSION" != "none" ]; then \
         mkdir -p $NVM_DIR; \
@@ -123,11 +94,41 @@ RUN if [ "$NODE_VERSION" != "" ] && [ "$NODE_VERSION" != "none" ]; then \
             nvm install $NODE_VERSION && \
             nvm alias default $NODE_VERSION && \
             nvm use default; \
-        echo "[ -n \"\$(command -v npm)\" ] && . <(npm completion)" >> /home/$USER/.bashrc; \
+        echo "[ -n \"\$(command -v npm)\" ] && . <(npm completion)" >> /.bashrc; \
     fi
+
+#USER root
+
+RUN a2enmod rewrite
+RUN a2enmod headers
+
+ADD ./etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf
+ADD ./etc/apache2/apache2.conf /etc/apache2/apache2.conf
+COPY ./etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-available/
+
+#RUN touch /usr/local/etc/php/conf.d/mail.ini && \
+#    echo "SMTP = maildev.workspace" >> /usr/local/etc/php/conf.d/mail.ini && \
+#    echo "smtp_port = 25" >> /usr/local/etc/php/conf.d/mail.ini
+
+#RUN touch /usr/local/etc/php/conf.d/uploads.ini && \
+#    echo "upload_max_filesize = 100M;" >> /usr/local/etc/php/conf.d/uploads.ini && \
+#    echo "post_max_size = 100M;" >> /usr/local/etc/php/conf.d/uploads.ini
+
+#RUN touch /usr/local/etc/php/conf.d/memory.ini && \
+#    echo "memory_limit = 256M;" >> /usr/local/etc/php/conf.d/memory.ini
+
+RUN touch /usr/local/bin/docker-entrypoint && \
+    echo "#!/bin/bash" >> /usr/local/bin/docker-entrypoint && \
+    echo "source /root/.bashrc" >> /usr/local/bin/docker-entrypoint && \
+    echo "exec docker-php-entrypoint \"\$@\"" >> /usr/local/bin/docker-entrypoint && \
+    chmod 775 /usr/local/bin/docker-entrypoint && \
+    chmod +x /usr/local/bin/docker-entrypoint
 
 ENV APACHE_DOCUMENT_ROOT /var/www
 WORKDIR $APACHE_DOCUMENT_ROOT
 
 EXPOSE 80
 EXPOSE 443
+
+ENTRYPOINT ["docker-entrypoint"]
+CMD ["apache2-foreground"]

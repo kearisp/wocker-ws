@@ -4,6 +4,7 @@
         "module": "CommonJS",
         "moduleResolution": "node",
         "esModuleInterop": true,
+        "exactOptionalPropertyTypes": false,
         "declaration": true,
         "removeComments": true,
         "target": "ES2020",

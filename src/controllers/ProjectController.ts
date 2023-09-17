@@ -1,3 +1,14 @@
+import {
+    DI,
+    AppConfigService as CoreAppConfigService,
+    AppEventsService as CoreAppEventsService,
+    ProjectService as CoreProjectService,
+    DockerService,
+    Project,
+    PROJECT_TYPE_DOCKERFILE,
+    PROJECT_TYPE_IMAGE
+} from "@wocker/core";
+import {promptSelect, promptText} from "@wocker/utils";
 import CliTable from "cli-table3";
 import {Cli} from "@kearisp/cli";
 import chalk from "chalk";
@@ -7,15 +18,7 @@ import {Mutex} from "async-mutex";
 import {DATA_DIR} from "src/env";
 import {EnvConfig} from "src/types";
 import {Controller, FS, Docker, Logger} from "src/makes";
-import {Project, PROJECT_TYPE_DOCKERFILE, PROJECT_TYPE_IMAGE} from "src/models";
 import {
-    AppConfigService,
-    AppEventsService,
-    ProjectService
-} from "src/services";
-import {
-    promptText,
-    promptSelect,
     getConfig,
     setConfig,
     demuxOutput
@@ -26,6 +29,10 @@ type InitOptions = {
     name?: string;
     type?: string;
     preset?: string;
+};
+
+type ListOptions = {
+    all?: boolean;
 };
 
 type StartOptions = {
@@ -67,12 +74,20 @@ type ExecOptions = {
 };
 
 class ProjectController extends Controller {
+    protected appConfigService: CoreAppConfigService;
+    protected appEventsService: CoreAppEventsService;
+    protected projectService: CoreProjectService;
+    protected dockerService: DockerService;
+
     public constructor(
-        protected appConfigService: AppConfigService,
-        protected appEventsService: AppEventsService,
-        protected projectService: ProjectService
+        protected di: DI
     ) {
         super();
+
+        this.appConfigService = this.di.resolveService<CoreAppConfigService>(CoreAppConfigService);
+        this.appEventsService = this.di.resolveService<CoreAppEventsService>(CoreAppEventsService);
+        this.projectService = this.di.resolveService<CoreProjectService>(CoreProjectService);
+        this.dockerService = this.di.resolveService<DockerService>(DockerService);
     }
 
     public install(cli: Cli) {
@@ -101,6 +116,14 @@ class ProjectController extends Controller {
             })
             .action((options) => this.init(options));
 
+        cli.command("ps")
+            .option("all", {
+                type: "boolean",
+                alias: "a",
+                description: "All projects"
+            })
+            .action((options: ListOptions) => this.projectList(options));
+
         cli.command("start")
             .help({
                 description: "Run project"
@@ -127,6 +150,10 @@ class ProjectController extends Controller {
             })
             .completion("name", () => this.getProjectNames())
             .action((options) => this.stop(options));
+
+        cli.command("run <script>")
+            .completion("script", (options) => this.getScripts())
+            .action((options, script) => this.run(script as string));
 
         cli.command("attach")
             .option("name", {
@@ -283,13 +310,24 @@ class ProjectController extends Controller {
         });
     }
 
+    protected async getScripts() {
+        try {
+            const project = await this.projectService.get();
+
+            return Object.keys(project.scripts || {});
+        }
+        catch(ignore) {
+            return [];
+        }
+    }
+
     public async init(options: InitOptions) {
         let project = await Project.searchOne({
-            src: this.appConfigService.getPWD()
+            path: this.appConfigService.getPWD()
         });
 
         if(!project) {
-            project = new Project();
+            project = new Project({});
         }
 
         if(options.name) {
@@ -300,7 +338,7 @@ class ProjectController extends Controller {
             project.name = await promptText({
                 type: "string",
                 required: true,
-                label: "Project name",
+                message: "Project name",
                 default: project.name
             });
         }
@@ -362,6 +400,41 @@ class ProjectController extends Controller {
         await project.save();
     }
 
+    public async projectList(options: ListOptions) {
+        const {
+            all
+        } = options;
+
+        const table = new CliTable({
+            head: ["Name", "Type", "Status"],
+            colAligns: ["left", "center", "center"]
+        });
+
+        const projects = await this.projectService.search({});
+
+        for(const project of projects) {
+            const container = await this.dockerService.getContainer(`${project.name}.workspace`);
+
+            if(!container) {
+                if(all) {
+                    table.push([project.name, project.type, "-"]);
+                }
+
+                continue;
+            }
+
+            const {
+                State: {
+                    Status= "stopped"
+                } = {}
+            } = await container.inspect();
+
+            table.push([project.name, project.type, Status]);
+        }
+
+        return table.toString() + "\n";
+    }
+
     public async start(options: StartOptions) {
         const {
             name,
@@ -373,13 +446,13 @@ class ProjectController extends Controller {
             await this.projectService.cdProject(name);
         }
 
-        if(rebuild) {
-            const project = await this.projectService.get();
+        const project = await this.projectService.get();
 
+        if(rebuild) {
             await this.appEventsService.emit("project:rebuild", project);
         }
 
-        await this.projectService.start();
+        await this.projectService.start(project);
 
         if(!detach) {
             const project = await this.projectService.get();
@@ -406,7 +479,39 @@ class ProjectController extends Controller {
             await this.projectService.cdProject(name);
         }
 
-        await this.projectService.stop();
+        const project = await this.projectService.get();
+
+        await this.projectService.stop(project);
+    }
+
+    public async run(script: string) {
+        const project = await this.projectService.get();
+
+        if(!project.scripts || !project.scripts[script]) {
+            throw new Error(`Script ${script} not found`);
+        }
+
+        const container = await this.dockerService.getContainer(`${project.name}.workspace`);
+
+        if(!container) {
+            throw new Error("The project is not started");
+        }
+
+        const exec = await container.exec({
+            Cmd: ["bash", "-i", "-c", project.scripts[script]],
+            AttachStdin: true,
+            AttachStdout: true,
+            AttachStderr: true,
+            Tty: process.stdin.isTTY
+        });
+
+        const stream = await exec.start({
+            hijack: true,
+            stdin: true,
+            Tty: process.stdin.isTTY
+        });
+
+        await this.dockerService.attachStream(stream);
     }
 
     public async attach(options: AttachOptions) {
@@ -579,7 +684,7 @@ class ProjectController extends Controller {
         const buildArgs = project.buildArgs || {};
 
         for(const i in buildArgs) {
-            table.push([i, buildArgs[i]]);
+            table.push([i, typeof buildArgs[i] === "string" ? buildArgs[i] : JSON.stringify(buildArgs[i])]);
         }
 
         return table.toString() + "\n";

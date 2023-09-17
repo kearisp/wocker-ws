@@ -1,10 +1,9 @@
+import {Logger} from "@wocker/core";
 import {exec as processExec} from "child_process";
 import chalk from "chalk";
 
-import {Logger} from "src/makes/Logger";
 
-
-const exec = async (command) => {
+const exec = async (command: string) => {
     Logger.info(` > ${command.trim().replace(/\s+/g, " ")}`);
 
     return new Promise((resolve, reject) => {
@@ -29,7 +28,6 @@ const exec = async (command) => {
 
         if(worker.stderr) {
             worker.stderr.on("data", (data) => {
-                // process.stdout.write(chalk.red(data));
                 process.stderr.write(data);
             });
         }

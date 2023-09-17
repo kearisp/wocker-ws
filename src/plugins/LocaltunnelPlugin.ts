@@ -1,14 +1,17 @@
+import {
+    Project,
+    DI,
+    AppConfigService,
+    AppEventsService,
+    ProjectService,
+    DockerService,
+    Logger
+} from "@wocker/core";
+import {promptConfirm, promptText} from "@wocker/utils";
 import axios from "axios";
 import {Cli} from "@kearisp/cli";
 
-import {Logger, Plugin, Docker} from "src/makes";
-import {Project} from "src/models";
-import {
-    AppConfigService,
-    AppEventsService,
-    ProjectService
-} from "src/services";
-import {promptConfirm, promptText} from "src/utils";
+import {Plugin} from "src/makes";
 
 
 type InitOptions = {
@@ -30,12 +33,18 @@ type LogsOptions = {
 };
 
 class LocaltunnelPlugin extends Plugin {
-    public constructor(
-        protected appConfigService: AppConfigService,
-        protected appEventsService: AppEventsService,
-        protected projectService: ProjectService
-    ) {
+    protected appConfigService: AppConfigService;
+    protected appEventsService: AppEventsService;
+    protected projectService: ProjectService;
+    protected dockerService: DockerService;
+
+    public constructor(di: DI) {
         super("localtunnel");
+
+        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
+        this.appEventsService = di.resolveService<AppEventsService>(AppEventsService);
+        this.projectService = di.resolveService<ProjectService>(ProjectService);
+        this.dockerService = di.resolveService<DockerService>(DockerService);
     }
 
     public install(cli: Cli) {
@@ -117,7 +126,7 @@ class LocaltunnelPlugin extends Plugin {
             return;
         }
 
-        let container = await Docker.getContainer(`localtunnel-${project.name}`);
+        let container = await this.dockerService.getContainer(`localtunnel-${project.name}`);
 
         if(container) {
             const {
@@ -132,7 +141,7 @@ class LocaltunnelPlugin extends Plugin {
                 return;
             }
             else {
-                await Docker.removeContainer(`localtunnel-${project.name}`);
+                await this.dockerService.removeContainer(`localtunnel-${project.name}`);
             }
         }
 
@@ -144,7 +153,7 @@ class LocaltunnelPlugin extends Plugin {
 
         const subdomain = project.getEnv("LOCALTUNNEL_SUBDOMAIN", project.name);
 
-        container = await Docker.createContainer({
+        container = await this.dockerService.createContainer({
             name: `localtunnel-${project.name}`,
             image: "ws-localtunnel",
             // tty: true,
@@ -238,14 +247,14 @@ class LocaltunnelPlugin extends Plugin {
 
         console.info("Localtunnel stopping...");
 
-        await Docker.removeContainer(`localtunnel-${project.name}`);
+        await this.dockerService.removeContainer(`localtunnel-${project.name}`);
     }
 
     public async build() {
-        const exists = await Docker.imageExists("ws-localtunnel");
+        const exists = await this.dockerService.imageExists("ws-localtunnel");
 
         if(!exists) {
-            await Docker.imageBuild({
+            await this.dockerService.buildImage({
                 tag: "ws-localtunnel",
                 context: this.pluginPath(),
                 src: "./Dockerfile"
@@ -255,7 +264,7 @@ class LocaltunnelPlugin extends Plugin {
 
     public async rebuild() {
         try {
-            await Docker.imageRm("ws-localtunnel");
+            await this.dockerService.imageRm("ws-localtunnel");
         }
         catch(err) {
             console.info(err.message);
@@ -366,7 +375,7 @@ class LocaltunnelPlugin extends Plugin {
 
         const project = await this.projectService.get();
 
-        const container = await Docker.getContainer(`localtunnel-${project.name}`);
+        const container = await this.dockerService.getContainer(`localtunnel-${project.name}`);
 
         const stream = await container.logs({
             follow: true,

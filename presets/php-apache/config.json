@@ -13,24 +13,19 @@
                 "8.2"
             ]
         },
-        "MYSQLI_ENABLE": {
-            "message": "Enable mysqli?",
-            "type": "boolean"
-        },
-        "PDO_MYSQL_ENABLE": {
-            "message": "Enable PDO Mysql?",
-            "type": "boolean"
-        },
-        "GD_ENABLE": {
-            "message": "Enable GD?",
-            "type": "boolean"
+        "EXTENSIONS": {
+            "type": "select",
+            "multiple": true,
+            "message": "Extensions",
+            "options": {
+                "MYSQLI_ENABLE": "Mysqli",
+                "PDO_MYSQL_ENABLE": "PDO",
+                "GD_ENABLE": "GD",
+                "ZIP_ENABLE": "Zip"
+            }
         },
         "COMPOSER_ENABLE": {
             "message": "Install composer?",
-            "type": "boolean"
-        },
-        "ZIP_ENABLE": {
-            "message": "Enable zip?",
             "type": "boolean"
         },
         "NODE_VERSION": {

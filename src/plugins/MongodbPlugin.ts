@@ -1,13 +1,10 @@
+import {DI, DockerService} from "@wocker/core";
+import {demuxOutput, promptConfirm, promptSelect} from "@wocker/utils";
 import * as Path from "path";
 import * as dateFns from "date-fns";
 import {Cli} from "@kearisp/cli";
 
 import {DATA_DIR} from "src/env";
-import {
-    demuxOutput,
-    promptConfirm,
-    promptSelect
-} from "src/utils";
 import {
     Docker,
     Logger,
@@ -17,12 +14,14 @@ import {
 
 
 class MongodbPlugin extends Plugin {
-    container = "mongodb.workspace";
-    adminContainer = "dbadmin-mongodb.workspace";
+    protected container = "mongodb.workspace";
+    protected adminContainer = "dbadmin-mongodb.workspace";
+    protected dockerService: DockerService
 
-    public constructor() {
+    public constructor(di: DI) {
         super("mongodb");
 
+        this.dockerService = di.resolveService<DockerService>(DockerService);
         this.dataDir = Path.join(DATA_DIR, "db/mongodb");
     }
 
@@ -138,7 +137,7 @@ class MongodbPlugin extends Plugin {
 
         await Docker.pullImage("mongo:latest");
 
-        const container = await Docker.createContainer({
+        const container = await this.dockerService.createContainer({
             name: this.container,
             restart: "always",
             image: "mongo:latest",
@@ -164,7 +163,7 @@ class MongodbPlugin extends Plugin {
 
         await Docker.pullImage("mongo-express:latest");
 
-        const container = await Docker.createContainer({
+        const container = await this.dockerService.createContainer({
             name: this.adminContainer,
             restart: "always",
             env: {
@@ -195,7 +194,7 @@ class MongodbPlugin extends Plugin {
     public async stopDB() {
         console.log("Mongodb stopping...");
 
-        const container = await Docker.getContainer(this.container);
+        const container = await this.dockerService.getContainer(this.container);
 
         if(container) {
             try {
@@ -211,17 +210,7 @@ class MongodbPlugin extends Plugin {
     async stopAdmin() {
         console.log("Mongodb Admin stopping...");
 
-        const container = await Docker.getContainer(this.adminContainer);
-
-        if(container) {
-            await container.stop().catch(() => {
-                //
-            });
-
-            await container.remove().catch(() => {
-                //
-            });
-        }
+        await this.dockerService.removeContainer(this.adminContainer);
     }
 
     async restart() {

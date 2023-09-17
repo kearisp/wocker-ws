@@ -1,3 +1,7 @@
+import {
+    AppConfigService,
+    DI
+} from "@wocker/core";
 import CliTable from "cli-table3";
 import {Cli} from "@kearisp/cli";
 
@@ -5,8 +9,12 @@ import {Controller, Docker} from "src/makes";
 
 
 class ImageController extends Controller {
-    public constructor() {
+    protected appConfigService: AppConfigService;
+
+    public constructor(di: DI) {
         super();
+
+        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
     }
 
     public install(cli: Cli) {

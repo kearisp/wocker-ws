@@ -1,13 +1,29 @@
+import {
+    DI,
+    AppConfigService,
+    DockerService,
+    Plugin,
+    FSManager
+} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
-
-import {Plugin, Docker} from "src/makes";
 
 
 class RedisPlugin extends Plugin {
-    protected container = "redis.workspace"
+    protected container = "redis.workspace";
+    protected commander = "redis-commander.workspace";
+    protected appConfigService: AppConfigService;
+    protected dockerService: DockerService;
+    protected fs: FSManager;
 
-    public constructor() {
-        super("redis");
+    public constructor(di: DI) {
+        super();
+
+        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
+        this.dockerService = di.resolveService<DockerService>(DockerService);
+        this.fs = new FSManager(
+            this.appConfigService.pluginsPath("redis"),
+            this.appConfigService.dataPath("plugins/redis")
+        );
     }
 
     public install(cli: Cli) {
@@ -23,36 +39,79 @@ class RedisPlugin extends Plugin {
     public async up() {
         console.log("Redis up...");
 
-        await Docker.pullImage("redis");
+        await this.dockerService.pullImage("redis");
 
-        const container = await Docker.createContainer({
-            name: this.container,
-            restart: "always",
-            env: {
-                VIRTUAL_HOST: this.container
-            },
-            volumes: [
-                `${this.dataPath()}:/data`
-            ],
-            ports: [
-                "6379:6379"
-            ],
-            image: "redis"
-        });
+        let container = await this.dockerService.getContainer(this.container);
+
+        if(!container) {
+            await this.fs.mkdir("", {
+                recursive: true
+            });
+
+            container = await this.dockerService.createContainer({
+                name: this.container,
+                image: "redis",
+                restart: "always",
+                env: {
+                    VIRTUAL_HOST: this.container
+                },
+                volumes: [
+                    `${this.fs.path()}:/data`
+                ],
+                ports: [
+                    "6379:6379"
+                ]
+            });
+        }
 
         await container.start();
+
+        await this.startCommander();
+    }
+
+    protected async startCommander() {
+        console.info("RedisCommander starting...");
+
+        let container = await this.dockerService.getContainer(this.commander);
+
+        if(!container) {
+            await this.dockerService.pullImage("rediscommander/redis-commander:latest");
+
+            container = await this.dockerService.createContainer({
+                name: this.commander,
+                image: "rediscommander/redis-commander:latest",
+                restart: "always",
+                env: {
+                    VIRTUAL_HOST: this.commander,
+                    VIRTUAL_PORT: "8081",
+                    REDIS_HOSTS: this.container
+                }
+            });
+        }
+
+        const {
+            State: {
+                Status
+            }
+        } = await container.inspect();
+
+        if(Status === "created" || Status === "exited") {
+            await container.start();
+        }
     }
 
     public async down() {
         console.log("Redis down...");
 
-        const container = await Docker.getContainer(this.container);
+        await this.dockerService.removeContainer(this.container);
 
-        await container.stop().catch(() => {
-            //
-        });
+        await this.stopCommander();
+    }
 
-        await container.remove();
+    protected async stopCommander() {
+        console.info("RedisCommander stopping...");
+
+        await this.dockerService.removeContainer(this.commander);
     }
 }
 

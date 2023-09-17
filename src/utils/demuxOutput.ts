@@ -3,8 +3,6 @@ export const demuxOutput = (buffer) => {
         output = Buffer.from([]);
 
     while(buffer.length > 0) {
-        // Logger.info(buffer.length, buffer.toString("utf8"));
-
         const header = bufferSlice(8);
         nextDataLength = header.readUInt32BE(4);
 

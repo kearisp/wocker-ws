@@ -1,17 +1,14 @@
+import {
+    DI,
+    Project,
+    AppEventsService,
+    ProjectService,
+    Logger
+} from "@wocker/core";
+import {demuxOutput, promptText, promptConfirm} from "@wocker/utils";
 import {Cli} from "@kearisp/cli";
 
-import {
-    Plugin,
-    Docker,
-    Logger
-} from "src/makes";
-import {Project} from "src/models";
-import {
-    AppConfigService,
-    AppEventsService,
-    ProjectService
-} from "src/services";
-import {demuxOutput, promptText, promptConfirm} from "src/utils";
+import {Plugin, Docker} from "src/makes";
 
 
 type StartOptions = {
@@ -36,11 +33,14 @@ type ForwardingOptions = {
 };
 
 class NgrokPlugin extends Plugin {
-    public constructor(
-        protected appEventsService: AppEventsService,
-        protected projectService: ProjectService
-    ) {
+    protected appEventsService: AppEventsService;
+    protected projectService: ProjectService;
+
+    public constructor(di: DI) {
         super("ngrok");
+
+        this.appEventsService = di.resolveService<AppEventsService>(AppEventsService);
+        this.projectService = di.resolveService<ProjectService>(ProjectService);
     }
 
     public install(cli: Cli) {

@@ -4,10 +4,14 @@ const chalk = require("chalk");
 const {app} = require("../lib/index.js");
 
 
-app.run().then((res) => {
-    if(res) {
-        process.stdout.write(res);
+app.run(process.argv).then((res) => {
+    if(!res) {
+        return;
     }
+
+    process.stdout.write(res);
 }).catch((err) => {
     console.error(chalk.red(err.message));
+
+    // throw err;
 });

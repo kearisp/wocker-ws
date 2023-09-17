@@ -1,15 +1,15 @@
-import {EventEmitter} from "events";
+import {
+    AppEventsService as CoreAppEventsService,
+    AppEventHandle
+} from "@wocker/core";
 
 
-type EventHandle = (...args: any[]) => Promise<void>|void;
-
-class AppEventsService {
-    protected emitter = new EventEmitter();
+class AppEventsService extends CoreAppEventsService {
     protected handles: ({
-        [event: string]: EventHandle[];
+        [event: string]: AppEventHandle[];
     }) = {};
 
-    public on(event: string, handle: EventHandle) {
+    public on(event: string, handle: AppEventHandle) {
         this.handles[event] = [
             ...this.handles[event] || [],
             handle
@@ -22,7 +22,7 @@ class AppEventsService {
         };
     }
 
-    public off(event: string, handle: EventHandle) {
+    public off(event: string, handle: AppEventHandle) {
         //
     }
 

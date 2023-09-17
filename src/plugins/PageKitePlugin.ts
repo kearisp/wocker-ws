@@ -1,13 +1,15 @@
+import {
+    DI,
+    AppConfigService,
+    AppEventsService,
+    ProjectService,
+    Project
+} from "@wocker/core";
+import {promptText, promptConfirm} from "@wocker/utils";
 import {Cli} from "@kearisp/cli";
 
 import {Plugin, Docker} from "src/makes";
-import {Project} from "src/models";
-import {
-    AppConfigService,
-    AppEventsService,
-    ProjectService
-} from "src/services";
-import {followProgress, promptText, promptConfirm} from "src/utils";
+import {followProgress} from "src/utils";
 
 
 type InitOptions = {
@@ -30,12 +32,16 @@ type BuildOptions = {
 };
 
 class PageKitePlugin extends Plugin {
-    constructor(
-        protected appConfigService: AppConfigService,
-        protected appEventsService: AppEventsService,
-        protected projectService: ProjectService
-    ) {
+    protected appConfigService: AppConfigService;
+    protected appEventsService: AppEventsService;
+    protected projectService: ProjectService;
+
+    constructor(di: DI) {
         super("pagekite");
+
+        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
+        this.appEventsService = di.resolveService<AppEventsService>(AppEventsService);
+        this.projectService = di.resolveService<ProjectService>(ProjectService);
     }
 
     public install(cli: Cli) {

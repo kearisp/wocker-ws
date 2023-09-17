@@ -1,13 +1,17 @@
+import {DI, DockerService} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 
-import {Plugin, Docker} from "src/makes";
+import {Plugin} from "src/makes";
 
 
 class MaildevPlugin extends Plugin {
     protected containerName = "maildev.workspace";
+    protected dockerService: DockerService;
 
-    public constructor() {
+    public constructor(di: DI) {
         super("maildev");
+
+        this.dockerService = di.resolveService<DockerService>(DockerService);
     }
 
     public install(cli: Cli) {
@@ -25,8 +29,8 @@ class MaildevPlugin extends Plugin {
 
         const imageName = "ws-maildev";
 
-        if(!await Docker.imageExists(imageName)) {
-            await Docker.imageBuild({
+        if(!await this.dockerService.imageExists(imageName)) {
+            await this.dockerService.buildImage({
                 tag: "ws-maildev",
                 buildArgs: {},
                 labels: {},
@@ -35,7 +39,7 @@ class MaildevPlugin extends Plugin {
             });
         }
 
-        await Docker.containerRun({
+        let container = await this.dockerService.createContainer({
             name: this.containerName,
             restart: "always",
             env: {
@@ -46,12 +50,14 @@ class MaildevPlugin extends Plugin {
             ],
             image: imageName
         });
+
+        await container.start();
     }
 
     public async stop() {
         console.log("Maildev stopping...");
 
-        await Docker.removeContainer(this.containerName);
+        await this.dockerService.removeContainer(this.containerName);
     }
 }
 

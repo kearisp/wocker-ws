@@ -1,11 +1,5 @@
 import inquirer from "inquirer";
 
-import {
-    Project,
-    PROJECT_TYPE_PRESET,
-    mapProjectTypes
-} from "src/store";
-
 import {App} from "./App";
 
 

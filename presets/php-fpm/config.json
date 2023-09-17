@@ -1,0 +1,25 @@
+{
+    "dockerfile": "./Dockerfile",
+    "buildArgsOptions": {
+        "PHP_VERSION": {
+            "message": "PHP version",
+            "type": "select",
+            "hash": false,
+            "options": [
+                "8.0",
+                "8.1",
+                "8.2"
+            ]
+        }
+    },
+    "envOptions": {
+        "WORKDIR": {
+            "type": "string",
+            "message": "Workdir",
+            "default": "/var/www/html"
+        }
+    },
+    "volumeOptions": [
+        "./:/var/www/html"
+    ]
+}

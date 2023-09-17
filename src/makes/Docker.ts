@@ -165,30 +165,6 @@ class Docker {
         }
 
         return null;
-        // let res = await utils.exec(
-        //     "docker container ls" +
-        //     "   --filter=name=\"" + name + "\""
-        // );
-
-        // let containers = utils.parseTable(res.stdout, {
-        //     0: "containerId",
-        //     1: "image",
-        //     2: "command",
-        //     3: "created",
-        //     4: "status",
-        //     5: "ports",
-        //     6: "names"
-        // });
-
-        // await new Promise((resolve) => {
-        //     docker.listContainers({
-        //         "all": true
-        //     }, (err, containers) => {
-        //         console.log(containers);
-        //
-        //         resolve();
-        //     });
-        // });
     }
 
     static async removeContainer(name: string) {
@@ -445,6 +421,21 @@ class Docker {
             ports = [],
             cmd = []
         } = options;
+
+        const network = docker.getNetwork("workspace");
+
+        try {
+            await network.inspect();
+        }
+        catch(err) {
+            if(err.statusCode === 404) {
+                await docker.createNetwork({
+                    Name: "workspace"
+                });
+            }
+        }
+
+        await this.pullImage(image);
 
         return await docker.createContainer({
             name,

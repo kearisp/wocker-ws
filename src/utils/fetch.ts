@@ -1,4 +1,3 @@
-import * as http from "http";
 import * as https from "https";
 import {RequestOptions} from "https";
 
@@ -39,7 +38,3 @@ export const fetch = async (url: string, options?: Options) => {
         req.end();
     });
 };
-
-class Response {
-
-}
