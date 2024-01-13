@@ -254,7 +254,7 @@ class ProjectController extends Controller {
             .completion("name", () => this.getProjectNames())
             .action((options) => this.volumeList(options));
 
-        cli.command("volume:mount <...volumes>")
+        cli.command("volume:mount [...volumes]")
             .option("name", {
                 type: "string",
                 alias: "n"
@@ -262,7 +262,7 @@ class ProjectController extends Controller {
             .completion("name", () => this.getProjectNames())
             .action((options: VolumeOptions, volumes: string[]) => this.volumeMount(options, volumes));
 
-        cli.command("volume:unmount <...volumes>")
+        cli.command("volume:unmount [...volumes]")
             .option("name", {
                 type: "string",
                 alias: "n"
@@ -815,11 +815,11 @@ class ProjectController extends Controller {
 
         const project = await this.projectService.get();
 
-        console.log(volumes);
+        if(Array.isArray(volumes) && volumes.length > 0) {
+            project.volumeMount(...volumes)
 
-        project.volumeMount(...volumes);
-
-        await project.save();
+            await project.save();
+        }
     }
 
     public async volumeUnmount(options: VolumeOptions, volumes: string[]) {
@@ -833,9 +833,11 @@ class ProjectController extends Controller {
 
         const project = await this.projectService.get();
 
-        project.volumeUnmount(...volumes);
+        if(Array.isArray(volumes) && volumes.length > 0) {
+            project.volumeUnmount(...volumes);
 
-        await project.save();
+            await project.save();
+        }
     }
 
     public async logs(options: LogsOptions) {
@@ -855,6 +857,7 @@ class ProjectController extends Controller {
                         case "info":
                             return chalk.green(substring);
 
+                        case "warn":
                         case "warning":
                             return chalk.yellow(substring);
 

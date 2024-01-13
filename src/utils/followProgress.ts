@@ -102,7 +102,7 @@ export const followProgress = async (stream: NodeJS.ReadableStream) => {
             line += Math.ceil(str.length / process.stdout.columns);
         }
         else {
-            Logger.warning("followProgress: unexpected data", data);
+            Logger.warn("followProgress: unexpected data", data);
         }
     });
 

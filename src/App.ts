@@ -77,6 +77,8 @@ export class App {
         this.cli.command("log [...items]")
             .action((options, items) => {
                 Logger.log(...items as string[]);
+
+                return "";
             });
 
         this.cli.command("debug <status>")
@@ -96,6 +98,8 @@ export class App {
         await setConfig({
             debug: status === "on"
         });
+
+        return "";
     }
 
     public async run(): Promise<string> {

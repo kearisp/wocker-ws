@@ -22,8 +22,8 @@ class LogService {
         this._log("info", ...data);
     }
 
-    public warning(...data: any[]): void {
-        this._log("warning", ...data);
+    public warn(...data: any[]): void {
+        this._log("war", ...data);
     }
 
     public error(...data: any[]): void {

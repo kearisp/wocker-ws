@@ -100,6 +100,7 @@ class ProxyController extends Controller {
                 description: "Project name"
             })
             .completion("name", () => this.getProjectNames())
+            .completion("domains", (options: DomainsOptions, domains) => this.getDomains(options.name, domains as string[]))
             .action((options: DomainsOptions, domains: string[]) => this.removeDomain(options, domains));
 
         cli.command("domain:clear")
@@ -119,6 +120,18 @@ class ProxyController extends Controller {
         const projects = await Project.search();
 
         return projects.map((project) => project.name);
+    }
+
+    public async getDomains(name: string | undefined, selected: string[]) {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        return (project.getEnv("VIRTUAL_HOST") || "").split(",").filter((domain: string) => {
+            return !selected.includes(domain);
+        });
     }
 
     public async onProjectStart(project: Project) {
