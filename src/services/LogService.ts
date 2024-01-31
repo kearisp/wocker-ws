@@ -23,7 +23,7 @@ class LogService {
     }
 
     public warn(...data: any[]): void {
-        this._log("war", ...data);
+        this._log("warn", ...data);
     }
 
     public error(...data: any[]): void {
