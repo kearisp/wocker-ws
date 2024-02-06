@@ -49,6 +49,12 @@ class ProjectService extends CoreProjectService {
         return project;
     }
 
+    public async getContainer() {
+        const project = await this.get();
+
+        return this.dockerService.getContainer(project.containerName);
+    }
+
     public async start() {
         const project = await this.get();
 
@@ -70,13 +76,11 @@ class ProjectService extends CoreProjectService {
 
         await this.appEventsService.emit("project:beforeStart", project);
 
-        const containerName = `${project.name}.workspace`;
-
-        let container = await this.dockerService.getContainer(containerName);
+        let container = await this.dockerService.getContainer(project.containerName);
 
         if(!container) {
             container = await Docker.createContainer({
-                name: containerName,
+                name: project.containerName,
                 image: project.imageName,
                 env: {
                     ...await this.appConfigService.getAllEnvVariables(),
@@ -113,7 +117,7 @@ class ProjectService extends CoreProjectService {
     public async stop() {
         const project = await this.get();
 
-        const container = await Docker.getContainer(`${project.name}.workspace`);
+        const container = await Docker.getContainer(project.containerName);
 
         if(container) {
             await this.appEventsService.emit("project:stop", project);

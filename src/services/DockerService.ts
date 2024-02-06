@@ -4,10 +4,10 @@ import {
     DockerServiceParams as Params,
     Logger
 } from "@wocker/core";
-import Docker, {Container, Ulimit} from "dockerode";
+import Docker, {Container} from "dockerode";
 
-import {FS} from "src/makes";
 import {followProgress} from "src/utils";
+import {FS} from "src/makes";
 
 
 class DockerService extends CoreDockerService {

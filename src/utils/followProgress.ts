@@ -1,4 +1,5 @@
-import {Logger} from "src/makes/Logger";
+import {Logger} from "@wocker/core";
+
 import {LineConvertStream} from "src/makes/LineConvertStream";
 import {formatSizeUnits} from "src/utils/format-size-units";
 
