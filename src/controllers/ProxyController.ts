@@ -197,17 +197,18 @@ class ProxyController extends Controller {
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: "nginxproxy/nginx-proxy",
-                volumes: [
-                    "/var/run/docker.sock:/tmp/docker.sock:ro",
-                    `${certsDir}:/etc/nginx/certs`
-                ],
+                restart: "always",
+                env: {
+                    DEFAULT_HOST: "index.workspace"
+                },
                 ports: [
                     `${httpPort}:80`,
                     `${httpsPort}:443`
                 ],
-                env: {
-                    DEFAULT_HOST: "index.workspace"
-                }
+                volumes: [
+                    "/var/run/docker.sock:/tmp/docker.sock:ro",
+                    `${certsDir}:/etc/nginx/certs`
+                ]
             });
         }
         else {
