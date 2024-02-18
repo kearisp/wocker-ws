@@ -1,6 +1,6 @@
 {
     "name": "@wocker/ws",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Docker workspace for web projects",
     "license": "MIT",

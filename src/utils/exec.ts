@@ -1,6 +1,7 @@
-import {Logger} from "@wocker/core";
 import {exec as processExec} from "child_process";
 import chalk from "chalk";
+
+import {Logger} from "../makes";
 
 
 const exec = async (command: string) => {
