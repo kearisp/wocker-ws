@@ -1,19 +1,19 @@
 import {
-    DI,
-    AppConfigService,
-    AppEventsService,
-    ProjectService,
-    DockerService,
     Controller,
-    Cli,
-    Project
+    Cli
 } from "@wocker/core";
 import {promptText} from "@wocker/utils";
 import CliTable from "cli-table3";
 import chalk from "chalk";
 
-import {FS} from "../makes";
+import {DI, FS, Project} from "../makes";
 import {demuxOutput} from "../utils";
+import {
+    AppConfigService,
+    AppEventsService,
+    ProjectService,
+    DockerService
+} from "../services";
 
 
 type InitOptions = {
@@ -281,8 +281,8 @@ class ProxyController extends Controller {
         const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
         if(container) {
-            await this.projectService.stop(project);
-            await this.projectService.start(project);
+            await this.projectService.stop();
+            await this.projectService.start();
         }
     }
 
@@ -317,8 +317,8 @@ class ProxyController extends Controller {
         const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
         if(container) {
-            await this.projectService.stop(project);
-            await this.projectService.start(project);
+            await this.projectService.stop();
+            await this.projectService.start();
         }
     }
 
@@ -364,8 +364,8 @@ class ProxyController extends Controller {
         const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
         if(container) {
-            await this.projectService.stop(project);
-            await this.projectService.start(project);
+            await this.projectService.stop();
+            await this.projectService.start();
         }
     }
 

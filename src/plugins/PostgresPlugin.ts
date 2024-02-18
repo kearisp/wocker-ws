@@ -1,11 +1,11 @@
-import {Logger} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 import * as Path from "path";
 
 import {DATA_DIR} from "../env";
 import {
     Plugin,
-    Docker
+    Docker,
+    Logger
 } from "../makes";
 
 

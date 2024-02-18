@@ -1,21 +1,50 @@
-import {
-    DI,
-    DockerService as CoreDockerService,
-    DockerServiceParams as Params,
-    Logger
-} from "@wocker/core";
 import Docker, {Container} from "dockerode";
 
 import {followProgress} from "../utils";
-import {FS} from "../makes";
+import {DI, FS, Logger} from "../makes";
 
 
-class DockerService extends CoreDockerService {
+namespace Params {
+    export type CreateContainer = {
+        name: string;
+        image: string;
+        restart?: "always";
+        projectId?: string;
+        tty?: boolean;
+        ulimits?: {
+            [key: string]: {
+                hard?: number;
+                soft?: number;
+            };
+        };
+        links?: string[];
+        env?: {
+            [key: string]: string;
+        };
+        networkMode?: string;
+        extraHosts?: any;
+        volumes?: string[];
+        ports?: string[];
+        cmd?: string[];
+    };
+
+    export type BuildImage = {
+        tag: string;
+        buildArgs?: {
+            [key: string]: string;
+        };
+        labels?: {
+            [key: string]: string;
+        };
+        context: string;
+        src: string;
+    };
+}
+
+class DockerService {
     protected docker: Docker;
 
     public constructor(di: DI) {
-        super();
-
         this.docker = new Docker({
             socketPath: "/var/run/docker.sock"
         });
@@ -271,6 +300,4 @@ class DockerService extends CoreDockerService {
 }
 
 
-export {
-    DockerService
-};
+export {DockerService};

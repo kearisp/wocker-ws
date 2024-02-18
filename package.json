@@ -22,8 +22,6 @@
         "start": "npm run watch",
         "build": "tsc",
         "watch": "tsc -w",
-        "test": "jest --colors",
-        "test-watch": "jest --colors --watch",
         "lint": "eslint \"**/*.{js,jsx,ts,tsx}\""
     },
     "dependencies": {
@@ -43,6 +41,7 @@
         "os": "^0.1.2",
         "path": "^0.12.7",
         "readable-stream": "^4.1.0",
+        "reflect-metadata": "^0.2.1",
         "tty": "^1.0.1"
     },
     "devDependencies": {

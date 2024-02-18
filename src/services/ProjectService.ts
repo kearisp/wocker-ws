@@ -1,27 +1,27 @@
-import {
-    DI,
-    AppConfigService as CoreAppConfigService,
-    AppEventsService as CoreAppEventsService,
-    DockerService,
-    ProjectService as CoreProjectService,
-    ProjectServiceSearchParams as SearchParams,
-    Project
-} from "@wocker/core";
 import * as Path from "path";
 
-import {Docker, FS} from "../makes";
+import {DI, Docker, FS, Project} from "../makes";
+import {
+    DockerService,
+    AppConfigService,
+    AppEventsService,
+} from "../services";
 
 
-class ProjectService extends CoreProjectService {
-    protected appConfigService: CoreAppConfigService;
-    protected appEventsService: CoreAppEventsService;
+type SearchParams = Partial<{
+    id: string;
+    name: string;
+    path: string;
+}>;
+
+class ProjectService {
+    protected appConfigService: AppConfigService;
+    protected appEventsService: AppEventsService;
     protected dockerService: DockerService;
 
     public constructor(di: DI) {
-        super();
-
-        this.appConfigService = di.resolveService<CoreAppConfigService>(CoreAppConfigService);
-        this.appEventsService = di.resolveService<CoreAppEventsService>(CoreAppEventsService);
+        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
+        this.appEventsService = di.resolveService<AppEventsService>(AppEventsService);
         this.dockerService = di.resolveService<DockerService>(DockerService);
     }
 

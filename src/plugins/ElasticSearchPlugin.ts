@@ -1,11 +1,11 @@
-import {
-    DI,
-    AppConfigService,
-    DockerService,
-    Plugin,
-    FSManager
-} from "@wocker/core";
+import {FSManager} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
+
+import {Plugin, DI} from "../makes";
+import {
+    AppConfigService,
+    DockerService
+} from "../services";
 
 
 type StartOptions = {
@@ -19,7 +19,7 @@ class ElasticSearchPlugin extends Plugin {
     protected fs: FSManager;
 
     public constructor(di: DI) {
-        super();
+        super("elastic-search");
 
         this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
         this.dockerService = di.resolveService<DockerService>(DockerService);

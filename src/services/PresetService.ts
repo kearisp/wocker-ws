@@ -1,20 +1,18 @@
-import {
-    DI,
-    PresetService as CorePresetService,
-    PresetServiceSearchOptions as SearchOptions,
-    Preset,
-    EnvConfig
-} from "@wocker/core";
 import md5 from "md5";
 
-import {FS} from "../makes";
 import {PRESETS_DIR} from "../env";
+import {EnvConfig} from "../types";
+import {DI, FS, Preset} from "../makes";
 
 
-class PresetService extends CorePresetService {
-    public constructor(di: DI) {
-        super();
-    }
+type SearchOptions = Partial<{
+    name: string;
+}>;
+
+class PresetService {
+    public constructor(
+        di: DI
+    ) {}
 
     public getImageName(preset: Preset, buildArgs: EnvConfig = {}): string {
         const rawValues = [];
@@ -82,7 +80,16 @@ class PresetService extends CorePresetService {
 
         return presets;
     }
+
+    public async searchOne(options: SearchOptions = {}): Promise<Preset|null> {
+        const [preset] = await this.search(options);
+
+        return preset || null;
+    }
 }
 
 
-export {PresetService};
+export {
+    PresetService,
+    SearchOptions as PresetServiceSearchOptions
+};

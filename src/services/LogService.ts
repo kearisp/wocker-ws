@@ -1,10 +1,7 @@
-import {
-    DI,
-    AppConfigService
-} from "@wocker/core";
 import dateFormat from "date-fns/format";
 
-import {FS} from "../makes";
+import {FS, DI} from "../makes";
+import {AppConfigService} from "./AppConfigService";
 
 
 class LogService {

@@ -1,14 +1,9 @@
-import {
-    DI,
-    AppConfigService,
-    Controller,
-    Logger
-} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 import axios from "axios";
 import chalk from "chalk";
 
-import {PluginService} from "../services";
+import {DI, Controller, Logger} from "../makes";
+import {AppConfigService, PluginService} from "../services";
 import {exec} from "../utils";
 
 

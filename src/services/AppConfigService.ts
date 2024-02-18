@@ -1,11 +1,7 @@
-import {
-    AppConfigService as CoreAppConfigService,
-    AppConfig,
-    EnvConfig
-} from "@wocker/core";
 import * as Path from "path";
 
 import {MAP_PATH, DATA_DIR, PLUGINS_DIR} from "../env";
+import {Config, EnvConfig} from "../types";
 import {FS} from "../makes";
 
 
@@ -13,7 +9,7 @@ type TypeMap = {
     [type: string]: string;
 };
 
-class AppConfigService extends CoreAppConfigService {
+class AppConfigService {
     protected pwd: string;
     protected mapTypes: TypeMap = {
         image: "Image",
@@ -21,8 +17,6 @@ class AppConfigService extends CoreAppConfigService {
     };
 
     public constructor() {
-        super();
-
         this.pwd = (process.cwd() || process.env.PWD);
     }
 
@@ -42,11 +36,11 @@ class AppConfigService extends CoreAppConfigService {
         this.pwd = pwd;
     }
 
-    public async getAppConfig(): Promise<AppConfig> {
+    public async getAppConfig(): Promise<Config> {
         return FS.readJSON(MAP_PATH);
     }
 
-    private async saveAppConfig(config: AppConfig) {
+    private async saveAppConfig(config: Config) {
         await FS.writeJSON(MAP_PATH, config);
     }
 

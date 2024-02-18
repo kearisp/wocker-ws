@@ -1,4 +1,5 @@
-import {DI, Cli, Controller} from "@wocker/core";
+import {Cli} from "@wocker/core";
+import {DI, Controller} from "../makes";
 
 
 class PluginService {
