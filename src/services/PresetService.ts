@@ -7,8 +7,8 @@ import {
 } from "@wocker/core";
 import md5 from "md5";
 
-import {FS, Logger} from "src/makes";
-import {PRESETS_DIR} from "src/env";
+import {FS} from "../makes";
+import {PRESETS_DIR} from "../env";
 
 
 class PresetService extends CorePresetService {

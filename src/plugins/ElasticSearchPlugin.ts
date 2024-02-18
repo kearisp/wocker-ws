@@ -3,8 +3,7 @@ import {
     AppConfigService,
     DockerService,
     Plugin,
-    FSManager,
-    Logger
+    FSManager
 } from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 

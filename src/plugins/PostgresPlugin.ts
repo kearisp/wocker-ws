@@ -2,11 +2,11 @@ import {Logger} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 import * as Path from "path";
 
-import {DATA_DIR} from "src/env";
+import {DATA_DIR} from "../env";
 import {
     Plugin,
     Docker
-} from "src/makes";
+} from "../makes";
 
 
 class PostgresPlugin extends Plugin {

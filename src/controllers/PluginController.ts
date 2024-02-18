@@ -8,8 +8,8 @@ import {Cli} from "@kearisp/cli";
 import axios from "axios";
 import chalk from "chalk";
 
-import {PluginService} from "src/services";
-import {exec} from "src/utils";
+import {PluginService} from "../services";
+import {exec} from "../utils";
 
 
 type AddOptions = {};

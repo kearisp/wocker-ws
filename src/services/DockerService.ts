@@ -6,8 +6,8 @@ import {
 } from "@wocker/core";
 import Docker, {Container} from "dockerode";
 
-import {followProgress} from "src/utils";
-import {FS} from "src/makes";
+import {followProgress} from "../utils";
+import {FS} from "../makes";
 
 
 class DockerService extends CoreDockerService {

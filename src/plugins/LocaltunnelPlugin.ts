@@ -11,7 +11,7 @@ import {promptConfirm, promptText} from "@wocker/utils";
 import axios from "axios";
 import {Cli} from "@kearisp/cli";
 
-import {Plugin} from "src/makes";
+import {Plugin} from "../makes";
 
 
 type InitOptions = {

@@ -9,7 +9,7 @@ import {
 } from "@wocker/core";
 import * as Path from "path";
 
-import {Docker, FS} from "src/makes";
+import {Docker, FS} from "../makes";
 
 
 class ProjectService extends CoreProjectService {

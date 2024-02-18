@@ -14,9 +14,9 @@ import {
 import {Cli} from "@kearisp/cli";
 import * as Path from "path";
 
-import {DATA_DIR, MAP_PATH} from "src/env";
-import {setConfig} from "src/utils";
-import {FS} from "src/makes";
+import {DATA_DIR, MAP_PATH} from "./env";
+import {setConfig} from "./utils";
+import {FS} from "./makes";
 import {
     AppConfigService,
     AppEventsService,
@@ -25,14 +25,14 @@ import {
     PresetService,
     PluginService,
     ProjectService
-} from "src/services";
+} from "./services";
 import {
     ImageController,
     PluginController,
     PresetController,
     ProjectController,
     ProxyController
-} from "src/controllers";
+} from "./controllers";
 
 
 export class App {

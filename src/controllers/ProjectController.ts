@@ -15,14 +15,14 @@ import chalk from "chalk";
 import * as Path from "path";
 import {Mutex} from "async-mutex";
 
-import {DATA_DIR} from "src/env";
-import {EnvConfig} from "src/types";
-import {Controller, FS, Docker, Logger} from "src/makes";
+import {DATA_DIR} from "../env";
+import {EnvConfig} from "../types";
+import {Controller, FS, Docker, Logger} from "../makes";
 import {
     getConfig,
     setConfig,
     demuxOutput
-} from "src/utils";
+} from "../utils";
 
 
 type InitOptions = {

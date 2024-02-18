@@ -1,7 +1,7 @@
 import {DI, DockerService} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 
-import {Plugin} from "src/makes";
+import {Plugin} from "../makes";
 
 
 class MaildevPlugin extends Plugin {

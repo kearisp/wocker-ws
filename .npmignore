@@ -1,24 +1,34 @@
-# misc
-/.idea
-/.git
+# Misc
+.idea/
+.vscode/
+/.eslintcache
+.DS_Store
 
-# dependencies
-/node_modules
-/packages
-/bin/completion.sh
-/bin/ssl-generate
-/bin/test.sh
-/bin/compare-version
-/lib/tsconfig.tsbuildinfo
+# Source code
 /src
 /test
-/.babelrc.js
-/.eslintrc.js
-/.gitignore
-/.gitmodules
-/jest.config.ts
+*.spec.js
+
+# Builds
+/lib/tsconfig.tsbuildinfo
+
+# Build configs
+/.env
 /package-lock.json
 /tsconfig.json
 /tsconfig.build.json
+/.eslintrc.js
+/.babelrc.js
+/jest.config.ts
 /webpack.config.js
-*.spec.js
+
+# Dependency directories
+/node_modules
+jspm_packages/
+/.pnp
+.pnp.js
+
+# Development tools
+/.gitignore
+/.gitmodules
+/.github

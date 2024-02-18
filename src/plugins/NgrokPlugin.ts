@@ -8,7 +8,7 @@ import {
 import {demuxOutput, promptText, promptConfirm} from "@wocker/utils";
 import {Cli} from "@kearisp/cli";
 
-import {Plugin, Docker} from "src/makes";
+import {Plugin, Docker} from "../makes";
 
 
 type StartOptions = {

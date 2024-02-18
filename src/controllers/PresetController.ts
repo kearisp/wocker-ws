@@ -12,8 +12,8 @@ import {
 import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
 import * as Path from "path";
 
-import {PRESETS_DIR} from "src/env";
-import {injectVariables, volumeParse, volumeFormat} from "src/utils";
+import {PRESETS_DIR} from "../env";
+import {injectVariables, volumeParse, volumeFormat} from "../utils";
 
 
 type BuildParams = {

@@ -1,7 +1,7 @@
 import {Logger} from "@wocker/core";
 
-import {LineConvertStream} from "src/makes/LineConvertStream";
-import {formatSizeUnits} from "src/utils/format-size-units";
+import {LineConvertStream} from "../makes/LineConvertStream";
+import {formatSizeUnits} from "./format-size-units";
 
 
 type Data = {

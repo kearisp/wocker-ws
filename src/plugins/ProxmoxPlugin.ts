@@ -1,8 +1,8 @@
 import * as Path from "path";
 import {Cli} from "@kearisp/cli";
 
-import {Plugin, Docker} from "src/makes";
-import {exec} from "src/utils";
+import {Plugin, Docker} from "../makes";
+import {exec} from "../utils";
 
 
 export class ProxmoxPlugin extends Plugin {

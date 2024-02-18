@@ -5,8 +5,8 @@ import {
 } from "@wocker/core";
 import * as Path from "path";
 
-import {MAP_PATH, DATA_DIR, PLUGINS_DIR} from "src/env";
-import {FS} from "src/makes";
+import {MAP_PATH, DATA_DIR, PLUGINS_DIR} from "../env";
+import {FS} from "../makes";
 
 
 type TypeMap = {

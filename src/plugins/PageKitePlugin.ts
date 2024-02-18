@@ -8,8 +8,8 @@ import {
 import {promptText, promptConfirm} from "@wocker/utils";
 import {Cli} from "@kearisp/cli";
 
-import {Plugin, Docker} from "src/makes";
-import {followProgress} from "src/utils";
+import {Plugin, Docker} from "../makes";
+import {followProgress} from "../utils";
 
 
 type InitOptions = {

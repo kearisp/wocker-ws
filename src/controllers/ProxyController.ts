@@ -12,8 +12,8 @@ import {promptText} from "@wocker/utils";
 import CliTable from "cli-table3";
 import chalk from "chalk";
 
-import {FS} from "src/makes";
-import {demuxOutput} from "src/utils";
+import {FS} from "../makes";
+import {demuxOutput} from "../utils";
 
 
 type InitOptions = {

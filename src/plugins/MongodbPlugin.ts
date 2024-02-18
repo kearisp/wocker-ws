@@ -4,13 +4,13 @@ import * as Path from "path";
 import * as dateFns from "date-fns";
 import {Cli} from "@kearisp/cli";
 
-import {DATA_DIR} from "src/env";
+import {DATA_DIR} from "../env";
 import {
     Docker,
     Logger,
     Plugin,
     FS
-} from "src/makes";
+} from "../makes";
 
 
 class MongodbPlugin extends Plugin {

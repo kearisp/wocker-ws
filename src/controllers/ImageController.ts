@@ -5,7 +5,7 @@ import {
 import CliTable from "cli-table3";
 import {Cli} from "@kearisp/cli";
 
-import {Controller, Docker} from "src/makes";
+import {Controller, Docker} from "../makes";
 
 
 class ImageController extends Controller {
