@@ -1,11 +1,8 @@
-import {
-    AppConfigService,
-    DI
-} from "@wocker/core";
 import CliTable from "cli-table3";
 import {Cli} from "@kearisp/cli";
 
-import {Controller, Docker} from "src/makes";
+import {DI, Controller, Docker} from "../makes";
+import {AppConfigService} from "../services";
 
 
 class ImageController extends Controller {

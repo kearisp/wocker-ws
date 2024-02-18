@@ -1,8 +1,11 @@
+import {EnvConfig} from "./EnvConfig";
+
+
 export type Config = {
     debug?: boolean;
-    env: {
-        [key: string]: string;
-    };
+    meta: EnvConfig;
+    env: EnvConfig;
+    plugins: string[];
     projects: {
         id: string;
         name?: string;

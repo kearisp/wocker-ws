@@ -1,6 +1,6 @@
-import {MAP_PATH} from "src/env";
-import {FS} from "src/makes/FS";
-import {Config} from "src/types";
+import {MAP_PATH} from "../env";
+import {FS} from "../makes/FS";
+import {Config} from "../types";
 
 import {getConfig} from "./get-config";
 

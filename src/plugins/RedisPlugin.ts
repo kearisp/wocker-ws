@@ -1,11 +1,11 @@
-import {
-    DI,
-    AppConfigService,
-    DockerService,
-    Plugin,
-    FSManager
-} from "@wocker/core";
+import {FSManager} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
+
+import {DI, Plugin} from "../makes";
+import {
+    AppConfigService,
+    DockerService
+} from "../services";
 
 
 class RedisPlugin extends Plugin {
@@ -16,7 +16,7 @@ class RedisPlugin extends Plugin {
     protected fs: FSManager;
 
     public constructor(di: DI) {
-        super();
+        super("redis");
 
         this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
         this.dockerService = di.resolveService<DockerService>(DockerService);

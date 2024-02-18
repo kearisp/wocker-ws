@@ -1,6 +1,6 @@
-import {MAP_PATH} from "src/env";
-import {Config} from "src/types";
-import {FS} from "src/makes/FS";
+import {MAP_PATH} from "../env";
+import {Config} from "../types";
+import {FS} from "../makes/FS";
 
 
 export const getConfig = async (): Promise<Config> => {

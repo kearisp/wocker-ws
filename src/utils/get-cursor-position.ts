@@ -1,6 +1,3 @@
-// import {} from "tty";
-
-
 const code = '\x1b[6n';
 
 

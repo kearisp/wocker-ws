@@ -1,10 +1,7 @@
-import {
-    DI,
-    AppConfigService
-} from "@wocker/core";
 import dateFormat from "date-fns/format";
 
-import {FS} from "../makes";
+import {FS, DI} from "../makes";
+import {AppConfigService} from "./AppConfigService";
 
 
 class LogService {
@@ -22,8 +19,8 @@ class LogService {
         this._log("info", ...data);
     }
 
-    public warning(...data: any[]): void {
-        this._log("warning", ...data);
+    public warn(...data: any[]): void {
+        this._log("warn", ...data);
     }
 
     public error(...data: any[]): void {

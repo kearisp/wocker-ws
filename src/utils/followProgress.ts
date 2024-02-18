@@ -1,6 +1,6 @@
-import {Logger} from "src/makes/Logger";
-import {LineConvertStream} from "src/makes/LineConvertStream";
-import {formatSizeUnits} from "src/utils/format-size-units";
+import {LineConvertStream} from "../makes/LineConvertStream";
+import {formatSizeUnits} from "./format-size-units";
+import {Logger} from "../makes";
 
 
 type Data = {
@@ -102,7 +102,7 @@ export const followProgress = async (stream: NodeJS.ReadableStream) => {
             line += Math.ceil(str.length / process.stdout.columns);
         }
         else {
-            Logger.warning("followProgress: unexpected data", data);
+            Logger.warn("followProgress: unexpected data", data);
         }
     });
 

@@ -1,15 +1,13 @@
-import {
-    DI,
-    AppConfigService,
-    AppEventsService,
-    ProjectService,
-    Project
-} from "@wocker/core";
 import {promptText, promptConfirm} from "@wocker/utils";
 import {Cli} from "@kearisp/cli";
 
-import {Plugin, Docker} from "src/makes";
-import {followProgress} from "src/utils";
+import {DI, Plugin, Project, Docker} from "../makes";
+import {followProgress} from "../utils";
+import {
+    AppConfigService,
+    AppEventsService,
+    ProjectService
+} from "../services";
 
 
 type InitOptions = {
