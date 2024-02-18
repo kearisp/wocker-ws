@@ -26,4 +26,4 @@ This will enable tab completion for `ws` commands, providing a more convenient a
 
 Wocker is a powerful tool for managing your web project's Docker workspace. It provides a convenient and efficient way to set up and manage your Docker containers.
 
-For more information and detailed usage, please refer to the [documentation](https://kearisp.github.io/wocker)
+For more information and detailed usage, please refer to the [documentation](https://kearisp.github.io/wocker).

@@ -1,19 +1,17 @@
+import {Cli} from "@wocker/core";
+import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
+import * as Path from "path";
+
+import {PRESETS_DIR} from "../env";
+import {injectVariables, volumeParse, volumeFormat} from "../utils";
+import {DI, Controller, Project} from "../makes";
 import {
-    DI,
-    Controller,
-    Cli,
     AppConfigService,
     AppEventsService,
     ProjectService,
     PresetService,
-    DockerService,
-    Project
-} from "@wocker/core";
-import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
-import * as Path from "path";
-
-import {PRESETS_DIR} from "src/env";
-import {injectVariables, volumeParse, volumeFormat} from "src/utils";
+    DockerService
+} from "../services";
 
 
 type BuildParams = {

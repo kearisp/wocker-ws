@@ -1,6 +1,6 @@
 import Dockerode from "dockerode";
-import {imageBuild} from "src/utils/image-build";
-import {followProgress} from "src/utils/followProgress";
+import {imageBuild} from "../utils/image-build";
+import {followProgress} from "../utils/followProgress";
 
 import {FS} from "./FS";
 import {Logger} from "./Logger";

@@ -1,9 +1,9 @@
 import * as Path from "path";
 import {Cli} from "@kearisp/cli";
 
-import {DATA_DIR, PLUGINS_DIR} from "src/env";
-import {Controller} from "src/makes/Controller";
-import {FS} from "src/makes/FS";
+import {DATA_DIR, PLUGINS_DIR} from "../env";
+import {Controller} from "../makes/Controller";
+import {FS} from "../makes/FS";
 
 
 class Plugin extends Controller {

@@ -1,5 +1,6 @@
-import {exec} from "./exec";
 import * as Path from "path";
+
+import {exec} from "./exec";
 
 
 type Options = {

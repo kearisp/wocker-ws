@@ -1,16 +1,17 @@
-import {DI, DockerService} from "@wocker/core";
 import {demuxOutput, promptConfirm, promptSelect} from "@wocker/utils";
 import * as Path from "path";
 import * as dateFns from "date-fns";
 import {Cli} from "@kearisp/cli";
 
-import {DATA_DIR} from "src/env";
+import {DATA_DIR} from "../env";
 import {
+    DI,
     Docker,
     Logger,
     Plugin,
     FS
-} from "src/makes";
+} from "../makes";
+import {DockerService} from "../services";
 
 
 class MongodbPlugin extends Plugin {

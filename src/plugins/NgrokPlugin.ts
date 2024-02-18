@@ -1,14 +1,11 @@
-import {
-    DI,
-    Project,
-    AppEventsService,
-    ProjectService,
-    Logger
-} from "@wocker/core";
 import {demuxOutput, promptText, promptConfirm} from "@wocker/utils";
 import {Cli} from "@kearisp/cli";
 
-import {Plugin, Docker} from "src/makes";
+import {DI, Plugin, Project, Docker, Logger} from "../makes";
+import {
+    AppEventsService,
+    ProjectService
+} from "../services";
 
 
 type StartOptions = {

@@ -26,3 +26,5 @@ app.use(RedisPlugin);
 
 
 export {app};
+export * from "./makes";
+export * from "./services";

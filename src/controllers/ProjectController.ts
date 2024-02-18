@@ -1,28 +1,29 @@
-import {
-    DI,
-    AppConfigService as CoreAppConfigService,
-    AppEventsService as CoreAppEventsService,
-    ProjectService as CoreProjectService,
-    DockerService,
-    Project,
-    PROJECT_TYPE_DOCKERFILE,
-    PROJECT_TYPE_IMAGE
-} from "@wocker/core";
 import {promptSelect, promptText} from "@wocker/utils";
-import CliTable from "cli-table3";
 import {Cli} from "@kearisp/cli";
+import CliTable from "cli-table3";
 import chalk from "chalk";
 import * as Path from "path";
 import {Mutex} from "async-mutex";
 
-import {DATA_DIR} from "src/env";
-import {EnvConfig} from "src/types";
-import {Controller, FS, Docker, Logger} from "src/makes";
+import {DATA_DIR} from "../env";
+import {EnvConfig} from "../types";
+import {DI, Controller, FS, Docker, Logger} from "../makes";
+import {
+    Project,
+    PROJECT_TYPE_DOCKERFILE,
+    PROJECT_TYPE_IMAGE
+} from "../makes";
+import {
+    AppConfigService,
+    AppEventsService,
+    ProjectService,
+    DockerService
+} from "../services";
 import {
     getConfig,
     setConfig,
     demuxOutput
-} from "src/utils";
+} from "../utils";
 
 
 type InitOptions = {
@@ -74,9 +75,9 @@ type ExecOptions = {
 };
 
 class ProjectController extends Controller {
-    protected appConfigService: CoreAppConfigService;
-    protected appEventsService: CoreAppEventsService;
-    protected projectService: CoreProjectService;
+    protected appConfigService: AppConfigService;
+    protected appEventsService: AppEventsService;
+    protected projectService: ProjectService;
     protected dockerService: DockerService;
 
     public constructor(
@@ -84,9 +85,9 @@ class ProjectController extends Controller {
     ) {
         super();
 
-        this.appConfigService = this.di.resolveService<CoreAppConfigService>(CoreAppConfigService);
-        this.appEventsService = this.di.resolveService<CoreAppEventsService>(CoreAppEventsService);
-        this.projectService = this.di.resolveService<CoreProjectService>(CoreProjectService);
+        this.appConfigService = this.di.resolveService<AppConfigService>(AppConfigService);
+        this.appEventsService = this.di.resolveService<AppEventsService>(AppEventsService);
+        this.projectService = this.di.resolveService<ProjectService>(ProjectService);
         this.dockerService = this.di.resolveService<DockerService>(DockerService);
     }
 
@@ -254,7 +255,7 @@ class ProjectController extends Controller {
             .completion("name", () => this.getProjectNames())
             .action((options) => this.volumeList(options));
 
-        cli.command("volume:mount <...volumes>")
+        cli.command("volume:mount [...volumes]")
             .option("name", {
                 type: "string",
                 alias: "n"
@@ -262,7 +263,7 @@ class ProjectController extends Controller {
             .completion("name", () => this.getProjectNames())
             .action((options: VolumeOptions, volumes: string[]) => this.volumeMount(options, volumes));
 
-        cli.command("volume:unmount <...volumes>")
+        cli.command("volume:unmount [...volumes]")
             .option("name", {
                 type: "string",
                 alias: "n"
@@ -452,7 +453,7 @@ class ProjectController extends Controller {
             await this.appEventsService.emit("project:rebuild", project);
         }
 
-        await this.projectService.start(project);
+        await this.projectService.start();
 
         if(!detach) {
             const project = await this.projectService.get();
@@ -479,9 +480,7 @@ class ProjectController extends Controller {
             await this.projectService.cdProject(name);
         }
 
-        const project = await this.projectService.get();
-
-        await this.projectService.stop(project);
+        await this.projectService.stop();
     }
 
     public async run(script: string) {
@@ -815,11 +814,11 @@ class ProjectController extends Controller {
 
         const project = await this.projectService.get();
 
-        console.log(volumes);
+        if(Array.isArray(volumes) && volumes.length > 0) {
+            project.volumeMount(...volumes)
 
-        project.volumeMount(...volumes);
-
-        await project.save();
+            await project.save();
+        }
     }
 
     public async volumeUnmount(options: VolumeOptions, volumes: string[]) {
@@ -833,9 +832,11 @@ class ProjectController extends Controller {
 
         const project = await this.projectService.get();
 
-        project.volumeUnmount(...volumes);
+        if(Array.isArray(volumes) && volumes.length > 0) {
+            project.volumeUnmount(...volumes);
 
-        await project.save();
+            await project.save();
+        }
     }
 
     public async logs(options: LogsOptions) {
@@ -855,6 +856,7 @@ class ProjectController extends Controller {
                         case "info":
                             return chalk.green(substring);
 
+                        case "warn":
                         case "warning":
                             return chalk.yellow(substring);
 

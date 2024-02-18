@@ -1,19 +1,19 @@
 import {
-    DI,
-    AppConfigService,
-    AppEventsService,
-    ProjectService,
-    DockerService,
     Controller,
-    Cli,
-    Project
+    Cli
 } from "@wocker/core";
 import {promptText} from "@wocker/utils";
 import CliTable from "cli-table3";
 import chalk from "chalk";
 
-import {FS} from "src/makes";
-import {demuxOutput} from "src/utils";
+import {DI, FS, Project} from "../makes";
+import {demuxOutput} from "../utils";
+import {
+    AppConfigService,
+    AppEventsService,
+    ProjectService,
+    DockerService
+} from "../services";
 
 
 type InitOptions = {
@@ -100,6 +100,7 @@ class ProxyController extends Controller {
                 description: "Project name"
             })
             .completion("name", () => this.getProjectNames())
+            .completion("domains", (options: DomainsOptions, domains) => this.getDomains(options.name, domains as string[]))
             .action((options: DomainsOptions, domains: string[]) => this.removeDomain(options, domains));
 
         cli.command("domain:clear")
@@ -119,6 +120,18 @@ class ProxyController extends Controller {
         const projects = await Project.search();
 
         return projects.map((project) => project.name);
+    }
+
+    public async getDomains(name: string | undefined, selected: string[]) {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        return (project.getEnv("VIRTUAL_HOST") || "").split(",").filter((domain: string) => {
+            return !selected.includes(domain);
+        });
     }
 
     public async onProjectStart(project: Project) {
@@ -184,17 +197,18 @@ class ProxyController extends Controller {
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: "nginxproxy/nginx-proxy",
-                volumes: [
-                    "/var/run/docker.sock:/tmp/docker.sock:ro",
-                    `${certsDir}:/etc/nginx/certs`
-                ],
+                restart: "always",
+                env: {
+                    DEFAULT_HOST: "index.workspace"
+                },
                 ports: [
                     `${httpPort}:80`,
                     `${httpsPort}:443`
                 ],
-                env: {
-                    DEFAULT_HOST: "index.workspace"
-                }
+                volumes: [
+                    "/var/run/docker.sock:/tmp/docker.sock:ro",
+                    `${certsDir}:/etc/nginx/certs`
+                ]
             });
         }
         else {
@@ -267,8 +281,8 @@ class ProxyController extends Controller {
         const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
         if(container) {
-            await this.projectService.stop(project);
-            await this.projectService.start(project);
+            await this.projectService.stop();
+            await this.projectService.start();
         }
     }
 
@@ -303,8 +317,8 @@ class ProxyController extends Controller {
         const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
         if(container) {
-            await this.projectService.stop(project);
-            await this.projectService.start(project);
+            await this.projectService.stop();
+            await this.projectService.start();
         }
     }
 
@@ -350,8 +364,8 @@ class ProxyController extends Controller {
         const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
         if(container) {
-            await this.projectService.stop(project);
-            await this.projectService.start(project);
+            await this.projectService.stop();
+            await this.projectService.start();
         }
     }
 

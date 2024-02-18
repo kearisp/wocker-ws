@@ -3,9 +3,10 @@ ARG PHP_VERSION
 FROM php:${PHP_VERSION}-apache
 
 ARG UID=1000
-ARG USER=user
+ARG USER=www-data
 
-RUN useradd -G root,www-data -u $UID -d /home/$USER $USER && \
+RUN usermod -u 1000 www-data && \
+#    useradd -G root,www-data -u $UID -d /home/$USER $USER && \
     mkdir -p /home/$USER && \
     touch /home/$USER/.bashrc && \
     chown -R $USER:$USER /home/$USER

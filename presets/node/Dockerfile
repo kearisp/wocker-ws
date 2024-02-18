@@ -3,6 +3,9 @@ ARG PACKAGE_MANAGER
 
 FROM node:${NODE_VERSION}
 
+ARG UID=1000
+ARG USER=user
+
 ENV TZ=America/Los_Angeles
 ENV APP_PORT 80
 ENV PORT=$APP_PORT
@@ -26,8 +29,7 @@ WORKDIR /usr/app
 
 EXPOSE 80
 
-#CMD npm install && \
-#    ${NPM_RUN}
+USER $UID
 
 CMD if [ "$PACKAGE_MANAGER" = "npm" ]; then \
         npm install --quiet --no-progress; \

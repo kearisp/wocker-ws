@@ -1,22 +1,16 @@
-import {
-    DI,
-    AppConfigService as CoreAppConfigService,
-    AppEventsService as CoreAppEventsService,
-    DockerService as CoreDockerService,
-    LogService as CoreLogService,
-    PresetService as CorePresetService,
-    ProjectService as CoreProjectService,
-    Preset,
-    Project,
-    Logger,
-    Controller
-} from "@wocker/core";
+import {Controller} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 import * as Path from "path";
 
-import {DATA_DIR, MAP_PATH} from "src/env";
-import {setConfig} from "src/utils";
-import {FS} from "src/makes";
+import {DATA_DIR, MAP_PATH} from "./env";
+import {setConfig} from "./utils";
+import {
+    DI,
+    FS,
+    Preset,
+    Project,
+    Logger
+} from "./makes";
 import {
     AppConfigService,
     AppEventsService,
@@ -25,14 +19,14 @@ import {
     PresetService,
     PluginService,
     ProjectService
-} from "src/services";
+} from "./services";
 import {
     ImageController,
     PluginController,
     PresetController,
     ProjectController,
     ProxyController
-} from "src/controllers";
+} from "./controllers";
 
 
 export class App {
@@ -45,13 +39,13 @@ export class App {
 
         this.appConfigService = new AppConfigService();
 
-        this.di.registerService(CoreAppConfigService, this.appConfigService);
-        this.di.registerService(CoreAppEventsService, new AppEventsService());
-        this.di.registerService(CoreDockerService, new DockerService(this.di));
-        this.di.registerService(CorePresetService, new PresetService(this.di));
+        this.di.registerService(AppConfigService, this.appConfigService);
+        this.di.registerService(AppEventsService, new AppEventsService());
+        this.di.registerService(DockerService, new DockerService(this.di));
+        this.di.registerService(PresetService, new PresetService(this.di));
         this.di.registerService(PluginService, new PluginService(this.di));
-        this.di.registerService(CoreProjectService, new ProjectService(this.di));
-        this.di.registerService(CoreLogService, new LogService(this.di));
+        this.di.registerService(ProjectService, new ProjectService(this.di));
+        this.di.registerService(LogService, new LogService(this.di));
 
         this.di.registerService(Cli, this.cli);
         this.cli = new Cli(Logger);
@@ -77,6 +71,8 @@ export class App {
         this.cli.command("log [...items]")
             .action((options, items) => {
                 Logger.log(...items as string[]);
+
+                return "";
             });
 
         this.cli.command("debug <status>")
@@ -96,6 +92,8 @@ export class App {
         await setConfig({
             debug: status === "on"
         });
+
+        return "";
     }
 
     public async run(): Promise<string> {
