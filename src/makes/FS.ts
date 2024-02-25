@@ -1,3 +1,5 @@
+import {FS as CoreFS} from "@wocker/core";
+
 import * as fs from "fs"
 import {
     Stats,
@@ -22,7 +24,7 @@ type ReaddirFilesOptions = {
     recursive?: boolean;
 };
 
-class FS {
+class FS extends CoreFS {
     static async access(path: PathLike): Promise<any> {
         return new Promise((resolve, reject) => {
             fs.access(path, (err) => {
@@ -151,10 +153,6 @@ class FS {
         return fs.appendFileSync(path, data, options);
     }
 
-    static read() {
-        //
-    }
-
     static async readBytes(filePath: PathLike, position: number|bigint = 0, size?: number|bigint): Promise<Buffer> {
         if(position < 0 && typeof size === "undefined") {
             const stats = await FS.stat(filePath);
@@ -204,38 +202,8 @@ class FS {
         });
     }
 
-    static async readFile(filePath: PathLike | number): Promise<Buffer> {
-        return new Promise((resolve, reject) => {
-            fs.readFile(filePath, (err, data:Buffer) => {
-                if(!err) {
-                    resolve(data);
-                }
-                else {
-                    reject(err);
-                }
-            });
-        });
-    }
-
     static readFileSync(filePath: PathLike) {
         return fs.readFileSync(filePath);
-    }
-
-    static async writeFile(
-        filePath: PathOrFileDescriptor,
-        data: string | NodeJS.ArrayBufferView,
-        options?: WriteFileOptions
-    ): Promise<void> {
-        return new Promise((resolve, reject) => {
-            fs.writeFile(filePath, data, options, (err: NodeJS.ErrnoException | null) => {
-                if(!err) {
-                    resolve();
-                }
-                else {
-                    reject(err);
-                }
-            });
-        });
     }
 
     static writeFileSync(path: PathLike, data, options?: WriteFileOptions) {
@@ -244,30 +212,6 @@ class FS {
 
     static createWriteStream(path: PathLike) {
         return fs.createWriteStream(path);
-    }
-
-    static async readJSON(...paths: string[]): Promise<any> {
-        const res: Buffer = await new Promise((resolve, reject) => {
-            const filePath = Path.join(...paths);
-
-            fs.readFile(filePath, (err, data) => {
-                if(err) {
-                    reject(err);
-
-                    return;
-                }
-
-                resolve(data);
-            });
-        });
-
-        return JSON.parse(res.toString());
-    }
-
-    static async writeJSON(filePath: PathLike | number, data: any): Promise<void> {
-        const json = JSON.stringify(data, null, 4);
-
-        return FS.writeFile(filePath, json);
     }
 
     static async unlink(filePath: PathLike): Promise<void> {
@@ -403,18 +347,6 @@ class FS {
                 else {
                     reject(err);
                 }
-            });
-        });
-    }
-
-    static async rm(path: PathLike, options?: RmOptions) {
-        return new Promise((resolve, reject) => {
-            fs.rm(path, options, (err) => {
-                if(err) {
-                    return reject(err);
-                }
-
-                return resolve(undefined);
             });
         });
     }
