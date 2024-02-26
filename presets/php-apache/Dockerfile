@@ -5,8 +5,7 @@ FROM php:${PHP_VERSION}-apache
 ARG UID=1000
 ARG USER=www-data
 
-RUN usermod -u 1000 www-data && \
-#    useradd -G root,www-data -u $UID -d /home/$USER $USER && \
+RUN usermod -u $UID www-data && \
     mkdir -p /home/$USER && \
     touch /home/$USER/.bashrc && \
     chown -R $USER:$USER /home/$USER
@@ -16,7 +15,6 @@ ADD ./bin/compare-version /usr/local/bin/compare-version
 RUN chmod +x /usr/local/bin/compare-version
 
 RUN apt-get update --fix-missing -y
-#RUN apt-get upgrade
 RUN apt-get install -y curl git
 
 #RUN apt-get install -y \
@@ -38,6 +36,14 @@ RUN if [ "$PDO_MYSQL_ENABLE" = "true" ]; then \
         docker-php-ext-install pdo pdo_mysql &&  \
         docker-php-ext-enable pdo_mysql; \
     fi
+
+# pgsql
+ARG PGSQL_ENABLE=false
+RUN if [ "$PGSQL_ENABLE" = "true" ]; then \
+    apt-get install -y libpq-dev && \
+    docker-php-ext-install -j "$(nproc)" pgsql pdo_pgsql && \
+    docker-php-ext-enable pgsql pdo_pgsql; \
+fi
 
 #gd
 ARG GD_ENABLE=false
