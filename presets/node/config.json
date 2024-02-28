@@ -8,7 +8,8 @@
                 "14-alpine3.14",
                 "16-alpine3.14",
                 "17-alpine3.14",
-                "18-alpine3.14"
+                "18-alpine3.14",
+                "20-alpine3.18"
             ]
         }
     },
