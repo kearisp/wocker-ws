@@ -22,10 +22,24 @@ RUN apt-get install -y curl git
 #      libssl-dev \
 #      zlib1g-dev
 
+# Http
+ARG HTTP_ENABLE=false
+RUN if [ "$HTTP_ENABLE" = "true" ]; then \
+        apt-get update && apt-get install -y \
+            libpcre3-dev \
+            libssl-dev \
+            libcurl4-openssl-dev \
+            libicu-dev \
+            g++ \
+            zlib1g-dev && \
+        docker-php-ext-install pcntl && \
+        pecl install raphf && docker-php-ext-enable raphf && \
+        pecl install pecl_http && docker-php-ext-enable http; \
+    fi
+
 # Mysqli
 ARG MYSQLI_ENABLE=false
 RUN if [ "$MYSQLI_ENABLE" = "true" ]; then \
-        echo "Install mysqli" && \
         docker-php-ext-install -j "$(nproc)" mysqli && \
         docker-php-ext-enable mysqli; \
     fi
@@ -62,11 +76,59 @@ RUN if [ "$GD_ENABLE" = "true" ]; then \
 # Zip
 ARG ZIP_ENABLE=false
 RUN if [ "$ZIP_ENABLE" = "true" ]; then \
-        apt-get install -y \
-            libzip-dev \
-            zip && \
+        apt-get install -y libzip-dev zip unzip && \
         docker-php-ext-configure zip && \
         docker-php-ext-install -j "$(nproc)" zip; \
+    fi
+
+# memcache
+ARG MEMCACHE_ENABLE=false
+RUN if [ "$MEMCACHE_ENABLE" = "true" ]; then \
+        apt-get update && apt-get install -y \
+            zlib1g-dev \
+            libmemcached-dev && \
+        pecl install memcache && docker-php-ext-enable memcache; \
+    fi
+
+# memcached
+ARG MEMCACHED_ENABLE=false
+RUN if [ "$MEMCACHED_ENABLE" = "true" ]; then \
+        apt-get update && apt-get install -y \
+            libcurl4-openssl-dev  \
+            libssl-dev \
+            libmemcached-dev \
+            zlib1g-dev && \
+        pecl install memcached && docker-php-ext-enable memcached; \
+    fi
+
+# Intl
+ARG INTL_ENABLE=false
+RUN if [ "$INTL_ENABLE" = "true" ]; then \
+        apt-get update && apt-get install -y \
+            libicu-dev && \
+        docker-php-ext-configure intl && \
+        docker-php-ext-install intl; \
+    fi
+
+# Pcntl
+ARG PCNTL_ENABLE=false
+RUN if [ "$PCNTL_ENABLE" = "true" ]; then \
+        docker-php-ext-install pcntl && \
+        docker-php-ext-enable pcntl; \
+    fi
+
+ARG SOAP_ENABLE=false
+RUN if [ "$SOAP_ENABLE" = "true" ]; then \
+        apt-get update && apt-get install -y \
+            libxml2-dev && \
+        docker-php-ext-install soap && \
+        docker-php-ext-enable soap; \
+    fi
+
+ARG XDEBUG_ENABLE=false
+RUN if [ "$XDEBUG_ENABLE" = "true" ]; then \
+        pecl install xdebug && \
+        docker-php-ext-enable xdebug; \
     fi
 
 #RUN compare-version $PHP_VERSION "7.3" && \

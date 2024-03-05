@@ -22,7 +22,14 @@
                 "PDO_MYSQL_ENABLE": "PDO",
                 "PGSQL_ENABLE": "Pgsql",
                 "GD_ENABLE": "GD",
-                "ZIP_ENABLE": "Zip"
+                "ZIP_ENABLE": "Zip",
+                "MEMCACHE_ENABLE": "Memcache",
+                "MEMCACHED_ENABLE": "Memcached",
+                "HTTP_ENABLE": "Raphf+Http",
+                "INTL_ENABLE": "Intl",
+                "PCNTL_ENABLE": "Pcntl",
+                "SOAP_ENABLE": "Soap",
+                "XDEBUG_ENABLE": "XDebug"
             }
         },
         "COMPOSER_ENABLE": {
