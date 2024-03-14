@@ -29,7 +29,10 @@
                 "INTL_ENABLE": "Intl",
                 "PCNTL_ENABLE": "Pcntl",
                 "SOAP_ENABLE": "Soap",
-                "XDEBUG_ENABLE": "XDebug"
+                "XDEBUG_ENABLE": "XDebug",
+                "GETTEXT_ENABLE": "GetText",
+                "BCMATH_ENABLE": "Bcmath",
+                "SOCKETS_ENABLE": "Sockets"
             }
         },
         "COMPOSER_ENABLE": {
