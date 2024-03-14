@@ -117,6 +117,7 @@ RUN if [ "$PCNTL_ENABLE" = "true" ]; then \
         docker-php-ext-enable pcntl; \
     fi
 
+# Soap
 ARG SOAP_ENABLE=false
 RUN if [ "$SOAP_ENABLE" = "true" ]; then \
         apt-get update && apt-get install -y \
@@ -125,10 +126,33 @@ RUN if [ "$SOAP_ENABLE" = "true" ]; then \
         docker-php-ext-enable soap; \
     fi
 
+# XDebug
 ARG XDEBUG_ENABLE=false
 RUN if [ "$XDEBUG_ENABLE" = "true" ]; then \
         pecl install xdebug && \
         docker-php-ext-enable xdebug; \
+    fi \
+
+# Gettext
+ARG GETTEXT_ENABLE=false
+RUN if [ "$GETTEXT_ENABLE" = "true" ]; then \
+        apt-get update && apt-get install -y gettext && \
+        docker-php-ext-install -j "$(nproc)" gettext && \
+        docker-php-ext-enable gettext; \
+    fi
+
+# Bcmath
+ARG BCMATH_ENABLE=false
+RUN if [ "$BCMATH_ENABLE" = "true" ]; then \
+        docker-php-ext-install -j "$(nproc)" bcmath && \
+        docker-php-ext-enable bcmath; \
+    fi
+
+# Sockets
+ARG SOCKETS_ENABLE=false
+RUN if [ "$SOCKETS_ENABLE" = "true" ]; then \
+        docker-php-ext-install sockets && \
+        docker-php-ext-enable sockets; \
     fi
 
 #RUN compare-version $PHP_VERSION "7.3" && \
