@@ -1,3 +1,4 @@
+export * from "./CompletionController";
 export * from "./ImageController";
 export * from "./PluginController";
 export * from "./PresetController";

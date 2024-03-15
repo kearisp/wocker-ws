@@ -1,7 +1,7 @@
+import {Injectable, AppConfig as Config, EnvConfig} from "@wocker/core";
 import * as Path from "path";
 
 import {MAP_PATH, DATA_DIR, PLUGINS_DIR} from "../env";
-import {Config, EnvConfig} from "../types";
 import {FS} from "../makes";
 
 
@@ -9,7 +9,8 @@ type TypeMap = {
     [type: string]: string;
 };
 
-class AppConfigService {
+@Injectable("APP_CONFIG")
+export class AppConfigService {
     protected pwd: string;
     protected mapTypes: TypeMap = {
         image: "Image",
@@ -199,6 +200,3 @@ class AppConfigService {
         });
     }
 }
-
-
-export {AppConfigService};

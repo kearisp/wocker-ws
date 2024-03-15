@@ -1,25 +1,31 @@
+import {Controller, FSManager} from "@wocker/core";
 import * as Path from "path";
-import {Cli} from "@kearisp/cli";
 
-import {Plugin, Docker} from "../makes";
+import {
+    AppConfigService,
+    DockerService
+} from "../services";
 import {exec} from "../utils";
 
 
-export class ProxmoxPlugin extends Plugin {
+@Controller()
+export class ProxmoxPlugin {
     protected configDir: string;
+    protected fs: FSManager;
 
-    public constructor() {
-        super("proxmox");
-
-        this.configDir = Path.join(__dirname, "../../services/proxmox");
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly dockerService: DockerService
+    ) {
+        this.configDir = this.appConfigService.dataPath("plugins/proxmox");
     }
 
-    public install(cli: Cli) {
-        super.install(cli);
+    public pluginPath(...parts: string[]) {
+        return Path.join(this.appConfigService.pluginsPath("proxmox"), ...parts);
     }
 
     public async up() {
-        const container = await Docker.getContainer("proxmox.workspace");
+        const container = await this.dockerService.getContainer("proxmox.workspace");
 
         if(container) {
             await this.down();

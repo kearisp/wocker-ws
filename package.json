@@ -1,6 +1,6 @@
 {
     "name": "@wocker/ws",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Docker workspace for web projects",
     "license": "MIT",
@@ -26,8 +26,8 @@
     },
     "dependencies": {
         "@kearisp/cli": "^1.0.6",
-        "@wocker/core": "^1.0.4",
-        "@wocker/utils": "^1.0.2",
+        "@wocker/core": "^1.0.5",
+        "@wocker/utils": "^1.0.3",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",
         "chalk": "^2.4.2",

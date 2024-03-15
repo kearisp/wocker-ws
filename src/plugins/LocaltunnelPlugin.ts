@@ -1,8 +1,9 @@
+import {Controller, Project} from "@wocker/core";
 import {promptConfirm, promptText} from "@wocker/utils";
 import axios from "axios";
 import {Cli} from "@kearisp/cli";
 
-import {DI, Plugin, Logger, Project} from "../makes";
+import {Logger} from "../makes";
 import {
     AppConfigService,
     AppEventsService,
@@ -29,24 +30,16 @@ type LogsOptions = {
     detach?: boolean;
 };
 
-class LocaltunnelPlugin extends Plugin {
-    protected appConfigService: AppConfigService;
-    protected appEventsService: AppEventsService;
-    protected projectService: ProjectService;
-    protected dockerService: DockerService;
-
-    public constructor(di: DI) {
-        super("localtunnel");
-
-        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
-        this.appEventsService = di.resolveService<AppEventsService>(AppEventsService);
-        this.projectService = di.resolveService<ProjectService>(ProjectService);
-        this.dockerService = di.resolveService<DockerService>(DockerService);
-    }
+@Controller()
+export class LocaltunnelPlugin {
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly appEventsService: AppEventsService,
+        protected readonly projectService: ProjectService,
+        protected readonly dockerService: DockerService
+    ) {}
 
     public install(cli: Cli) {
-        super.install(cli);
-
         this.appEventsService.on("project:start", (project: Project) => this.onProjectStart(project));
         this.appEventsService.on("project:stop", (project: Project) => this.onProjectStop(project));
 
@@ -253,7 +246,7 @@ class LocaltunnelPlugin extends Plugin {
         if(!exists) {
             await this.dockerService.buildImage({
                 tag: "ws-localtunnel",
-                context: this.pluginPath(),
+                context: this.appConfigService.pluginsPath("plugins/localtunnel"),
                 src: "./Dockerfile"
             });
         }
@@ -390,6 +383,3 @@ class LocaltunnelPlugin extends Plugin {
         });
     }
 }
-
-
-export {LocaltunnelPlugin};

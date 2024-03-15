@@ -1,37 +1,40 @@
-import {Cli} from "@kearisp/cli";
+import {Controller, Command} from "@wocker/core";
 import axios from "axios";
 import chalk from "chalk";
+import CliTable from "cli-table3";
 
-import {DI, Controller, Logger} from "../makes";
-import {AppConfigService, PluginService} from "../services";
+import {AppConfigService, PluginService, LogService} from "../services";
 import {exec} from "../utils";
+import * as console from "console";
 
 
-type AddOptions = {};
-type RemoveOptions = {};
+@Controller()
+export class PluginController {
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly pluginService: PluginService,
+        protected readonly logService: LogService
+    ) {}
 
-class PluginController extends Controller {
-    protected appConfigService: AppConfigService;
-    protected pluginService: PluginService;
+    @Command("plugins")
+    public async list() {
+        const {
+            plugins
+        } = await this.appConfigService.getAppConfig();
+        const table = new CliTable({
+            head: ["Name"],
+            colWidths: [30]
+        });
 
-    public constructor(di: DI) {
-        super();
+        for(const name of plugins) {
+            table.push([name]);
+        }
 
-        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
-        this.pluginService = di.resolveService<PluginService>(PluginService);
+        return table.toString() + "\n";
     }
 
-    public install(cli: Cli): void {
-        super.install(cli);
-
-        cli.command("plugin:add <name>")
-            .action((options, name: string) => this.add(options, name));
-
-        cli.command("plugin:remove <name>")
-            .action((options, name: string) => this.remove(options, name));
-    }
-
-    public async add(options: AddOptions, addName: string) {
+    @Command("plugin:add <name>")
+    public async add(addName: string) {
         const [,
             prefix = "@wocker/",
             name,
@@ -43,7 +46,7 @@ class PluginController extends Controller {
         try {
             const {default: Plugin} = await import(fullName);
 
-            this.pluginService.use(Plugin);
+            // this.pluginService.use(Plugin);
 
             await this.appConfigService.activatePlugin(fullName);
 
@@ -51,7 +54,7 @@ class PluginController extends Controller {
             return;
         }
         catch(err) {
-            Logger.error(err.message);
+            this.logService.error(err.message);
         }
 
         try {
@@ -71,11 +74,14 @@ class PluginController extends Controller {
             await this.appConfigService.activatePlugin(fullName);
         }
         catch(err) {
-            Logger.error(err.message);
+            this.logService.error(err.message);
         }
     }
 
-    public async remove(options: RemoveOptions, removeName: string) {
+    @Command("plugin:remove <name>")
+    public async remove(
+        removeName: string
+    ) {
         const [,
             prefix = "@wocker/",
             name,
@@ -89,6 +95,3 @@ class PluginController extends Controller {
         console.info(`Plugin ${fullName} deactivated`);
     }
 }
-
-
-export {PluginController};
