@@ -1,67 +1,19 @@
-import {Controller} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 import * as Path from "path";
 
 import {DATA_DIR, MAP_PATH} from "./env";
 import {setConfig} from "./utils";
+import {FS, Logger} from "./makes";
 import {
-    DI,
-    FS,
-    Preset,
-    Project,
-    Logger
-} from "./makes";
-import {
-    AppConfigService,
-    AppEventsService,
-    DockerService,
-    LogService,
-    PresetService,
-    PluginService,
-    ProjectService
+    AppConfigService
 } from "./services";
-import {
-    ImageController,
-    PluginController,
-    PresetController,
-    ProjectController,
-    ProxyController
-} from "./controllers";
 
 
 export class App {
-    protected di: DI;
     protected cli: Cli;
     protected appConfigService: AppConfigService;
 
-    public constructor() {
-        this.di = new DI();
-
-        this.appConfigService = new AppConfigService();
-
-        this.di.registerService(AppConfigService, this.appConfigService);
-        this.di.registerService(AppEventsService, new AppEventsService());
-        this.di.registerService(DockerService, new DockerService(this.di));
-        this.di.registerService(PresetService, new PresetService(this.di));
-        this.di.registerService(PluginService, new PluginService(this.di));
-        this.di.registerService(ProjectService, new ProjectService(this.di));
-        this.di.registerService(LogService, new LogService(this.di));
-
-        this.di.registerService(Cli, this.cli);
-        this.cli = new Cli(Logger);
-
-        Preset.install(this.di);
-        Project.install(this.di);
-        Logger.install(this.di);
-
-        this.install();
-
-        this.use(ImageController);
-        this.use(PluginController);
-        this.use(PresetController);
-        this.use(ProjectController);
-        this.use(ProxyController);
-    }
+    public constructor() {}
 
     public install() {
         this.cli.command("completion script")
@@ -80,10 +32,8 @@ export class App {
             .action(async (options, status: string) => this.setDebug(status));
     }
 
-    public use(Constructor: {new (...params: any[]): Controller}): void {
-        const controller = new Constructor(this.di);
-
-        controller.install(this.cli);
+    public use(Constructor: any): void {
+        //
     }
 
     public async setDebug(status: string) {

@@ -1,13 +1,15 @@
 import {
+    Command,
+    Completion,
     Controller,
-    Cli
+    Option,
+    Project
 } from "@wocker/core";
-import {promptText} from "@wocker/utils";
+import {promptText, demuxOutput} from "@wocker/utils";
 import CliTable from "cli-table3";
 import chalk from "chalk";
 
-import {DI, FS, Project} from "../makes";
-import {demuxOutput} from "../utils";
+import {FS} from "../makes";
 import {
     AppConfigService,
     AppEventsService,
@@ -16,108 +18,35 @@ import {
 } from "../services";
 
 
-type InitOptions = {
-    "http-port"?: number;
-    "https-port"?: number;
-};
-
-type DomainsOptions = {
-    name?: string;
-};
-
-class ProxyController extends Controller {
+@Controller()
+export class ProxyController {
     protected containerName = "proxy.workspace";
-    protected appConfigService: AppConfigService;
-    protected appEventsService: AppEventsService;
-    protected projectService: ProjectService;
-    protected dockerService: DockerService;
 
-    public constructor(di: DI) {
-        super();
-
-        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
-        this.appEventsService = di.resolveService<AppEventsService>(AppEventsService);
-        this.projectService = di.resolveService<ProjectService>(ProjectService);
-        this.dockerService = di.resolveService<DockerService>(DockerService);
-    }
-
-    public install(cli: Cli) {
-        super.install(cli);
-
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly appEventsService: AppEventsService,
+        protected readonly projectService: ProjectService,
+        protected readonly dockerService: DockerService
+    ) {
         this.appEventsService.on("project:beforeStart", (project: Project) => this.onProjectStart(project));
         this.appEventsService.on("project:stop", (project: Project) => this.onProjectStop(project));
-
-        cli.command("proxy:init")
-            .option("http-port", {
-                type: "number",
-                description: "Http port"
-            })
-            .option("https-port", {
-                type: "number",
-                description: "Https port"
-            })
-            .action((options: InitOptions) => this.init(options));
-
-        cli.command("proxy:start")
-            .action(() => this.start());
-
-        cli.command("proxy:stop")
-            .action(() => this.stop());
-
-        cli.command("proxy:restart")
-            .action(() => this.restart());
-
-        cli.command("domains")
-            .option("name", {
-                type: "string",
-                alias: "n",
-                description: "Project name"
-            })
-            .action((options: DomainsOptions) => this.domainList(options));
-
-        cli.command("domain:set [...domains]")
-            .option("name", {
-                type: "string",
-                alias: "n",
-                description: "Project name"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options: DomainsOptions, domains: string[]) => this.setDomains(options, domains));
-
-        cli.command("domain:add [...domains]")
-            .option("name", {
-                type: "string",
-                alias: "n",
-                description: "Project name"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options: DomainsOptions, domains: string[]) => this.addDomain(options, domains));
-
-        cli.command("domain:remove [...domains]")
-            .option("name", {
-                type: "string",
-                alias: "n",
-                description: "Project name"
-            })
-            .completion("name", () => this.getProjectNames())
-            .completion("domains", (options: DomainsOptions, domains) => this.getDomains(options.name, domains as string[]))
-            .action((options: DomainsOptions, domains: string[]) => this.removeDomain(options, domains));
-
-        cli.command("domain:clear")
-            .option("name", {
-                type: "string",
-                alias: "n",
-                description: "Project name"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options: DomainsOptions) => this.clearDomains(options));
-
-        cli.command("proxy:logs")
-            .action(() => this.logs());
     }
 
+    public async onProjectStart(project: Project) {
+        if(!project.hasEnv("VIRTUAL_HOST")) {
+            project.setEnv("VIRTUAL_HOST", project.containerName);
+        }
+
+        await this.start();
+    }
+
+    public async onProjectStop(project: Project) {
+        //
+    }
+
+    @Completion("name")
     public async getProjectNames() {
-        const projects = await Project.search();
+        const projects = await this.projectService.search();
 
         return projects.map((project) => project.name);
     }
@@ -134,24 +63,19 @@ class ProxyController extends Controller {
         });
     }
 
-    public async onProjectStart(project: Project) {
-        if(!project.hasEnv("VIRTUAL_HOST")) {
-            project.setEnv("VIRTUAL_HOST", `${project.name}.workspace`);
-        }
-
-        await this.start();
-    }
-
-    public async onProjectStop(project: Project) {
-        //
-    }
-
-    public async init(options: InitOptions) {
-        let {
-            "http-port": httpPort,
-            "https-port": httpsPort
-        } = options;
-
+    @Command("proxy:init")
+    public async init(
+        @Option("http-port", {
+            type: "number",
+            description: "Http port"
+        })
+        httpPort: number,
+        @Option("https-port", {
+            type: "number",
+            description: "Https port"
+        })
+        httpsPort: number
+    ) {
         if(typeof httpPort === "undefined" || isNaN(httpPort)) {
             httpPort = await promptText({
                 required: true,
@@ -175,6 +99,7 @@ class ProxyController extends Controller {
         await this.appConfigService.setEnvVariable("PROXY_HTTPS_PORT", httpsPort);
     }
 
+    @Command("proxy:start")
     public async start() {
         console.info("Proxy starting...");
 
@@ -228,22 +153,28 @@ class ProxyController extends Controller {
         }
     }
 
+    @Command("proxy:stop")
     public async stop() {
         console.info("Proxy stopping...");
 
         await this.dockerService.removeContainer(this.containerName);
     }
 
+    @Command("proxy:restart")
     public async restart() {
         await this.stop();
         await this.start();
     }
 
-    public async domainList(options: DomainsOptions) {
-        const {
-            name
-        } = options;
-
+    @Command("domains")
+    public async domainList(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name: string
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -263,11 +194,16 @@ class ProxyController extends Controller {
         return table.toString() + "\n";
     }
 
-    public async setDomains(options: DomainsOptions, domains: string[]) {
-        const {
-            name
-        } = options;
-
+    @Command("domain:set [...domains]")
+    public async setDomains(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name: string,
+        domains: string[]
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -276,7 +212,7 @@ class ProxyController extends Controller {
 
         project.setEnv("VIRTUAL_HOST", domains.join(","));
 
-        project.save();
+        await project.save();
 
         const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
@@ -286,11 +222,16 @@ class ProxyController extends Controller {
         }
     }
 
-    public async addDomain(options: DomainsOptions, addDomains: string[]) {
-        const {
-            name
-        } = options;
-
+    @Command("domain:add [...domains]")
+    public async addDomain(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name: string,
+        addDomains: string[]
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -322,11 +263,16 @@ class ProxyController extends Controller {
         }
     }
 
-    public async removeDomain(options: DomainsOptions, removeDomains: string[]) {
-        const {
-            name
-        } = options;
-
+    @Command("domain:remove [...domains]")
+    public async removeDomain(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name: string,
+        removeDomains: string[]
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -346,11 +292,15 @@ class ProxyController extends Controller {
         await project.save();
     }
 
-    public async clearDomains(options: DomainsOptions) {
-        const {
-            name
-        } = options;
-
+    @Command("domain:clear")
+    public async clearDomains(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name: string
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -369,6 +319,7 @@ class ProxyController extends Controller {
         }
     }
 
+    @Command("proxy:logs")
     public async logs() {
         const container = await this.dockerService.getContainer(this.containerName);
 
@@ -387,6 +338,3 @@ class ProxyController extends Controller {
         });
     }
 }
-
-
-export {ProxyController};

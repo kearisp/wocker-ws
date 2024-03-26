@@ -1,5 +1,4 @@
 export * from "./buildOptions";
-export * from "./demuxOutput";
 export * from "./escapeRegExp";
 export * from "./exec";
 export * from "./fetch";

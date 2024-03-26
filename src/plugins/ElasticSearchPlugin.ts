@@ -1,7 +1,6 @@
-import {FSManager} from "@wocker/core";
+import {Controller, FSManager} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 
-import {Plugin, DI} from "../makes";
 import {
     AppConfigService,
     DockerService
@@ -12,18 +11,15 @@ type StartOptions = {
     restart?: boolean;
 };
 
-class ElasticSearchPlugin extends Plugin {
+@Controller()
+export class ElasticSearchPlugin {
     protected containerName = "elastic-search.workspace";
-    protected appConfigService: AppConfigService;
-    protected dockerService: DockerService;
     protected fs: FSManager;
 
-    public constructor(di: DI) {
-        super("elastic-search");
-
-        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
-        this.dockerService = di.resolveService<DockerService>(DockerService);
-
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly dockerService: DockerService,
+    ) {
         this.fs = new FSManager(
             this.appConfigService.pluginsPath("elastic-search"),
             this.appConfigService.dataPath("plugins/elastic-search")
@@ -31,8 +27,6 @@ class ElasticSearchPlugin extends Plugin {
     }
 
     public install(cli: Cli) {
-        super.install(cli);
-
         cli.command("elastica:start")
             .option("restart", {
                 type: "boolean",
@@ -105,6 +99,3 @@ class ElasticSearchPlugin extends Plugin {
         await this.dockerService.removeContainer(this.containerName);
     }
 }
-
-
-export {ElasticSearchPlugin};

@@ -1,22 +1,14 @@
-import {Cli} from "@wocker/core";
-import {DI, Controller} from "../makes";
+import {Cli, Injectable} from "@wocker/core";
 
 
-class PluginService {
-    protected cli: Cli;
-
+@Injectable()
+export class PluginService {
     public constructor(
-        protected di: DI
-    ) {
-        this.cli = di.resolveService<Cli>(Cli);
-    }
+        protected readonly cli: Cli
+    ) {}
 
-    public use(Constructor: {new (...params: any[]): Controller}): void {
-        const controller = new Constructor(this.di);
-
-        controller.install(this.cli);
+    public use(): void {
+        // const controller = new Constructor(this.di);
+        // controller.install(this.cli);
     }
 }
-
-
-export {PluginService};
