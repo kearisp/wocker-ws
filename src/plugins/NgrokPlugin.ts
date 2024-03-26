@@ -1,7 +1,8 @@
+import {Controller, DockerService, Project} from "@wocker/core";
 import {demuxOutput, promptText, promptConfirm} from "@wocker/utils";
 import {Cli} from "@kearisp/cli";
 
-import {DI, Plugin, Project, Docker, Logger} from "../makes";
+import {Logger} from "../makes";
 import {
     AppEventsService,
     ProjectService
@@ -29,20 +30,15 @@ type ForwardingOptions = {
     name?: string;
 };
 
-class NgrokPlugin extends Plugin {
-    protected appEventsService: AppEventsService;
-    protected projectService: ProjectService;
-
-    public constructor(di: DI) {
-        super("ngrok");
-
-        this.appEventsService = di.resolveService<AppEventsService>(AppEventsService);
-        this.projectService = di.resolveService<ProjectService>(ProjectService);
-    }
+@Controller()
+export class NgrokPlugin {
+    public constructor(
+        protected readonly appEventsService: AppEventsService,
+        protected readonly projectService: ProjectService,
+        protected readonly dockerService: DockerService
+    ) {}
 
     public install(cli: Cli) {
-        super.install(cli);
-
         this.appEventsService.on("project:start", (project: Project) => this.onProjectStart(project));
         this.appEventsService.on("project:stop", (project: Project) => this.onProjectStop(project));
 
@@ -146,7 +142,7 @@ class NgrokPlugin extends Plugin {
     }
 
     public async getForwarding(project: Project): Promise<string | undefined> {
-        const container = await Docker.getContainer(`ngrok-${project.name}`);
+        const container = await this.dockerService.getContainer(`ngrok-${project.name}`);
 
         if(!container) {
             throw new Error(`Ngrok for "${project.name}" not started`);
@@ -160,7 +156,7 @@ class NgrokPlugin extends Plugin {
             }
         } = await container.inspect();
 
-        const stream = await Docker.exec("proxy.workspace", [
+        const stream = await this.dockerService.exec("proxy.workspace", [
             "curl", `http://${workspace.IPAddress}:4040/api/tunnels/command_line`
         ], false);
 
@@ -185,7 +181,7 @@ class NgrokPlugin extends Plugin {
             return;
         }
 
-        const container1 = await Docker.getContainer(`ngrok-${project.name}`);
+        const container1 = await this.dockerService.getContainer(`ngrok-${project.name}`);
 
         if(container1) {
             const {
@@ -204,7 +200,7 @@ class NgrokPlugin extends Plugin {
                 return;
             }
             else {
-                await Docker.removeContainer(`ngrok-${project.name}`);
+                await this.dockerService.removeContainer(`ngrok-${project.name}`);
             }
         }
 
@@ -212,9 +208,9 @@ class NgrokPlugin extends Plugin {
 
         Logger.info(`Ngrok start: ${project.name}`);
 
-        await Docker.pullImage("ngrok/ngrok:latest");
+        await this.dockerService.pullImage("ngrok/ngrok:latest");
 
-        const container = await Docker.createContainer({
+        const container = await this.dockerService.createContainer({
             name: `ngrok-${project.name}`,
             image: "ngrok/ngrok:latest",
             tty: true,
@@ -271,7 +267,7 @@ class NgrokPlugin extends Plugin {
 
         console.log("Ngrok stopping...");
 
-        await Docker.removeContainer(`ngrok-${project.name}`);
+        await this.dockerService.removeContainer(`ngrok-${project.name}`);
     }
 
     public async start(options: StartOptions) {
@@ -289,7 +285,7 @@ class NgrokPlugin extends Plugin {
         await this.onProjectStart(project);
 
         if(!detach) {
-            await Docker.attach(`ngrok-${project.name}`);
+            await this.dockerService.attach(`ngrok-${project.name}`);
         }
     }
 
@@ -327,7 +323,7 @@ class NgrokPlugin extends Plugin {
 
         const project = await this.projectService.get();
 
-        const container = await Docker.getContainer(`ngrok-${project.name}`);
+        const container = await this.dockerService.getContainer(`ngrok-${project.name}`);
 
         if(!container) {
             throw new Error("Ngrok not started");
@@ -345,7 +341,7 @@ class NgrokPlugin extends Plugin {
 
         const project = await this.projectService.get();
 
-        await Docker.attach(`ngrok-${project.name}`);
+        await this.dockerService.attach(`ngrok-${project.name}`);
     }
 
     public async forwarding(options: ForwardingOptions) {
@@ -362,6 +358,3 @@ class NgrokPlugin extends Plugin {
         return this.getForwarding(project);
     }
 }
-
-
-export {NgrokPlugin};

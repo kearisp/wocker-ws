@@ -1,10 +1,11 @@
-import {EnvConfig} from "../types";
-import {DI} from "../makes";
+import {EnvConfig} from "@wocker/core";
 import {
     PresetService,
     PresetServiceSearchOptions as SearchOptions
 } from "../services/PresetService";
 
+
+let presetService: PresetService | undefined;
 
 type TextOption = {
     type: "string" | "number" | "int";
@@ -26,8 +27,6 @@ type SelectOption = {
 };
 
 type AnyOption = TextOption | ConfirmOption | SelectOption;
-
-let _di: DI;
 
 class Preset {
     public id: string;
@@ -55,23 +54,39 @@ class Preset {
     }
 
     public async save(): Promise<void> {
-        return _di.resolveService<PresetService>(PresetService).save(this);
+        if(!presetService) {
+            throw new Error("Dependency is missing");
+        }
+
+        return presetService.save(this);
     }
 
     public getImageName(buildArgs?: EnvConfig): string {
-        return _di.resolveService<PresetService>(PresetService).getImageName(this, buildArgs);
+        if(!presetService) {
+            throw new Error("Dependency is missing");
+        }
+
+        return presetService.getImageName(this, buildArgs);
     }
 
-    public static install(di: DI) {
-        _di = di;
+    public static install(ps: PresetService) {
+        presetService = ps;
     }
 
     public static search(options: SearchOptions) {
-        return _di.resolveService<PresetService>(PresetService).search(options);
+        if(!presetService) {
+            throw new Error("Dependency is missing");
+        }
+
+        return presetService.search(options);
     }
 
     public static searchOne(options: SearchOptions) {
-        return _di.resolveService<PresetService>(PresetService).searchOne(options);
+        if(!presetService) {
+            throw new Error("Dependency is missing");
+        }
+
+        return presetService.searchOne(options);
     }
 }
 

@@ -1,6 +1,7 @@
+import {Injectable, Project, PickProperties} from "@wocker/core"
 import * as Path from "path";
 
-import {DI, Docker, FS, Project} from "../makes";
+import {FS} from "../makes";
 import {
     DockerService,
     AppConfigService,
@@ -14,19 +15,37 @@ type SearchParams = Partial<{
     path: string;
 }>;
 
+@Injectable("PROJECT_SERVICE")
 class ProjectService {
-    protected appConfigService: AppConfigService;
-    protected appEventsService: AppEventsService;
-    protected dockerService: DockerService;
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly appEventsService: AppEventsService,
+        protected readonly dockerService: DockerService
+    ) {}
 
-    public constructor(di: DI) {
-        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
-        this.appEventsService = di.resolveService<AppEventsService>(AppEventsService);
-        this.dockerService = di.resolveService<DockerService>(DockerService);
+    public fromObject(data: Partial<PickProperties<Project>>): Project {
+        return new class extends Project {
+            public constructor(
+                protected readonly projectService: ProjectService,
+                data: PickProperties<Project>
+            ) {
+                super(data);
+            }
+
+            public async save() {
+                await this.projectService.save(this);
+            }
+        }(this, data as PickProperties<Project>);
+    }
+
+    public async getById(id: string): Promise<Project> {
+        const data = await FS.readJSON(this.appConfigService.dataPath("projects", id, "config.json"));
+
+        return this.fromObject(data);
     }
 
     public async cdProject(name: string) {
-        const project = await Project.searchOne({
+        const project = await this.searchOne({
             name
         });
 
@@ -38,7 +57,7 @@ class ProjectService {
     }
 
     public async get() {
-        const project = await Project.searchOne({
+        const project = await this.searchOne({
             path: this.appConfigService.getPWD()
         });
 
@@ -61,12 +80,12 @@ class ProjectService {
         if(project.type === "dockerfile") {
             project.imageName = `project-${project.name}:develop`;
 
-            const images = await Docker.imageLs({
+            const images = await this.dockerService.imageLs({
                 tag: project.imageName
             });
 
             if(images.length === 0) {
-                await Docker.imageBuild2({
+                await this.dockerService.buildImage({
                     tag: project.imageName,
                     context: this.appConfigService.getPWD(),
                     src: project.dockerfile
@@ -79,7 +98,7 @@ class ProjectService {
         let container = await this.dockerService.getContainer(project.containerName);
 
         if(!container) {
-            container = await Docker.createContainer({
+            container = await this.dockerService.createContainer({
                 name: project.containerName,
                 image: project.imageName,
                 env: {
@@ -117,13 +136,15 @@ class ProjectService {
     public async stop() {
         const project = await this.get();
 
-        const container = await Docker.getContainer(project.containerName);
+        const container = await this.dockerService.getContainer(project.containerName);
 
-        if(container) {
-            await this.appEventsService.emit("project:stop", project);
-
-            await Docker.removeContainer(`${project.name}.workspace`);
+        if(!container) {
+            return;
         }
+
+        await this.appEventsService.emit("project:stop", project);
+
+        await this.dockerService.removeContainer(project.containerName);
     }
 
     public async save(project: Project) {
@@ -171,21 +192,22 @@ class ProjectService {
                 continue;
             }
 
-            const projectData = await FS.readJSON(this.appConfigService.dataPath("projects", config.id, "config.json"));
+            const project = await this.getById(config.id);
 
-            if(name && projectData.name !== name) {
+            if(name && project.name !== name) {
                 continue;
             }
-
-            const project = Project.fromObject({
-                id: config.id,
-                ...projectData
-            });
 
             projects.push(project);
         }
 
         return projects;
+    }
+
+    public async searchOne(params: Partial<SearchParams> = {}): Promise<Project | null> {
+        const [project] = await this.search(params);
+
+        return project || null;
     }
 }
 

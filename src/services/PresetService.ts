@@ -1,18 +1,18 @@
+import {EnvConfig} from "@wocker/core";
 import md5 from "md5";
 
 import {PRESETS_DIR} from "../env";
-import {EnvConfig} from "../types";
-import {DI, FS, Preset} from "../makes";
+import {FS, Preset} from "../makes";
 
 
 type SearchOptions = Partial<{
     name: string;
 }>;
 
-class PresetService {
-    public constructor(
-        di: DI
-    ) {}
+export class PresetService {
+    public constructor() {
+        Preset.install(this);
+    }
 
     public getImageName(preset: Preset, buildArgs: EnvConfig = {}): string {
         const rawValues = [];
@@ -45,10 +45,21 @@ class PresetService {
         //
     }
 
-    public async get(name: string) {
+    public async get(name: string): Promise<Preset> {
         const config = await FS.readJSON(PRESETS_DIR, name, "config.json");
 
-        return new Preset({
+        return new class extends Preset {
+            public constructor(
+                protected readonly presetService: PresetService,
+                data: any
+            ) {
+                super(data);
+            }
+
+            public async save() {
+                //
+            }
+        }(this, {
             name,
             ...config
         });
@@ -88,8 +99,4 @@ class PresetService {
     }
 }
 
-
-export {
-    PresetService,
-    SearchOptions as PresetServiceSearchOptions
-};
+export {SearchOptions as PresetServiceSearchOptions};

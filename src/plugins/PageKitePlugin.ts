@@ -1,12 +1,12 @@
+import {Controller, Project} from "@wocker/core";
 import {promptText, promptConfirm} from "@wocker/utils";
 import {Cli} from "@kearisp/cli";
 
-import {DI, Plugin, Project, Docker} from "../makes";
-import {followProgress} from "../utils";
 import {
     AppConfigService,
     AppEventsService,
-    ProjectService
+    ProjectService,
+    DockerService
 } from "../services";
 
 
@@ -29,22 +29,20 @@ type BuildOptions = {
     rebuild?: boolean;
 };
 
-class PageKitePlugin extends Plugin {
-    protected appConfigService: AppConfigService;
-    protected appEventsService: AppEventsService;
-    protected projectService: ProjectService;
+@Controller()
+export class PageKitePlugin {
+    constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly appEventsService: AppEventsService,
+        protected readonly projectService: ProjectService,
+        protected readonly dockerService: DockerService
+    ) {}
 
-    constructor(di: DI) {
-        super("pagekite");
-
-        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
-        this.appEventsService = di.resolveService<AppEventsService>(AppEventsService);
-        this.projectService = di.resolveService<ProjectService>(ProjectService);
+    public pluginPath(...parts: string[]): string {
+        return this.appConfigService.pluginsPath("pagekite", ...parts);
     }
 
     public install(cli: Cli) {
-        super.install(cli);
-
         this.appEventsService.on("project:start", (project: Project) => this.onProjectStart(project));
         this.appEventsService.on("project:stop", (project: Project) => this.onProjectStop(project));
 
@@ -90,7 +88,7 @@ class PageKitePlugin extends Plugin {
 
         await this.build();
 
-        let container = await Docker.getContainer(`pagekite-${project.name}`);
+        let container = await this.dockerService.getContainer(`pagekite-${project.name}`);
 
         if(container) {
             const {
@@ -105,13 +103,13 @@ class PageKitePlugin extends Plugin {
                 return;
             }
             else {
-                await Docker.removeContainer(`pagekite-${project.name}`);
+                await this.dockerService.removeContainer(`pagekite-${project.name}`);
             }
         }
 
         const subdomain = project.getEnv("PAGEKITE_SUBDOMAIN");
 
-        container = await Docker.createContainer({
+        container = await this.dockerService.createContainer({
             name: `pagekite-${project.name}`,
             image: "ws-pagekite",
             tty: true,
@@ -146,7 +144,7 @@ class PageKitePlugin extends Plugin {
             }
         });
 
-        await Docker.attachStream(stream);
+        await this.dockerService.attachStream(stream);
     }
 
     public async onProjectStop(project: Project) {
@@ -156,7 +154,7 @@ class PageKitePlugin extends Plugin {
 
         console.info("Pagekite stopping...");
 
-        await Docker.removeContainer(`pagekite-${project.name}`);
+        await this.dockerService.removeContainer(`pagekite-${project.name}`);
     }
 
     public async init(options: InitOptions) {
@@ -199,7 +197,7 @@ class PageKitePlugin extends Plugin {
         const project = await this.projectService.get();
 
         if(restart) {
-            await Docker.removeContainer(`pagekite-${project.name}`);
+            await this.dockerService.removeContainer(`pagekite-${project.name}`);
         }
 
         await this.onProjectStart(project);
@@ -224,23 +222,18 @@ class PageKitePlugin extends Plugin {
             rebuild
         } = options;
 
-        const exists = await Docker.imageExists("ws-pagekite");
+        const exists = await this.dockerService.imageExists("ws-pagekite");
 
         if(rebuild) {
-            await Docker.removeContainer("ws-pagekite");
+            await this.dockerService.removeContainer("ws-pagekite");
         }
 
         if(!exists || rebuild) {
-            const stream = await Docker.imageBuild2({
+            await this.dockerService.buildImage({
                 tag: "ws-pagekite",
                 context: this.pluginPath(),
                 src: "./Dockerfile"
             });
-
-            await followProgress(stream);
         }
     }
 }
-
-
-export {PageKitePlugin};

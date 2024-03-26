@@ -1,10 +1,12 @@
 import {
     AppEventsService as CoreAppEventsService,
-    AppEventHandle
+    AppEventHandle,
+    Injectable
 } from "@wocker/core";
 
 
-class AppEventsService extends CoreAppEventsService {
+@Injectable("APP_EVENTS_SERVICE")
+export class AppEventsService extends CoreAppEventsService {
     protected handles: ({
         [event: string]: AppEventHandle[];
     }) = {};
@@ -36,6 +38,3 @@ class AppEventsService extends CoreAppEventsService {
 
 
 }
-
-
-export {AppEventsService};
