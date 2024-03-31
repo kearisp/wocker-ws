@@ -1,34 +1,31 @@
+import {Controller} from "@wocker/core";
 import {demuxOutput, promptConfirm, promptSelect} from "@wocker/utils";
+import {Cli} from "@kearisp/cli";
 import * as Path from "path";
 import * as dateFns from "date-fns";
-import {Cli} from "@kearisp/cli";
 
 import {DATA_DIR} from "../env";
-import {
-    DI,
-    Docker,
-    Logger,
-    Plugin,
-    FS
-} from "../makes";
+import {Logger, FS} from "../makes";
 import {DockerService} from "../services";
 
 
-class MongodbPlugin extends Plugin {
+@Controller()
+export class MongodbPlugin {
     protected container = "mongodb.workspace";
     protected adminContainer = "dbadmin-mongodb.workspace";
-    protected dockerService: DockerService
+    protected dataDir: string;
 
-    public constructor(di: DI) {
-        super("mongodb");
-
-        this.dockerService = di.resolveService<DockerService>(DockerService);
+    public constructor(
+        protected readonly dockerService: DockerService
+    ) {
         this.dataDir = Path.join(DATA_DIR, "db/mongodb");
     }
 
-    public install(cli: Cli) {
-        super.install(cli);
+    protected dataPath(...parts: string[]) {
+        return Path.join(this.dataDir, ...parts);
+    }
 
+    public install(cli: Cli) {
         cli.command("mongodb:start").action(() => {
             return this.start();
         });
@@ -99,7 +96,7 @@ class MongodbPlugin extends Plugin {
     }
 
     async getDatabases() {
-        const stream = await Docker.exec(
+        const stream = await this.dockerService.exec(
             this.container,
             [
                 "mongosh",
@@ -136,7 +133,7 @@ class MongodbPlugin extends Plugin {
     async start() {
         console.log("Mongidb starting...");
 
-        await Docker.pullImage("mongo:latest");
+        await this.dockerService.pullImage("mongo:latest");
 
         const container = await this.dockerService.createContainer({
             name: this.container,
@@ -162,7 +159,7 @@ class MongodbPlugin extends Plugin {
     async startAdmin() {
         console.log("Mongodb Admin starting...");
 
-        await Docker.pullImage("mongo-express:latest");
+        await this.dockerService.pullImage("mongo-express:latest");
 
         const container = await this.dockerService.createContainer({
             name: this.adminContainer,
@@ -238,7 +235,7 @@ class MongodbPlugin extends Plugin {
             });
         }
 
-        const stream = await Docker.exec(this.container, [
+        const stream = await this.dockerService.exec(this.container, [
             "mongodump",
             "--authenticationDatabase", "admin",
             "--host", `${this.container}:27017`,
@@ -350,7 +347,7 @@ class MongodbPlugin extends Plugin {
 
         const path = this.dataPath("dump", database, filename);
         const file = FS.createReadStream(path);
-        const stream = await Docker.exec(this.container, [
+        const stream = await this.dockerService.exec(this.container, [
             "mongorestore",
             "--authenticationDatabase", "admin",
             "--host", `${this.container}:27017`,
@@ -379,6 +376,3 @@ class MongodbPlugin extends Plugin {
         console.log(path);
     }
 }
-
-
-export {MongodbPlugin};

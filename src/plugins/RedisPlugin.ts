@@ -1,25 +1,22 @@
-import {FSManager} from "@wocker/core";
+import {FSManager, Controller} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 
-import {DI, Plugin} from "../makes";
 import {
     AppConfigService,
     DockerService
 } from "../services";
 
 
-class RedisPlugin extends Plugin {
+@Controller()
+export class RedisPlugin {
     protected container = "redis.workspace";
     protected commander = "redis-commander.workspace";
-    protected appConfigService: AppConfigService;
-    protected dockerService: DockerService;
     protected fs: FSManager;
 
-    public constructor(di: DI) {
-        super("redis");
-
-        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
-        this.dockerService = di.resolveService<DockerService>(DockerService);
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly dockerService: DockerService
+    ) {
         this.fs = new FSManager(
             this.appConfigService.pluginsPath("redis"),
             this.appConfigService.dataPath("plugins/redis")
@@ -27,8 +24,6 @@ class RedisPlugin extends Plugin {
     }
 
     public install(cli: Cli) {
-        super.install(cli);
-
         cli.command("redis:start")
             .action(() => this.up());
 
@@ -114,6 +109,3 @@ class RedisPlugin extends Plugin {
         await this.dockerService.removeContainer(this.commander);
     }
 }
-
-
-export {RedisPlugin};

@@ -4,7 +4,5 @@ export * from "./MaildevPlugin";
 export * from "./MongodbPlugin";
 export * from "./NgrokPlugin";
 export * from "./PageKitePlugin";
-export * from "./PostgresPlugin";
-export * from "./PostgresPlugin";
 export * from "./ProxmoxPlugin";
 export * from "./RedisPlugin";

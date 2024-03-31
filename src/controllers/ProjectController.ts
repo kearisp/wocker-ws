@@ -1,317 +1,59 @@
-import {promptSelect, promptText} from "@wocker/utils";
-import {Cli} from "@kearisp/cli";
+import {
+    Controller,
+    Completion,
+    Command,
+    Option,
+    Project,
+    PROJECT_TYPE_DOCKERFILE,
+    PROJECT_TYPE_IMAGE,
+    EnvConfig
+} from "@wocker/core";
+import {promptSelect, promptText, demuxOutput} from "@wocker/utils";
 import CliTable from "cli-table3";
 import chalk from "chalk";
 import * as Path from "path";
 import {Mutex} from "async-mutex";
 
 import {DATA_DIR} from "../env";
-import {EnvConfig} from "../types";
-import {DI, Controller, FS, Docker, Logger} from "../makes";
-import {
-    Project,
-    PROJECT_TYPE_DOCKERFILE,
-    PROJECT_TYPE_IMAGE
-} from "../makes";
+import {FS} from "../makes";
 import {
     AppConfigService,
     AppEventsService,
     ProjectService,
-    DockerService
+    DockerService,
+    LogService
 } from "../services";
 import {
     getConfig,
-    setConfig,
-    demuxOutput
+    setConfig
 } from "../utils";
 
 
-type InitOptions = {
-    name?: string;
-    type?: string;
-    preset?: string;
-};
-
-type ListOptions = {
-    all?: boolean;
-};
-
-type StartOptions = {
-    name?: string;
-    rebuild?: boolean;
-    detach?: boolean;
-};
-
-type StopOptions = {
-    name?: string;
-};
-
-type AttachOptions = {
-    name?: string;
-};
-
-type ConfigOptions = {
-    name?: string;
-    global?: boolean;
-};
-
-type BuildArgsOptions = {
-    name?: string;
-};
-
-type VolumeOptions = {
-    name?: string;
-};
-
-type LogsOptions = {
-    name?: string;
-    global?: boolean;
-    detach?: boolean;
-    follow?: boolean;
-};
-
-type ExecOptions = {
-    name?: string;
-};
-
-class ProjectController extends Controller {
-    protected appConfigService: AppConfigService;
-    protected appEventsService: AppEventsService;
-    protected projectService: ProjectService;
-    protected dockerService: DockerService;
-
+@Controller()
+export class ProjectController {
     public constructor(
-        protected di: DI
-    ) {
-        super();
+        protected readonly appConfigService: AppConfigService,
+        protected readonly appEventsService: AppEventsService,
+        protected readonly projectService: ProjectService,
+        protected readonly dockerService: DockerService,
+        protected readonly logService: LogService
+    ) {}
 
-        this.appConfigService = this.di.resolveService<AppConfigService>(AppConfigService);
-        this.appEventsService = this.di.resolveService<AppEventsService>(AppEventsService);
-        this.projectService = this.di.resolveService<ProjectService>(ProjectService);
-        this.dockerService = this.di.resolveService<DockerService>(DockerService);
-    }
-
-    public install(cli: Cli) {
-        super.install(cli);
-
-        cli.command("init")
-            .help({
-                description: "Init project"
-            })
-            .option("name", {
-                type: "string",
-                description: "Ім'я контейнеру",
-                alias: "n"
-            })
-            .option("type", {
-                type: "string",
-                description: "Тип запуску контейнеру"
-            })
-            .completion("type", () => {
-                return [];
-            })
-            .option("preset", {
-                type: "string",
-                description: "Preset",
-                default: ""
-            })
-            .action((options) => this.init(options));
-
-        cli.command("ps")
-            .option("all", {
-                type: "boolean",
-                alias: "a",
-                description: "All projects"
-            })
-            .action((options: ListOptions) => this.projectList(options));
-
-        cli.command("start")
-            .help({
-                description: "Run project"
-            })
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .option("rebuild", {
-                type: "boolean",
-                alias: "r"
-            })
-            .option("detach", {
-                type: "boolean",
-                alias: "d"
-            })
-            .action((options) => this.start(options));
-
-        cli.command("stop")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options) => this.stop(options));
-
-        cli.command("run <script>")
-            .completion("script", (options) => this.getScripts())
-            .action((options, script) => this.run(script as string));
-
-        cli.command("attach")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options) => this.attach(options));
-
-        cli.command("config")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .option("global", {
-                type: "boolean",
-                alias: "g"
-            })
-            .action((options: ConfigOptions) => this.configList(options));
-
-        cli.command("config:get <key>")
-            .help({
-                description: "Get project env variable"
-            })
-            .option("global", {
-                alias: "g",
-                description: "Global"
-            })
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options: ConfigOptions, key: string) => this.configGet(options, key));
-
-        cli.command("config:set [...configs]")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .option("global", {
-                type: "boolean",
-                alias: "g"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options: ConfigOptions, configs: string[]) => this.configSet(options, configs));
-
-        cli.command("config:unset [...configs]")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .option("global", {
-                type: "boolean",
-                alias: "g"
-            })
-            .action((options: ConfigOptions, configs: string[]) => this.configUnset(options, configs));
-
-        cli.command("build-args")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options) => this.buildArgsList(options));
-
-        cli.command("build-args:get [...buildArgs]")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options, buildArgs: string[]) => this.buildArgsGet(options, buildArgs));
-
-        cli.command("build-args:set [...buildArgs]")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options, buildArgs: string[]) => this.buildArgsSet(options, buildArgs));
-
-        cli.command("build-args:unset [...buildArgs]")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options, buildArgs: string[]) => this.buildArgsUnset(options, buildArgs));
-
-        cli.command("volumes")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options) => this.volumeList(options));
-
-        cli.command("volume:mount [...volumes]")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options: VolumeOptions, volumes: string[]) => this.volumeMount(options, volumes));
-
-        cli.command("volume:unmount [...volumes]")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options: VolumeOptions, volumes: string[]) => this.volumeUnmount(options, volumes));
-
-        cli.command("logs")
-            .help({
-                description: "Logs"
-            })
-            .option("name", {
-                type: "boolean",
-                alias: "n"
-            })
-            .option("global", {
-                type: "boolean",
-                alias: "g"
-            })
-            .option("follow", {
-                type: "boolean",
-                alias: "f"
-            })
-            .option("detach", {
-                type: "boolean",
-                alias: "d"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options: LogsOptions) => this.logs(options));
-
-        cli.command("exec [...command]")
-            .option("name", {
-                type: "string",
-                alias: "n"
-            })
-            .completion("name", () => this.getProjectNames())
-            .action((options: ExecOptions, command: string[]) => this.exec(options, command));
-    }
-
+    @Completion("name")
     protected async getProjectNames() {
-        const projects = await Project.search();
+        const projects = await this.projectService.search();
 
         return projects.map((project) => {
             return project.name;
         });
     }
 
-    protected async getScripts() {
+    @Completion("script")
+    protected async getScripts(
+
+    ) {
+        this.logService.warn(">_<");
+
         try {
             const project = await this.projectService.get();
 
@@ -322,20 +64,40 @@ class ProjectController extends Controller {
         }
     }
 
-    public async init(options: InitOptions) {
-        let project = await Project.searchOne({
+    @Command("init")
+    public async init(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name: string,
+        @Option("type", {
+            type: "string",
+            alias: "t",
+            description: "Project type"
+        })
+        type: string,
+        @Option("preset", {
+            type: "string",
+            alias: "p",
+            description: "Preset"
+        })
+        preset: string
+    ) {
+        let project = await this.projectService.searchOne({
             path: this.appConfigService.getPWD()
         });
 
         if(!project) {
-            project = new Project({});
+            project = this.projectService.fromObject({});
         }
 
-        if(options.name) {
-            project.name = options.name;
+        if(name) {
+            project.name = name;
         }
 
-        if(!options.name || !project.name) {
+        if(!name || !project.name) {
             project.name = await promptText({
                 type: "string",
                 required: true,
@@ -344,13 +106,13 @@ class ProjectController extends Controller {
             });
         }
 
-        if(options.type) {
-            project.type = options.type;
+        if(type) {
+            project.type = type;
         }
 
         const mapTypes = this.appConfigService.getProjectTypes();
 
-        if(!options.type || !project.type || !mapTypes[project.type]) {
+        if(!type || !project.type || !mapTypes[project.type]) {
             project.type = await promptSelect({
                 message: "Project type",
                 options: mapTypes,
@@ -398,14 +160,18 @@ class ProjectController extends Controller {
 
         project.path = this.appConfigService.getPWD();
 
-        await project.save();
+        await this.projectService.save(project);
     }
 
-    public async projectList(options: ListOptions) {
-        const {
-            all
-        } = options;
-
+    @Command("ps")
+    public async projectList(
+        @Option("all", {
+            type: "boolean",
+            alias: "a",
+            description: "All projects"
+        })
+        all: boolean
+    ) {
         const table = new CliTable({
             head: ["Name", "Type", "Status"],
             colAligns: ["left", "center", "center"]
@@ -436,13 +202,30 @@ class ProjectController extends Controller {
         return table.toString() + "\n";
     }
 
-    public async start(options: StartOptions) {
-        const {
-            name,
-            rebuild,
-            detach
-        } = options;
-
+    @Command("start")
+    public async start(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name?: string,
+        @Option("detach", {
+            type: "boolean",
+            alias: "d"
+        })
+        detach?: boolean,
+        @Option("build", {
+            type: "boolean",
+            alias: "b"
+        })
+        rebuild?: boolean,
+        @Option("restart", {
+            type: "boolean",
+            alias: "r"
+        })
+        restart?: boolean
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -450,32 +233,38 @@ class ProjectController extends Controller {
         const project = await this.projectService.get();
 
         if(rebuild) {
+            await this.projectService.stop();
+
             await this.appEventsService.emit("project:rebuild", project);
         }
 
-        await this.projectService.start();
+        await this.projectService.start(restart);
 
         if(!detach) {
             const project = await this.projectService.get();
 
-            const containerName = `${project.name}.workspace`;
+            const containerName = project.containerName;
 
-            const container = await Docker.getContainer(containerName);
+            const container = await this.dockerService.getContainer(containerName);
 
             await container.resize({
                 w: process.stdout.columns,
                 h: process.stdout.rows
             });
 
-            await Docker.attach(containerName);
+            await this.dockerService.attach(containerName);
         }
     }
 
-    public async stop(options: StopOptions) {
-        const {
-            name
-        } = options;
-
+    @Command("stop")
+    public async stop(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name: string,
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -483,7 +272,20 @@ class ProjectController extends Controller {
         await this.projectService.stop();
     }
 
-    public async run(script: string) {
+    @Command("run <script>")
+    public async run(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name: string,
+        script: string
+    ) {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
         const project = await this.projectService.get();
 
         if(!project.scripts || !project.scripts[script]) {
@@ -513,26 +315,37 @@ class ProjectController extends Controller {
         await this.dockerService.attachStream(stream);
     }
 
-    public async attach(options: AttachOptions) {
-        const {
-            name
-        } = options;
-
+    @Command("attach")
+    public async attach(
+        @Option("name", {
+            type: "string",
+            alias: "n"
+        })
+        name?: string
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
 
         const containerName = `${name}.workspace`;
 
-        await Docker.attach(containerName);
+        await this.dockerService.attach(containerName);
     }
 
-    public async configList(options: ConfigOptions) {
-        const {
-            name,
-            global
-        } = options;
-
+    @Command("config")
+    public async configList(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name?: string,
+        @Option("global", {
+            type: "boolean",
+            alias: "g"
+        })
+        global?: boolean
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -561,12 +374,20 @@ class ProjectController extends Controller {
         return table.toString() + "\n";
     }
 
-    public async configGet(options: ConfigOptions, key: string) {
-        const {
-            name,
-            global
-        } = options;
-
+    @Command("config:get <key>")
+    public async configGet(
+        @Option("name", {
+            type: "string",
+            alias: "n"
+        })
+        name: string,
+        @Option("global", {
+            type: "boolean",
+            alias: "b"
+        })
+        global: boolean,
+        key: string
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -593,12 +414,20 @@ class ProjectController extends Controller {
         return table.toString() + "\n";
     }
 
-    public async configSet(options: ConfigOptions, configs: string[]) {
-        const {
-            name,
-            global
-        } = options;
-
+    @Command("config:set [...configs]")
+    public async configSet(
+        @Option("name", {
+            type: "string",
+            alias: "n"
+        })
+        name: string,
+        @Option("global", {
+            type: "boolean",
+            alias: "g"
+        })
+        global: boolean,
+        configs: string[]
+    ) {
         const env: Project["env"] = configs.reduce((env, config) => {
             const [key, value] = config.split("=");
 
@@ -634,12 +463,20 @@ class ProjectController extends Controller {
         await project.save();
     }
 
-    public async configUnset(options: ConfigOptions, configs: string[]) {
-        const {
-            name,
-            global
-        } = options;
-
+    @Command("config:unset [...configs]")
+    public async configUnset(
+        @Option("name", {
+            type: "string",
+            alias: "n"
+        })
+        name: string,
+        @Option("global", {
+            type: "boolean",
+            alias: "g"
+        })
+        global: boolean,
+        configs: string[]
+    ) {
         const env: Project["env"] = configs.reduce((env, config) => {
             const [key] = config.split("=");
 
@@ -665,11 +502,14 @@ class ProjectController extends Controller {
         await project.save();
     }
 
-    public async buildArgsList(options: BuildArgsOptions) {
-        const {
-            name
-        } = options;
-
+    @Command("build-args")
+    public async buildArgsList(
+        @Option("name", {
+            type: "string",
+            alias: "n"
+        })
+        name?: string
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -689,11 +529,15 @@ class ProjectController extends Controller {
         return table.toString() + "\n";
     }
 
-    public async buildArgsGet(options: BuildArgsOptions, args: string[]) {
-        const {
-            name
-        } = options;
-
+    @Command("build-args:get [...buildArgs]")
+    public async buildArgsGet(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+        })
+        name: string,
+        args: string[]
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -704,7 +548,7 @@ class ProjectController extends Controller {
             head: ["KEY", "VALUE"]
         });
 
-        Logger.info("...");
+        this.logService.info("...");
 
         for(const key of args) {
             if(project.buildArgs && typeof project.buildArgs[key] !== "undefined") {
@@ -717,11 +561,15 @@ class ProjectController extends Controller {
         return table.toString() + "\n";
     }
 
-    public async buildArgsSet(options: BuildArgsOptions, args: string[]) {
-        const {
-            name
-        } = options;
-
+    @Command("build-args:set [...buildArgs]")
+    public async buildArgsSet(
+        @Option("name", {
+            type: "string",
+            alias: "n"
+        })
+        name: string,
+        args: string[]
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -747,11 +595,15 @@ class ProjectController extends Controller {
         await project.save();
     }
 
-    public async buildArgsUnset(options: BuildArgsOptions, args: string[]) {
-        const {
-            name
-        } = options;
-
+    @Command("build-args:unset [...buildArgs]")
+    public async buildArgsUnset(
+        @Option("name", {
+            type: "string",
+            alias: "n"
+        })
+        name: string,
+        args: string[]
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -779,11 +631,14 @@ class ProjectController extends Controller {
         await project.save();
     }
 
-    public async volumeList(options: VolumeOptions) {
-        const {
-            name
-        } = options;
-
+    @Command("volumes")
+    public async volumeList(
+        @Option("name", {
+            type: "string",
+            alias: "n"
+        })
+        name?: string
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -803,11 +658,15 @@ class ProjectController extends Controller {
         return table.toString() + "\n";
     }
 
-    public async volumeMount(options: VolumeOptions, volumes: string[]) {
-        const {
-            name
-        } = options;
-
+    @Command("volume:mount [...volumes]")
+    public async volumeMount(
+        @Option("name", {
+            type: "string",
+            alias: "n"
+        })
+        name: string,
+        volumes: string[]
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -821,11 +680,15 @@ class ProjectController extends Controller {
         }
     }
 
-    public async volumeUnmount(options: VolumeOptions, volumes: string[]) {
-        const {
-            name
-        } = options;
-
+    @Command("volume:unmount [...volumes]")
+    public async volumeUnmount(
+        @Option("name", {
+            type: "string",
+            alias: "n"
+        })
+        name: string,
+        volumes: string[]
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -839,14 +702,30 @@ class ProjectController extends Controller {
         }
     }
 
-    public async logs(options: LogsOptions) {
-        const {
-            name,
-            global,
-            detach,
-            follow
-        } = options;
-
+    @Command("logs")
+    public async logs(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name: string,
+        @Option("global", {
+            type: "boolean",
+            alias: "g"
+        })
+        global: boolean,
+        @Option("detach", {
+            type: "boolean",
+            alias: "d"
+        })
+        detach: boolean,
+        @Option("follow", {
+            type: "boolean",
+            alias: "f"
+        })
+        follow: boolean
+    ) {
         if(global) {
             const logFilepath = Path.join(DATA_DIR, "ws.log");
 
@@ -890,7 +769,7 @@ class ProjectController extends Controller {
                         const stats = await FS.stat(logFilepath);
 
                         if(BigInt(stats.size) < position) {
-                            console.log("file truncated");
+                            console.info("file truncated");
 
                             position = 0n;
                         }
@@ -916,7 +795,7 @@ class ProjectController extends Controller {
 
         const project = await this.projectService.get();
 
-        const container = await Docker.getContainer(`${project.name}.workspace`);
+        const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
         if(!detach) {
             const stream = await container.logs({
@@ -940,11 +819,16 @@ class ProjectController extends Controller {
         }
     }
 
-    public async exec(options: ExecOptions, command: string[]) {
-        const {
-            name
-        } = options;
-
+    @Command("exec [...command]")
+    public async exec(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name?: string,
+        command?: string[]
+    ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -953,9 +837,6 @@ class ProjectController extends Controller {
 
         const containerName = `${project.name}.workspace`;
 
-        await Docker.exec(containerName, command);
+        await this.dockerService.exec(containerName, command);
     }
 }
-
-
-export {ProjectController};

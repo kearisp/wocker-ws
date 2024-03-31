@@ -1,10 +1,9 @@
-import {Cli} from "@wocker/core";
+import {Controller, Command, Option, Project} from "@wocker/core";
 import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
 import * as Path from "path";
 
 import {PRESETS_DIR} from "../env";
 import {injectVariables, volumeParse, volumeFormat} from "../utils";
-import {DI, Controller, Project} from "../makes";
 import {
     AppConfigService,
     AppEventsService,
@@ -14,44 +13,20 @@ import {
 } from "../services";
 
 
-type BuildParams = {
-    rebuild?: boolean;
-};
-
-class PresetController extends Controller {
-    protected appConfigService: AppConfigService;
-    protected appEventsService: AppEventsService;
-    protected projectService: ProjectService;
-    protected presetService: PresetService;
-    protected dockerService: DockerService;
-
-    public constructor(di: DI) {
-        super();
-
-        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
-        this.appEventsService = di.resolveService<AppEventsService>(AppEventsService);
-        this.projectService = di.resolveService<ProjectService>(ProjectService);
-        this.presetService = di.resolveService<PresetService>(PresetService);
-        this.dockerService = di.resolveService<DockerService>(DockerService);
-    }
-
-    public install(cli: Cli) {
-        super.install(cli);
-
+@Controller()
+export class PresetController {
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly appEventsService: AppEventsService,
+        protected readonly projectService: ProjectService,
+        protected readonly presetService: PresetService,
+        protected readonly dockerService: DockerService
+    ) {
         this.appConfigService.registerProjectType("preset", "Preset");
 
         this.appEventsService.on("project:init", (project) => this.onInit(project));
         this.appEventsService.on("project:beforeStart", (project) => this.onBeforeStart(project));
         this.appEventsService.on("project:rebuild", (project) => this.onRebuild(project));
-
-        cli.command("preset:build <preset>")
-            .completion("preset", () => this.presets())
-            .option("rebuild", {
-                type: "boolean",
-                alias: "r",
-                description: "Rebuild image"
-            })
-            .action((options: BuildParams, preset: string) => this.build(options, preset));
     }
 
     public async presets() {
@@ -178,7 +153,16 @@ class PresetController extends Controller {
         }
     }
 
-    public async build(options: BuildParams, presetName: string) {
+    @Command("preset:build <preset>")
+    public async build(
+        @Option("rebuild", {
+            type: "boolean",
+            alias: "r",
+            description: "Rebuild image"
+        })
+        rebuild: boolean,
+        presetName: string
+    ) {
         const preset = await this.presetService.get(presetName);
 
         let buildArgs: Project["buildArgs"] = {};
@@ -200,6 +184,3 @@ class PresetController extends Controller {
         });
     }
 }
-
-
-export {PresetController};

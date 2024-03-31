@@ -1,22 +1,19 @@
+import {Controller} from "@wocker/core";
 import {Cli} from "@kearisp/cli";
 
-import {DI, Plugin} from "../makes";
-import {DockerService} from "../services";
+import {DockerService, AppConfigService} from "../services";
 
 
-class MaildevPlugin extends Plugin {
+@Controller()
+export class MaildevPlugin {
     protected containerName = "maildev.workspace";
-    protected dockerService: DockerService;
 
-    public constructor(di: DI) {
-        super("maildev");
-
-        this.dockerService = di.resolveService<DockerService>(DockerService);
-    }
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly dockerService: DockerService
+    ) {}
 
     public install(cli: Cli) {
-        super.install(cli);
-
         cli.command("maildev:start")
             .action(() => this.start());
 
@@ -34,7 +31,7 @@ class MaildevPlugin extends Plugin {
                 tag: "ws-maildev",
                 buildArgs: {},
                 labels: {},
-                context: this.pluginPath(),
+                context: this.appConfigService.pluginsPath("plugins/maildev"),
                 src: "./Dockerfile"
             });
         }
@@ -60,6 +57,3 @@ class MaildevPlugin extends Plugin {
         await this.dockerService.removeContainer(this.containerName);
     }
 }
-
-
-export {MaildevPlugin};

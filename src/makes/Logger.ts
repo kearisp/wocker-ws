@@ -1,28 +1,43 @@
-import {DI} from "./DI";
-import {LogService} from "../services/LogService";
+import {LogService} from "../services";
 
 
-let _di: DI;
+let logService: LogService | undefined;
 
 class Logger {
-    public static install(di: DI) {
-        _di = di;
+    public static install(ls: LogService) {
+        logService = ls;
     }
 
     public static log(...data: any[]): void {
-        _di.resolveService<LogService>(LogService).log(...data);
+        if(!logService) {
+            throw new Error("Dependency is missing");
+        }
+
+        logService.log(...data);
     }
 
     public static info(...data: any[]): void {
-        _di.resolveService<LogService>(LogService).info(...data);
+        if(!logService) {
+            throw new Error("Dependency is missing");
+        }
+
+        logService.info(...data);
     }
 
     public static warn(...data: any[]): void {
-        _di.resolveService<LogService>(LogService).warn(...data);
+        if(!logService) {
+            throw new Error("Dependency is missing");
+        }
+
+        logService.warn(...data);
     }
 
     public static error(...data: any[]): void {
-        _di.resolveService<LogService>(LogService).error(...data);
+        if(!logService) {
+            throw new Error("Dependency is missing");
+        }
+
+        logService.error(...data);
     }
 }
 

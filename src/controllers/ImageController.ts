@@ -1,28 +1,19 @@
+import {Controller, Command} from "@wocker/core";
 import CliTable from "cli-table3";
-import {Cli} from "@kearisp/cli";
 
-import {DI, Controller, Docker} from "../makes";
-import {AppConfigService} from "../services";
+import {AppConfigService, DockerService} from "../services";
 
 
-class ImageController extends Controller {
-    protected appConfigService: AppConfigService;
+@Controller()
+export class ImageController {
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly dockerService: DockerService
+    ) {}
 
-    public constructor(di: DI) {
-        super();
-
-        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
-    }
-
-    public install(cli: Cli) {
-        super.install(cli);
-
-        cli.command("images")
-            .action(() => this.list());
-    }
-
+    @Command("images")
     public async list() {
-        const images = await Docker.imageLs({});
+        const images = await this.dockerService.imageLs({});
 
         const table = new CliTable({
             head: ["Name"]
@@ -35,6 +26,3 @@ class ImageController extends Controller {
         return table.toString() + "\n";
     }
 }
-
-
-export {ImageController};

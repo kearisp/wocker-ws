@@ -1,50 +1,63 @@
 import Docker, {Container} from "dockerode";
+import {Injectable, DockerServiceParams as Params} from "@wocker/core";
 
 import {followProgress} from "../utils";
-import {DI, FS, Logger} from "../makes";
+import {FS, Logger} from "../makes";
+import {LogService} from "./LogService";
 
 
-namespace Params {
-    export type CreateContainer = {
-        name: string;
-        image: string;
-        restart?: "always";
-        projectId?: string;
-        tty?: boolean;
-        ulimits?: {
-            [key: string]: {
-                hard?: number;
-                soft?: number;
-            };
-        };
-        links?: string[];
-        env?: {
-            [key: string]: string;
-        };
-        networkMode?: string;
-        extraHosts?: any;
-        volumes?: string[];
-        ports?: string[];
-        cmd?: string[];
-    };
+// namespace Params {
+//     export type CreateContainer = {
+//         name: string;
+//         image: string;
+//         restart?: "always";
+//         projectId?: string;
+//         tty?: boolean;
+//         ulimits?: {
+//             [key: string]: {
+//                 hard?: number;
+//                 soft?: number;
+//             };
+//         };
+//         links?: string[];
+//         env?: {
+//             [key: string]: string;
+//         };
+//         networkMode?: string;
+//         extraHosts?: any;
+//         volumes?: string[];
+//         ports?: string[];
+//         cmd?: string[];
+//     };
+//
+//     export type ImageList = {
+//         tag?: string;
+//         reference?: string;
+//         labels?: {
+//             [key: string]: string;
+//         };
+//     };
+//
+//     export type BuildImage = {
+//         tag: string;
+//         buildArgs?: {
+//             [key: string]: string;
+//         };
+//         labels?: {
+//             [key: string]: string;
+//         };
+//         context: string;
+//         src: string;
+//     };
+// }
 
-    export type BuildImage = {
-        tag: string;
-        buildArgs?: {
-            [key: string]: string;
-        };
-        labels?: {
-            [key: string]: string;
-        };
-        context: string;
-        src: string;
-    };
-}
-
-class DockerService {
+@Injectable("DOCKER_SERVICE")
+export class DockerService {
     protected docker: Docker;
 
-    public constructor(di: DI) {
+    public constructor(
+        protected readonly logService: LogService
+    ) {
         this.docker = new Docker({
             socketPath: "/var/run/docker.sock"
         });
@@ -53,6 +66,8 @@ class DockerService {
     public async createContainer(params: Params.CreateContainer): Promise<Container> {
         const {
             name,
+            user,
+            entrypoint,
             tty,
             image,
             projectId,
@@ -84,6 +99,7 @@ class DockerService {
 
         return this.docker.createContainer({
             name,
+            User: user,
             Image: image,
             Hostname: name,
             Labels: {
@@ -94,6 +110,8 @@ class DockerService {
             AttachStderr: true,
             OpenStdin: true,
             StdinOnce: false,
+            Entrypoint: entrypoint,
+            // U
             Tty: tty,
             Cmd: cmd,
             Env: Object.keys(env).map((key) => {
@@ -255,6 +273,42 @@ class DockerService {
         await image.remove();
     }
 
+    public async imageLs(options?: Params.ImageList) {
+        const {
+            tag,
+            reference,
+            labels
+        } = options || {};
+
+        const filters: any = {};
+
+        if(reference) {
+            filters.reference = [
+                ...filters.reference || [],
+                reference
+            ];
+        }
+
+        if(tag) {
+            filters.reference = [
+                ...filters.reference || [],
+                tag
+            ];
+        }
+
+        if(labels) {
+            filters.label = [];
+
+            for(const i in labels) {
+                filters.label.push(`${i}=${labels[i]}`);
+            }
+        }
+
+        return this.docker.listImages({
+            filters: JSON.stringify(filters)
+        });
+    }
+
     public async pullImage(tag: string): Promise<void> {
         const exists = await this.imageExists(tag);
 
@@ -265,6 +319,53 @@ class DockerService {
         const stream = await this.docker.pull(tag);
 
         await followProgress(stream);
+    }
+
+    public async attach(name: string) {
+        const container = await this.getContainer(name);
+
+        const stream = await container.attach({
+            logs: true,
+            stream: true,
+            hijack: true,
+            stdin: true,
+            stdout: true,
+            stderr: true
+        });
+
+        process.stdin.resume();
+        process.stdin.setEncoding("utf8");
+        process.stdin.setRawMode(true);
+        process.stdin.pipe(stream);
+
+        process.stdin.on("data", (data) => {
+            if(data.toString() === "\u0003") {
+                process.stdin.setRawMode(false);
+            }
+        });
+
+        stream.setEncoding("utf8");
+        stream.pipe(process.stdout);
+
+        const [width, height] = process.stdout.getWindowSize();
+
+        await container.resize({
+            w: width,
+            h: height
+        });
+
+        stream.on("end", async () => {
+            process.exit();
+        });
+
+        process.stdout.on("resize", () => {
+            const [width, height] = process.stdout.getWindowSize();
+
+            container.resize({
+                w: width,
+                h: height
+            });
+        });
     }
 
     public async attachStream(stream: NodeJS.ReadWriteStream) {
@@ -297,7 +398,61 @@ class DockerService {
             stream.on("error", reject);
         });
     }
+
+    public async exec(name: string, args?: string[], tty = false) {
+        const container = await this.getContainer(name);
+
+        if(!container) {
+            return;
+        }
+
+        const exec = await container.exec({
+            AttachStdin: true,
+            AttachStdout: true,
+            AttachStderr: tty,
+            Tty: tty,
+            Cmd: args || []
+        });
+
+        const stream = await exec.start({
+            hijack: true,
+            stdin: tty,
+            Tty: tty
+        });
+
+        if(tty) {
+            stream.setEncoding("utf-8");
+
+            process.stdin.resume();
+
+            if(process.stdin.setRawMode) {
+                process.stdin.setRawMode(true);
+            }
+
+            process.stdin.setEncoding("utf-8");
+            process.stdin.pipe(stream);
+
+            stream.pipe(process.stdout);
+
+            stream.on("error", (err) => {
+                Logger.error(err.message);
+            });
+
+            stream.on("end", async () => {
+                process.stdin.setRawMode(false);
+            });
+
+            stream.on("end", async () => {
+                process.exit();
+            });
+        }
+
+        // setTimeout(() => {
+        //     Logger.info("Exit");
+        //
+        //     process.exit();
+        // }, 4000);
+
+        return stream;
+    }
 }
-
-
-export {DockerService};

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const chalk = require("chalk");
-const {app} = require("../lib/index.js");
+const {app} = require("../lib/main.js");
 
 
 app.run(process.argv).then((res) => {

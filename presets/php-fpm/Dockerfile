@@ -164,7 +164,7 @@ ARG NGINX_DOCUMENT_ROOT=/var/www
 WORKDIR $WORKDIR
 
 ADD etc/nginx/sites-available/default.conf /tmp/default.conf.txt
-RUN envsubst '\${NGINX_DOCUMENT_ROOT}' < /tmp/default.conf.txt > /etc/nginx/sites-available/default.conf
+RUN envsubst '\${NGINX_DOCUMENT_ROOT}' < /tmp/default.conf.txt > /etc/nginx/sites-available/default
 
 EXPOSE 80
 EXPOSE 9000

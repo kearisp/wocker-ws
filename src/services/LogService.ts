@@ -1,14 +1,16 @@
+import {Injectable} from "@wocker/core";
 import dateFormat from "date-fns/format";
 
-import {FS, DI} from "../makes";
+import {FS, Logger} from "../makes";
 import {AppConfigService} from "./AppConfigService";
 
 
-class LogService {
-    protected appConfigService: AppConfigService;
-
-    public constructor(di: DI) {
-        this.appConfigService = di.resolveService<AppConfigService>(AppConfigService);
+@Injectable("LOG_SERVICE")
+export class LogService {
+    public constructor(
+        protected readonly appConfigService: AppConfigService
+    ) {
+        Logger.install(this);
     }
 
     public log(...data: any[]): void {
@@ -42,6 +44,3 @@ class LogService {
         FS.appendFileSync(logPath, `[${time}] ${type}: ${logData}\n`);
     }
 }
-
-
-export {LogService};
