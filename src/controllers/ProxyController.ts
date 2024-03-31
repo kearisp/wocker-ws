@@ -136,9 +136,6 @@ export class ProxyController {
                 ]
             });
         }
-        else {
-            console.info("Container already exists");
-        }
 
         const {
             State: {

@@ -33,7 +33,7 @@
             ]
         }
     },
-    "volumes": [
+    "volumeOptions": [
         "./:/usr/app"
     ]
 }

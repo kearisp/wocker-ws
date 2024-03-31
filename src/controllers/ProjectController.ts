@@ -209,17 +209,22 @@ export class ProjectController {
             alias: "n",
             description: "Project name"
         })
-        name: string,
+        name?: string,
         @Option("detach", {
             type: "boolean",
             alias: "d"
         })
-        detach: boolean,
+        detach?: boolean,
         @Option("build", {
             type: "boolean",
             alias: "b"
         })
-        rebuild: boolean
+        rebuild?: boolean,
+        @Option("restart", {
+            type: "boolean",
+            alias: "r"
+        })
+        restart?: boolean
     ) {
         if(name) {
             await this.projectService.cdProject(name);
@@ -233,12 +238,12 @@ export class ProjectController {
             await this.appEventsService.emit("project:rebuild", project);
         }
 
-        await this.projectService.start();
+        await this.projectService.start(restart);
 
         if(!detach) {
             const project = await this.projectService.get();
 
-            const containerName = `${project.name}.workspace`;
+            const containerName = project.containerName;
 
             const container = await this.dockerService.getContainer(containerName);
 

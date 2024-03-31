@@ -13,5 +13,5 @@ app.run(process.argv).then((res) => {
 }).catch((err) => {
     console.error(chalk.red(err.message));
 
-    throw err;
+    // throw err;
 });

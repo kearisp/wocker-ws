@@ -74,7 +74,7 @@ class ProjectService {
         return this.dockerService.getContainer(project.containerName);
     }
 
-    public async start() {
+    public async start(restart?: boolean) {
         const project = await this.get();
 
         if(project.type === "dockerfile") {
@@ -97,6 +97,12 @@ class ProjectService {
 
         let container = await this.dockerService.getContainer(project.containerName);
 
+        if(container && restart) {
+            container = null;
+
+            await this.dockerService.removeContainer(project.containerName);
+        }
+
         if(!container) {
             container = await this.dockerService.createContainer({
                 name: project.containerName,
@@ -114,22 +120,17 @@ class ProjectService {
                 ports: project.ports || []
             });
         }
-        else {
-            process.stdout.write("Container already exists\n");
-        }
 
-        if(container) {
-            const {
-                State: {
-                    Status
-                }
-            } = await container.inspect();
-
-            if(Status === "created" || Status === "exited") {
-                await container.start();
-
-                await this.appEventsService.emit("project:start", project);
+        const {
+            State: {
+                Status
             }
+        } = await container.inspect();
+
+        if(Status === "created" || Status === "exited") {
+            await container.start();
+
+            await this.appEventsService.emit("project:start", project);
         }
     }
 
