@@ -1,11 +1,10 @@
-import {Controller, Command} from "@wocker/core";
-import axios from "axios";
+import {Controller, Command, Completion} from "@wocker/core";
 import chalk from "chalk";
 import CliTable from "cli-table3";
 
 import {AppConfigService, PluginService, LogService} from "../services";
 import {exec} from "../utils";
-import * as console from "console";
+import {Http} from "../makes/Http";
 
 
 @Controller()
@@ -18,15 +17,13 @@ export class PluginController {
 
     @Command("plugins")
     public async list() {
-        const {
-            plugins
-        } = await this.appConfigService.getAppConfig();
+        const config = await this.appConfigService.getConfig();
         const table = new CliTable({
             head: ["Name"],
             colWidths: [30]
         });
 
-        for(const name of plugins) {
+        for(const name of config.plugins) {
             table.push([name]);
         }
 
@@ -43,24 +40,23 @@ export class PluginController {
 
         const fullName = `${prefix}${name}${suffix}`;
 
-        try {
-            const {default: Plugin} = await import(fullName);
+        this.logService.info(`Installing plugin... ${fullName}`);
 
-            // this.pluginService.use(Plugin);
-
-            await this.appConfigService.activatePlugin(fullName);
-
-            console.info(`Plugin ${fullName} activated`);
-            return;
-        }
-        catch(err) {
-            this.logService.error(err.message);
-        }
+        const config = await this.appConfigService.getConfig();
 
         try {
-            const res = await axios.get(`https://registry.npmjs.org/${encodeURIComponent(fullName)}`, {
-                validateStatus: () => true
-            });
+            if(await this.pluginService.checkPlugin(fullName)) {
+                config.addPlugin(fullName);
+
+                await config.save();
+
+                console.info(`Plugin ${fullName} activated`);
+
+                return;
+            }
+
+            const res = await Http.get("https://registry.npmjs.org")
+                .send(fullName);
 
             if(res.status !== 200) {
                 console.error(chalk.red(`Plugin ${fullName} not found`));
@@ -71,7 +67,15 @@ export class PluginController {
 
             await exec(`npm install -g ${fullName}`);
 
-            await this.appConfigService.activatePlugin(fullName);
+            if(await this.pluginService.checkPlugin(fullName)) {
+                config.addPlugin(fullName);
+
+                await config.save();
+
+                console.info(`Plugin ${fullName} activated`);
+
+                return;
+            }
         }
         catch(err) {
             this.logService.error(err.message);
@@ -79,9 +83,7 @@ export class PluginController {
     }
 
     @Command("plugin:remove <name>")
-    public async remove(
-        removeName: string
-    ) {
+    public async remove(removeName: string) {
         const [,
             prefix = "@wocker/",
             name,
@@ -90,8 +92,25 @@ export class PluginController {
 
         const fullName = `${prefix}${name}${suffix}`;
 
-        await this.appConfigService.deactivatePlugin(fullName);
+        const config = await this.appConfigService.getConfig();
+
+        config.removePlugin(fullName);
+
+        await config.save();
 
         console.info(`Plugin ${fullName} deactivated`);
+    }
+
+    @Command("plugin:update [name]")
+    public async update() {
+        await this.pluginService.update();
+    }
+
+    @Completion("name", "plugin:update [name]")
+    @Completion("name", "plugin:remove <name>")
+    public async getInstalledPlugins() {
+        const config = await this.appConfigService.getConfig();
+
+        return config.plugins || [];
     }
 }

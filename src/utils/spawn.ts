@@ -1,27 +1,34 @@
 import {spawn as processSpawn} from "child_process";
 
 
-const spawn = async (command): Promise<void> => {
-    return new Promise((resolve) => {
-        let [
-            prog,
-            ...options
-        ] = command.split(/\s+/);
+const spawn = async (command: string, args: string[]): Promise<void> => {
+    const abortController = new AbortController();
 
-        let worker = processSpawn(prog, options);
+    const child = processSpawn(command, args, {
+        signal: abortController.signal,
+        stdio: "inherit"
+    });
 
-        worker.stdout.on("data", (data) => {
-            console.log(`stdout: ${data}`);
-        });
+    await new Promise((resolve, reject) => {
+        let withError: boolean = false;
 
-        worker.stderr.on("data", (data) => {
-            console.error(`stderr: ${data}`);
-        });
+        child.on("close", (code) => {
+            if(withError) {
+                return;
+            }
 
-        worker.on("close", (code) => {
-            console.log(`child process exited with code ${code}`);
+            if(code !== 0) {
+                reject(new Error(`Process exited with code ${code}`));
+
+                return;
+            }
 
             resolve(undefined);
+        });
+
+        child.on("error", (err) => {
+            withError = true;
+            reject(err);
         });
     });
 };

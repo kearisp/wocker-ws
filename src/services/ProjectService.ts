@@ -104,11 +104,13 @@ class ProjectService {
         }
 
         if(!container) {
+            const config = await this.appConfigService.getConfig();
+
             container = await this.dockerService.createContainer({
                 name: project.containerName,
                 image: project.imageName,
                 env: {
-                    ...await this.appConfigService.getAllEnvVariables(),
+                    ...config.env || {},
                     ...project.env || {}
                 },
                 volumes: (project.volumes || []).map((volume: string) => {
@@ -162,6 +164,7 @@ class ProjectService {
         }
 
         const projectDirPath = this.appConfigService.dataPath("projects", project.id);
+        const config = await this.appConfigService.getConfig();
         const configPath = this.appConfigService.dataPath("projects", project.id, "config.json");
 
         if(!FS.existsSync(projectDirPath)) {
@@ -170,30 +173,29 @@ class ProjectService {
             });
         }
 
-        await this.appConfigService.setProjectConfig(project.id, project.path);
+        config.setProject(project.id, project.path);
 
         await FS.writeJSON(configPath, project);
+        await config.save();
     }
 
     public async search(params: Partial<SearchParams> = {}): Promise<Project[]> {
         const {id, name, path} = params;
 
-        const {
-            projects: configs
-        } = await this.appConfigService.getAppConfig();
+        const config = await this.appConfigService.getConfig();
 
         const projects: Project[] = [];
 
-        for(const config of configs) {
-            if(id && config.id !== id) {
+        for(const projectConfig of config.projects) {
+            if(id && projectConfig.id !== id) {
                 continue;
             }
 
-            if(path && config.src !== path) {
+            if(path && projectConfig.src !== path) {
                 continue;
             }
 
-            const project = await this.getById(config.id);
+            const project = await this.getById(projectConfig.id);
 
             if(name && project.name !== name) {
                 continue;
