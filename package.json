@@ -36,7 +36,6 @@
         "date-fns": "^2.29.3",
         "dockerode": "^4.0.2",
         "fs": "^0.0.1-security",
-        "inquirer": "^7.0.0",
         "md5": "^2.3.0",
         "os": "^0.1.2",
         "path": "^0.12.7",
@@ -45,7 +44,6 @@
     },
     "devDependencies": {
         "@types/dockerode": "3.3.23",
-        "@types/inquirer": "^7.0.0",
         "@types/jest": "^29.5.12",
         "@types/lodash": "^4.14.161",
         "@types/md5": "^2.3.2",

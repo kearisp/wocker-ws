@@ -24,18 +24,17 @@ class ProjectService {
     ) {}
 
     public fromObject(data: Partial<PickProperties<Project>>): Project {
+        const projectService = this;
+
         return new class extends Project {
-            public constructor(
-                protected readonly projectService: ProjectService,
-                data: PickProperties<Project>
-            ) {
+            public constructor(data: PickProperties<Project>) {
                 super(data);
             }
 
             public async save() {
-                await this.projectService.save(this);
+                await projectService.save(this);
             }
-        }(this, data as PickProperties<Project>);
+        }(data as PickProperties<Project>);
     }
 
     public async getById(id: string): Promise<Project> {
@@ -170,7 +169,7 @@ class ProjectService {
         if(!FS.existsSync(projectDirPath)) {
             await FS.mkdir(projectDirPath, {
                 recursive: true
-            });
+            } as any);
         }
 
         config.setProject(project.id, project.path);

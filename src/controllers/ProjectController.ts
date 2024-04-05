@@ -86,7 +86,9 @@ export class ProjectController {
         });
 
         if(!project) {
-            project = this.projectService.fromObject({});
+            project = this.projectService.fromObject({
+                path: this.appConfigService.getPWD()
+            });
         }
 
         if(name) {
@@ -97,8 +99,8 @@ export class ProjectController {
             project.name = await promptText({
                 type: "string",
                 required: true,
-                message: "Project name",
-                default: project.name
+                message: "Project name:",
+                default: project.name || Path.basename(project.path)
             });
         }
 
@@ -110,7 +112,7 @@ export class ProjectController {
 
         if(!type || !project.type || !mapTypes[project.type]) {
             project.type = await promptSelect({
-                message: "Project type",
+                message: "Project type:",
                 options: mapTypes,
                 default: project.type
             });
@@ -156,7 +158,7 @@ export class ProjectController {
 
         project.path = this.appConfigService.getPWD();
 
-        await this.projectService.save(project);
+        await project.save();
     }
 
     @Command("ps")
