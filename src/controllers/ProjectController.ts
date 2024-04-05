@@ -23,10 +23,6 @@ import {
     DockerService,
     LogService
 } from "../services";
-import {
-    getConfig,
-    setConfig
-} from "../utils";
 
 
 @Controller()
@@ -350,7 +346,7 @@ export class ProjectController {
             await this.projectService.cdProject(name);
         }
 
-        let env: EnvConfig = {};
+        let env: EnvConfig;
 
         if(!global) {
             const project = await this.projectService.get();
@@ -358,7 +354,7 @@ export class ProjectController {
             env = project.env || {};
         }
         else {
-            const config = await getConfig();
+            const config = await this.appConfigService.getConfig();
 
             env = config.env || {};
         }
@@ -392,12 +388,12 @@ export class ProjectController {
             await this.projectService.cdProject(name);
         }
 
-        let value = "";
+        let value: string|undefined;
 
         if(global) {
-            const config = await getConfig();
+            const config = await this.appConfigService.getConfig();
 
-            value = config[key] || "";
+            value = config.getEnv(key, "");
         }
         else {
             const project = await this.projectService.get();
@@ -437,15 +433,13 @@ export class ProjectController {
         }, {});
 
         if(global) {
-            const config = await getConfig();
+            const config = await this.appConfigService.getConfig();
 
-            await setConfig({
-                ...config,
-                env: {
-                    ...config.env || {},
-                    ...env
-                }
-            });
+            for(const key in env) {
+                config.setEnv(key, env[key]);
+            }
+
+            await config.save();
 
             return;
         }
