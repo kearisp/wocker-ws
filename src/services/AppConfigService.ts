@@ -6,7 +6,7 @@ import {
 } from "@wocker/core";
 import * as Path from "path";
 
-import {MAP_PATH, DATA_DIR, PLUGINS_DIR} from "../env";
+import {MAP_PATH, DATA_DIR, PLUGINS_DIR, PRESETS_DIR} from "../env";
 import {FS} from "../makes";
 
 
@@ -28,12 +28,16 @@ export class AppConfigService extends CoreAppConfigService {
         this.pwd = (process.cwd() || process.env.PWD);
     }
 
-    public dataPath(...args: string[]): string {
-        return Path.join(DATA_DIR, ...args);
+    public dataPath(...parts: string[]): string {
+        return Path.join(DATA_DIR, ...parts);
     }
 
-    public pluginsPath(...args: string[]): string {
-        return Path.join(PLUGINS_DIR, ...args);
+    public pluginsPath(...parts: string[]): string {
+        return Path.join(PLUGINS_DIR, ...parts);
+    }
+
+    public presetPath(...parts: string[]): string {
+        return Path.join(PRESETS_DIR, ...parts);
     }
 
     public getPWD(): string {

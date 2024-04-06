@@ -86,6 +86,7 @@ class ProjectService {
             if(images.length === 0) {
                 await this.dockerService.buildImage({
                     tag: project.imageName,
+                    buildArgs: project.buildArgs,
                     context: this.appConfigService.getPWD(),
                     src: project.dockerfile
                 });

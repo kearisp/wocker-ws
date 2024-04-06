@@ -44,22 +44,6 @@ export class ProjectController {
         });
     }
 
-    @Completion("script")
-    protected async getScripts(
-
-    ) {
-        this.logService.warn(">_<");
-
-        try {
-            const project = await this.projectService.get();
-
-            return Object.keys(project.scripts || {});
-        }
-        catch(ignore) {
-            return [];
-        }
-    }
-
     @Command("init")
     public async init(
         @Option("name", {
@@ -372,7 +356,7 @@ export class ProjectController {
         return table.toString() + "\n";
     }
 
-    @Command("config:get <key>")
+    @Command("config:get [...key]")
     public async configGet(
         @Option("name", {
             type: "string",
@@ -381,33 +365,32 @@ export class ProjectController {
         name: string,
         @Option("global", {
             type: "boolean",
-            alias: "b"
+            alias: "g"
         })
         global: boolean,
-        key: string
+        keys: string[]
     ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
 
-        let value: string|undefined;
-
-        if(global) {
-            const config = await this.appConfigService.getConfig();
-
-            value = config.getEnv(key, "");
-        }
-        else {
-            const project = await this.projectService.get();
-
-            value = project.getEnv(key);
-        }
+        let config = global
+            ? await this.appConfigService.getConfig()
+            : await this.projectService.get();
 
         const table = new CliTable({
             head: ["KEY", "VALUE"]
         });
 
-        table.push([key, value]);
+        for(const key of keys) {
+            const value = config.getEnv(key, "");
+
+            if(!value) {
+                continue;
+            }
+
+            table.push([key, value]);
+        }
 
         return table.toString() + "\n";
     }
@@ -424,39 +407,28 @@ export class ProjectController {
             alias: "g"
         })
         global: boolean,
-        configs: string[]
+        variables: string[]
     ) {
-        const env: Project["env"] = configs.reduce((env, config) => {
-            const [key, value] = config.split("=");
-
-            env[key.trim()] = value.trim();
-
-            return env;
-        }, {});
-
-        if(global) {
-            const config = await this.appConfigService.getConfig();
-
-            for(const key in env) {
-                config.setEnv(key, env[key]);
-            }
-
-            await config.save();
-
-            return;
-        }
-
-        if(name) {
+        if(!global && name) {
             await this.projectService.cdProject(name);
         }
 
-        const project = await this.projectService.get();
+        const config = global
+            ? await this.appConfigService.getConfig()
+            : await this.projectService.get();
 
-        for(const i in env) {
-            project.setEnv(i, env[i]);
+        for(const variable of variables) {
+            const [key, value] = variable.split("=");
+
+            if(!value) {
+                console.info(chalk.yellow(`No value for "${key}"`));
+                continue;
+            }
+
+            config.setEnv(key.trim(), value.trim());
         }
 
-        await project.save();
+        await config.save();
     }
 
     @Command("config:unset [...configs]")

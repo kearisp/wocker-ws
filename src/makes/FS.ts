@@ -1,13 +1,13 @@
 import {FS as CoreFS} from "@wocker/core";
 
 import * as fs from "fs";
-import {readdir} from "fs";
 import {
     Stats,
     BigIntStats,
     PathLike,
     PathOrFileDescriptor,
     WriteFileOptions,
+    ObjectEncodingOptions,
     Dirent,
     MakeDirectoryOptions
 } from "fs";
@@ -15,11 +15,75 @@ import * as Path from "path";
 import {PassThrough} from "readable-stream";
 
 
+type ReaddirOptions = ObjectEncodingOptions & {
+    recursive?: boolean;
+};
+
 type ReaddirFilesOptions = {
     recursive?: boolean;
 };
 
+type M = {
+    recursive?: boolean;
+    mode?: number;
+};
+
 export class FS extends CoreFS {
+    public constructor(
+        protected source: string
+    ) {
+        super();
+    }
+
+    public path(...parts: string[]) {
+        return Path.join(this.source, ...parts);
+    }
+
+    public exists(...parts: string[]) {
+        const fullPath = this.path(...parts);
+
+        return FS.existsSync(fullPath);
+    }
+
+    public stat(...parts: string[]) {
+        const fullPath = this.path(...parts);
+
+        return fs.statSync(fullPath);
+    }
+
+    public mkdir(path: string, options?: MakeDirectoryOptions): void {
+        const fullPath = this.path(path);
+
+        fs.mkdirSync(fullPath, options);
+    }
+
+    public async readdir(...parts: string[]) {
+        const fullPath = this.path(...parts);
+
+        return FS.readdir(fullPath);
+    }
+
+    public async readdirFiles(path?: string, options?: ReaddirOptions): Promise<string[]> {
+        const fullPath = this.path(path);
+
+        return new Promise((resolve, reject) => {
+            fs.readdir(fullPath, options as any, (err, files) => {
+                if(err) {
+                    reject(err);
+                    return;
+                }
+
+                files = files.filter((path) => {
+                    const stat = this.stat(path);
+
+                    return stat.isFile();
+                });
+
+                resolve(files);
+            });
+        });
+    }
+
     public static async access(path: PathLike): Promise<any> {
         return new Promise((resolve, reject) => {
             fs.access(path, (err) => {
@@ -101,9 +165,9 @@ export class FS extends CoreFS {
         }
 
         return new Promise((resolve, reject) => {
-            readdir(path, {
+            fs.readdir(path, {
                 withFileTypes: true
-            }, (err, files: Dirent[]) => {
+            } as any, (err, files: Dirent[]) => {
                 if(err) {
                     reject(err);
                     return;

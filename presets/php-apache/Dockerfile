@@ -131,7 +131,7 @@ ARG XDEBUG_ENABLE=false
 RUN if [ "$XDEBUG_ENABLE" = "true" ]; then \
         pecl install xdebug && \
         docker-php-ext-enable xdebug; \
-    fi \
+    fi
 
 # Gettext
 ARG GETTEXT_ENABLE=false

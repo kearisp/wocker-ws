@@ -1,18 +1,17 @@
-import {EnvConfig} from "@wocker/core";
+import {EnvConfig, Injectable, Preset} from "@wocker/core";
 import md5 from "md5";
 
 import {PRESETS_DIR} from "../env";
-import {FS, Preset} from "../makes";
+import {FS} from "../makes";
 
 
 type SearchOptions = Partial<{
     name: string;
 }>;
 
+@Injectable()
 export class PresetService {
-    public constructor() {
-        Preset.install(this);
-    }
+    public constructor() {}
 
     public getImageName(preset: Preset, buildArgs: EnvConfig = {}): string {
         const rawValues = [];
