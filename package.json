@@ -1,6 +1,6 @@
 {
     "name": "@wocker/ws",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Docker workspace for web projects",
     "license": "MIT",
@@ -26,7 +26,7 @@
     },
     "dependencies": {
         "@kearisp/cli": "^1.0.7",
-        "@wocker/core": "^1.0.8",
+        "@wocker/core": "^1.0.9",
         "@wocker/utils": "^1.0.3",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",
@@ -36,7 +36,6 @@
         "date-fns": "^2.29.3",
         "dockerode": "^4.0.2",
         "fs": "^0.0.1-security",
-        "inquirer": "^7.0.0",
         "md5": "^2.3.0",
         "os": "^0.1.2",
         "path": "^0.12.7",
@@ -45,7 +44,6 @@
     },
     "devDependencies": {
         "@types/dockerode": "3.3.23",
-        "@types/inquirer": "^7.0.0",
         "@types/jest": "^29.5.12",
         "@types/lodash": "^4.14.161",
         "@types/md5": "^2.3.2",
@@ -58,6 +56,6 @@
         "eslint-plugin-import": "^2.28.1",
         "eslint-plugin-node": "^11.1.0",
         "eslint-webpack-plugin": "^3.1.0",
-        "typescript": "^5.4.2"
+        "typescript": "^5.4.4"
     }
 }

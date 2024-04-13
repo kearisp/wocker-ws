@@ -1,44 +1,32 @@
-import {exec as processExec} from "child_process";
-import chalk from "chalk";
-
-import {Logger} from "../makes";
+import {exec as processExec, ExecOptions} from "child_process";
 
 
-const exec = async (command: string) => {
-    Logger.info(` > ${command.trim().replace(/\s+/g, " ")}`);
+type Options = Omit<ExecOptions, "maxBuffer">;
+
+const exec = async (command: string, options?: Options): Promise<string> => {
+    const worker = processExec(command, {
+        ...options || {},
+        maxBuffer: Infinity
+    } as any);
 
     return new Promise((resolve, reject) => {
-        const worker = processExec(command, {
-            maxBuffer: Infinity
-        }, (err, stdout, stderr) => {
-            if(err) {
-                return reject(err);
+        let data = "";
+
+        worker.stdout.on("data", (chunk) => {
+            data += chunk.toString();
+        });
+
+        worker.on("exit", (code) => {
+            if(code !== 0) {
+                reject(new Error(`Process exited with code ${code}`));
+                return;
             }
 
-            return resolve({
-                stdout,
-                stderr
-            });
+            resolve(data.replace(/\n$/, ""));
         });
 
-        if(worker.stdout) {
-            worker.stdout.on("data", (data) => {
-                process.stdout.write(data);
-            });
-        }
-
-        if(worker.stderr) {
-            worker.stderr.on("data", (data) => {
-                process.stderr.write(data);
-            });
-        }
-
-        worker.on("close", (code: string) => {
-            Logger.info("close", chalk.red(code));
-        });
-
-        worker.on("exit", (code: string) => {
-            Logger.info("exit", chalk.red(code));
+        worker.on("error", (err) => {
+            reject(err);
         });
     });
 };

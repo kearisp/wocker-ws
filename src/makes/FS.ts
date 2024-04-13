@@ -1,31 +1,90 @@
 import {FS as CoreFS} from "@wocker/core";
 
-import * as fs from "fs"
+import * as fs from "fs";
 import {
     Stats,
     BigIntStats,
     PathLike,
     PathOrFileDescriptor,
     WriteFileOptions,
+    ObjectEncodingOptions,
     Dirent,
-    MakeDirectoryOptions,
-    RmOptions
+    MakeDirectoryOptions
 } from "fs";
 import * as Path from "path";
 import {PassThrough} from "readable-stream";
 
 
-type ReaddirOptions = {
-    encoding?: BufferEncoding;
-    withFileTypes?: boolean;
+type ReaddirOptions = ObjectEncodingOptions & {
+    recursive?: boolean;
 };
 
 type ReaddirFilesOptions = {
     recursive?: boolean;
 };
 
-class FS extends CoreFS {
-    static async access(path: PathLike): Promise<any> {
+type M = {
+    recursive?: boolean;
+    mode?: number;
+};
+
+export class FS extends CoreFS {
+    public constructor(
+        protected source: string
+    ) {
+        super();
+    }
+
+    public path(...parts: string[]) {
+        return Path.join(this.source, ...parts);
+    }
+
+    public exists(...parts: string[]) {
+        const fullPath = this.path(...parts);
+
+        return FS.existsSync(fullPath);
+    }
+
+    public stat(...parts: string[]) {
+        const fullPath = this.path(...parts);
+
+        return fs.statSync(fullPath);
+    }
+
+    public mkdir(path: string, options?: MakeDirectoryOptions): void {
+        const fullPath = this.path(path);
+
+        fs.mkdirSync(fullPath, options);
+    }
+
+    public async readdir(...parts: string[]) {
+        const fullPath = this.path(...parts);
+
+        return FS.readdir(fullPath);
+    }
+
+    public async readdirFiles(path?: string, options?: ReaddirOptions): Promise<string[]> {
+        const fullPath = this.path(path);
+
+        return new Promise((resolve, reject) => {
+            fs.readdir(fullPath, options as any, (err, files) => {
+                if(err) {
+                    reject(err);
+                    return;
+                }
+
+                files = files.filter((path) => {
+                    const stat = this.stat(path);
+
+                    return stat.isFile();
+                });
+
+                resolve(files);
+            });
+        });
+    }
+
+    public static async access(path: PathLike): Promise<any> {
         return new Promise((resolve, reject) => {
             fs.access(path, (err) => {
                 if(!err) {
@@ -38,23 +97,11 @@ class FS extends CoreFS {
         });
     }
 
-    /**
-     * Asynchronously tests whether or not the given path exists by checking with the file system.
-     * @param path path A path to a file or directory. If a URL is provided, it must use the `file:` protocol.
-     */
-    static async exists(path: PathLike): Promise<boolean> {
-        return new Promise((resolve) => {
-            fs.exists(path, (exists: boolean) => {
-                resolve(exists);
-            });
-        });
-    }
-
-    static existsSync(path: PathLike) {
+    public static existsSync(path: PathLike) {
         return fs.existsSync(path);
     }
 
-    static async mkdir(dirPath: string, options: MakeDirectoryOptions = {}): Promise<void> {
+    public static async mkdir(dirPath: string, options: MakeDirectoryOptions = {}): Promise<void> {
         return new Promise((resolve, reject) => {
             fs.mkdir(dirPath, options, (err) => {
                 if(!err) {
@@ -67,11 +114,11 @@ class FS extends CoreFS {
         });
     }
 
-    static mkdirSync(path, options?: MakeDirectoryOptions) {
+    public static mkdirSync(path: string, options?: MakeDirectoryOptions) {
         return fs.mkdirSync(path, options);
     }
 
-    static async readdir(path: PathLike): Promise<string[]> {
+    public static async readdir(path: PathLike): Promise<string[]> {
         return new Promise((resolve, reject) => {
             fs.readdir(path, (err, files) => {
                 if(!err) {
@@ -84,7 +131,7 @@ class FS extends CoreFS {
         });
     }
 
-    static async readdirFiles(path: string, options?: ReaddirFilesOptions): Promise<string[]> {
+    public static async readdirFiles(path: string, options?: ReaddirFilesOptions): Promise<string[]> {
         const {
             recursive = false
         } = options || {};
@@ -120,9 +167,10 @@ class FS extends CoreFS {
         return new Promise((resolve, reject) => {
             fs.readdir(path, {
                 withFileTypes: true
-            }, (err, files: Dirent[]) => {
+            } as any, (err, files: Dirent[]) => {
                 if(err) {
-                    return reject(err);
+                    reject(err);
+                    return;
                 }
 
                 const names = files.filter((dirent: Dirent) => {
@@ -136,9 +184,9 @@ class FS extends CoreFS {
         });
     }
 
-    static async appendFile(path: PathOrFileDescriptor, data, options?: WriteFileOptions) {
+    public static async appendFile(path: PathOrFileDescriptor, data: any, options?: WriteFileOptions) {
         return new Promise((resolve, reject) => {
-            fs.appendFile(path, data, options, (error, data: void | undefined) => {
+            fs.appendFile(path, data, options, (error: any, data: void | undefined) => {
                 if(error) {
                     reject(error);
                 }
@@ -149,11 +197,11 @@ class FS extends CoreFS {
         });
     }
 
-    static appendFileSync(path: PathOrFileDescriptor, data, options?: WriteFileOptions) {
+    public static appendFileSync(path: PathOrFileDescriptor, data: any, options?: WriteFileOptions) {
         return fs.appendFileSync(path, data, options);
     }
 
-    static async readBytes(filePath: PathLike, position: number|bigint = 0, size?: number|bigint): Promise<Buffer> {
+    public static async readBytes(filePath: PathLike, position: number|bigint = 0, size?: number|bigint): Promise<Buffer> {
         if(position < 0 && typeof size === "undefined") {
             const stats = await FS.stat(filePath);
 
@@ -190,7 +238,7 @@ class FS extends CoreFS {
                     return;
                 }
 
-                fs.read(file, buffer, 0, buffer.length, position, (err, bytesRead, buffer) => {
+                fs.read(file, buffer, 0, buffer.length, position, (err, _, buffer) => {
                     if(err) {
                         reject(err);
                         return;
@@ -202,19 +250,19 @@ class FS extends CoreFS {
         });
     }
 
-    static readFileSync(filePath: PathLike) {
+    public static readFileSync(filePath: PathLike) {
         return fs.readFileSync(filePath);
     }
 
-    static writeFileSync(path: PathLike, data, options?: WriteFileOptions) {
+    public static writeFileSync(path: PathLike, data: any, options?: WriteFileOptions) {
         return fs.writeFileSync(path, data, options);
     }
 
-    static createWriteStream(path: PathLike) {
+    public static createWriteStream(path: PathLike) {
         return fs.createWriteStream(path);
     }
 
-    static async unlink(filePath: PathLike): Promise<void> {
+    public static async unlink(filePath: PathLike): Promise<void> {
         return new Promise((resolve, reject) => {
             fs.unlink(filePath, (err) => {
                 if(!err) {
@@ -227,11 +275,11 @@ class FS extends CoreFS {
         });
     }
 
-    static watch(filename: PathLike, options?: any) {
+    public static watch(filename: PathLike, options?: any) {
         return fs.watch(filename, options);
     }
 
-    static stat(filename: PathLike, options?: Parameters<typeof fs.stat>[1]): Promise<Stats|BigIntStats> {
+    public static stat(filename: PathLike, options?: Parameters<typeof fs.stat>[1]): Promise<Stats|BigIntStats> {
         return new Promise((resolve, reject) => {
             fs.stat(filename, options, (err, stats) => {
                 if(err) {
@@ -244,11 +292,11 @@ class FS extends CoreFS {
         });
     }
 
-    static createReadStream(path: PathLike, options?: Parameters<typeof fs.createReadStream>[1]) {
+    public static createReadStream(path: PathLike, options?: Parameters<typeof fs.createReadStream>[1]) {
         return fs.createReadStream(path, options);
     }
 
-    static createReadLinesStream(path: PathLike, count?: number) {
+    public static createReadLinesStream(path: PathLike, count?: number) {
         const write = new PassThrough();
 
         (async () => {
@@ -338,7 +386,7 @@ class FS extends CoreFS {
         return write;
     }
 
-    static async copyFile(src: PathLike, dest: PathLike) {
+    public static async copyFile(src: PathLike, dest: PathLike) {
         new Promise((resolve, reject) => {
             fs.copyFile(src, dest, (err) => {
                 if(!err) {
@@ -351,6 +399,3 @@ class FS extends CoreFS {
         });
     }
 }
-
-
-export {FS};

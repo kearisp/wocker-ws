@@ -7,6 +7,7 @@ import {
 
 import {
     CompletionController,
+    DebugController,
     ImageController,
     PluginController,
     PresetController,
@@ -27,6 +28,7 @@ import {
 @Module({
     controllers: [
         CompletionController,
+        DebugController,
         ImageController,
         PluginController,
         PresetController,
@@ -53,12 +55,12 @@ export class AppModule {
     public async load(container: Container) {
         const appConfigService = container.getModule(AppModule).get<AppConfigService>(AppConfigService);
         const logService = container.getModule(AppModule).get<LogService>(LogService);
-        const config = await appConfigService.getAppConfig();
-        const {plugins} = config;
+        const pluginService = container.getModule(AppModule).get<PluginService>(PluginService);
+        const config = await appConfigService.getConfig();
 
         const imports: any[] = [];
 
-        for(const plugin of plugins) {
+        for(const plugin of config.plugins) {
             try {
                 const {default: Plugin} = await import(plugin);
 
@@ -80,6 +82,10 @@ export class AppModule {
             }
             catch(err) {
                 logService.error(err.message);
+
+                config.removePlugin(plugin);
+
+                await config.save();
 
                 throw err;
             }

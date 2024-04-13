@@ -1,9 +1,11 @@
-import {Controller, Command, Option, Project} from "@wocker/core";
+import {Controller, Command, Option, Project, FSManager} from "@wocker/core";
 import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
+import {promptConfirm} from "@wocker/utils";
 import * as Path from "path";
 
 import {PRESETS_DIR} from "../env";
 import {injectVariables, volumeParse, volumeFormat} from "../utils";
+import {FS} from "../makes";
 import {
     AppConfigService,
     AppEventsService,
@@ -104,7 +106,7 @@ export class PresetController {
         }
 
         if(preset.dockerfile) {
-            project.imageName = preset.getImageName(project.buildArgs);
+            project.imageName = this.presetService.getImageName(preset, project.buildArgs);
         }
     }
 
@@ -151,6 +153,88 @@ export class PresetController {
                 });
             }
         }
+    }
+
+    @Command("preset:eject")
+    public async eject(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "Project name"
+        })
+        name?: string
+    ) {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+        const preset = await this.presetService.get(project.preset);
+
+        if(!preset) {
+            throw new Error("Preset not found");
+        }
+
+        const confirm = await promptConfirm({
+            message: "Confirm eject",
+            default: false
+        });
+
+        if(!confirm) {
+            return;
+        }
+
+        const source = new FS(this.appConfigService.presetPath(preset.name));
+        const destination = new FS(this.appConfigService.getPWD());
+
+        const fs = new FSManager(
+            this.appConfigService.presetPath(preset.name),
+            this.appConfigService.getPWD()
+        );
+
+        if(preset.dockerfile) {
+            if(!destination.exists(preset.dockerfile)) {
+                await fs.copy(preset.dockerfile);
+            }
+
+            project.type = "dockerfile";
+            project.dockerfile = preset.dockerfile;
+        }
+
+        const files = await source.readdirFiles("", {
+            recursive: true
+        });
+
+        for(const path of files) {
+            const stat = source.stat(path);
+
+            if(stat.isFile() && path === "config.json") {
+                continue;
+            }
+
+            if(stat.isFile() && path === preset.dockerfile) {
+                continue;
+            }
+
+            if(destination.exists(path)) {
+                continue;
+            }
+
+            const dir = Path.dirname(path);
+
+            if(!destination.exists(dir)) {
+                destination.mkdir(dir, {
+                    recursive: true
+                } as any);
+            }
+
+            await fs.copy(path);
+        }
+
+        delete project.preset;
+        delete project.imageName;
+
+        await project.save();
     }
 
     @Command("preset:build <preset>")

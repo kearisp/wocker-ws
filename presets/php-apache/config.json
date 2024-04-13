@@ -37,7 +37,8 @@
         },
         "COMPOSER_ENABLE": {
             "message": "Install composer?",
-            "type": "boolean"
+            "type": "boolean",
+            "default": false
         },
         "NODE_VERSION": {
             "type": "select",

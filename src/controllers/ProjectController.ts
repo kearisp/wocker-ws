@@ -23,10 +23,6 @@ import {
     DockerService,
     LogService
 } from "../services";
-import {
-    getConfig,
-    setConfig
-} from "../utils";
 
 
 @Controller()
@@ -46,22 +42,6 @@ export class ProjectController {
         return projects.map((project) => {
             return project.name;
         });
-    }
-
-    @Completion("script")
-    protected async getScripts(
-
-    ) {
-        this.logService.warn(">_<");
-
-        try {
-            const project = await this.projectService.get();
-
-            return Object.keys(project.scripts || {});
-        }
-        catch(ignore) {
-            return [];
-        }
     }
 
     @Command("init")
@@ -90,7 +70,9 @@ export class ProjectController {
         });
 
         if(!project) {
-            project = this.projectService.fromObject({});
+            project = this.projectService.fromObject({
+                path: this.appConfigService.getPWD()
+            });
         }
 
         if(name) {
@@ -101,8 +83,8 @@ export class ProjectController {
             project.name = await promptText({
                 type: "string",
                 required: true,
-                message: "Project name",
-                default: project.name
+                message: "Project name:",
+                default: project.name || Path.basename(project.path)
             });
         }
 
@@ -114,7 +96,7 @@ export class ProjectController {
 
         if(!type || !project.type || !mapTypes[project.type]) {
             project.type = await promptSelect({
-                message: "Project type",
+                message: "Project type:",
                 options: mapTypes,
                 default: project.type
             });
@@ -160,7 +142,7 @@ export class ProjectController {
 
         project.path = this.appConfigService.getPWD();
 
-        await this.projectService.save(project);
+        await project.save();
     }
 
     @Command("ps")
@@ -350,7 +332,7 @@ export class ProjectController {
             await this.projectService.cdProject(name);
         }
 
-        let env: EnvConfig = {};
+        let env: EnvConfig;
 
         if(!global) {
             const project = await this.projectService.get();
@@ -358,7 +340,7 @@ export class ProjectController {
             env = project.env || {};
         }
         else {
-            const config = await getConfig();
+            const config = await this.appConfigService.getConfig();
 
             env = config.env || {};
         }
@@ -374,7 +356,7 @@ export class ProjectController {
         return table.toString() + "\n";
     }
 
-    @Command("config:get <key>")
+    @Command("config:get [...key]")
     public async configGet(
         @Option("name", {
             type: "string",
@@ -383,33 +365,32 @@ export class ProjectController {
         name: string,
         @Option("global", {
             type: "boolean",
-            alias: "b"
+            alias: "g"
         })
         global: boolean,
-        key: string
+        keys: string[]
     ) {
         if(name) {
             await this.projectService.cdProject(name);
         }
 
-        let value = "";
-
-        if(global) {
-            const config = await getConfig();
-
-            value = config[key] || "";
-        }
-        else {
-            const project = await this.projectService.get();
-
-            value = project.getEnv(key);
-        }
+        let config = global
+            ? await this.appConfigService.getConfig()
+            : await this.projectService.get();
 
         const table = new CliTable({
             head: ["KEY", "VALUE"]
         });
 
-        table.push([key, value]);
+        for(const key of keys) {
+            const value = config.getEnv(key, "");
+
+            if(!value) {
+                continue;
+            }
+
+            table.push([key, value]);
+        }
 
         return table.toString() + "\n";
     }
@@ -426,41 +407,28 @@ export class ProjectController {
             alias: "g"
         })
         global: boolean,
-        configs: string[]
+        variables: string[]
     ) {
-        const env: Project["env"] = configs.reduce((env, config) => {
-            const [key, value] = config.split("=");
-
-            env[key.trim()] = value.trim();
-
-            return env;
-        }, {});
-
-        if(global) {
-            const config = await getConfig();
-
-            await setConfig({
-                ...config,
-                env: {
-                    ...config.env || {},
-                    ...env
-                }
-            });
-
-            return;
-        }
-
-        if(name) {
+        if(!global && name) {
             await this.projectService.cdProject(name);
         }
 
-        const project = await this.projectService.get();
+        const config = global
+            ? await this.appConfigService.getConfig()
+            : await this.projectService.get();
 
-        for(const i in env) {
-            project.setEnv(i, env[i]);
+        for(const variable of variables) {
+            const [key, value] = variable.split("=");
+
+            if(!value) {
+                console.info(chalk.yellow(`No value for "${key}"`));
+                continue;
+            }
+
+            config.setEnv(key.trim(), value.trim());
         }
 
-        await project.save();
+        await config.save();
     }
 
     @Command("config:unset [...configs]")

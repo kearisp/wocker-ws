@@ -1,6 +1,0 @@
-const tty = () => {
-    //
-};
-
-
-export {tty};

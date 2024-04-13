@@ -51,6 +51,7 @@ export class ProxyController {
         return projects.map((project) => project.name);
     }
 
+    @Command("domains")
     public async getDomains(name: string | undefined, selected: string[]) {
         if(name) {
             await this.projectService.cdProject(name);
@@ -76,37 +77,43 @@ export class ProxyController {
         })
         httpsPort: number
     ) {
+        const config = await this.appConfigService.getConfig();
+
         if(typeof httpPort === "undefined" || isNaN(httpPort)) {
             httpPort = await promptText({
                 required: true,
                 message: "Http port:",
                 type: "int",
-                default: await this.appConfigService.getEnvVariable("PROXY_HTTP_PORT", "80")
+                default: config.getMeta("PROXY_HTTP_PORT", "80")
             });
         }
 
-        await this.appConfigService.setEnvVariable("PROXY_HTTP_PORT", httpPort);
+        config.setMeta("PROXY_HTTP_PORT", httpPort.toString());
 
         if(typeof httpsPort === "undefined" || isNaN(httpsPort)) {
             httpsPort = await promptText({
                 required: true,
                 message: "Https port:",
                 type: "int",
-                default: await this.appConfigService.getEnvVariable("PROXY_HTTPS_PORT", "443")
+                default: config.getMeta("PROXY_HTTPS_PORT", "443")
             });
         }
 
-        await this.appConfigService.setEnvVariable("PROXY_HTTPS_PORT", httpsPort);
+        config.setMeta("PROXY_HTTPS_PORT", httpsPort.toString());
+
+        await config.save();
     }
 
     @Command("proxy:start")
     public async start() {
         console.info("Proxy starting...");
 
+        const config = await this.appConfigService.getConfig();
+
         await this.dockerService.pullImage("nginxproxy/nginx-proxy");
 
-        const httpPort = await this.appConfigService.getEnvVariable("PROXY_HTTP_PORT", "80");
-        const httpsPort = await this.appConfigService.getEnvVariable("PROXY_HTTPS_PORT", "443");
+        const httpPort = config.getMeta("PROXY_HTTP_PORT", "80");
+        const httpsPort = config.getMeta("PROXY_HTTPS_PORT", "443");
 
         let container = await this.dockerService.getContainer(this.containerName);
 
