@@ -1,2 +1,0 @@
-FROM ngrok/ngrok:latest
-

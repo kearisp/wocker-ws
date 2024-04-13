@@ -93,12 +93,12 @@ class ProjectService {
             }
         }
 
-        await this.appEventsService.emit("project:beforeStart", project);
-
         let container = await this.dockerService.getContainer(project.containerName);
 
         if(container && restart) {
             container = null;
+
+            await this.appEventsService.emit("project:stop", project);
 
             await this.dockerService.removeContainer(project.containerName);
         }
@@ -129,11 +129,13 @@ class ProjectService {
             }
         } = await container.inspect();
 
+        await this.appEventsService.emit("project:beforeStart", project);
+
         if(Status === "created" || Status === "exited") {
             await container.start();
-
-            await this.appEventsService.emit("project:start", project);
         }
+
+        await this.appEventsService.emit("project:start", project);
     }
 
     public async stop() {

@@ -16,6 +16,7 @@ export const app = {
 
             if(res) {
                 process.stdout.write(res);
+                process.stdout.write("\n");
             }
         }
         catch(err) {
