@@ -1,12 +1,13 @@
 import {Command, Completion, Controller} from "@wocker/core";
 
-import {AppConfigService} from "../services";
+import {AppConfigService, LogService} from "../services";
 
 
 @Controller()
 export class DebugController {
     public constructor(
-        protected readonly appConfigService: AppConfigService
+        protected readonly appConfigService: AppConfigService,
+        protected readonly logService: LogService
     ) {}
 
     @Command("debug <status>")

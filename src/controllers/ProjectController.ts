@@ -181,7 +181,7 @@ export class ProjectController {
             table.push([project.name, project.type, Status]);
         }
 
-        return table.toString() + "\n";
+        return table.toString();
     }
 
     @Command("start")
@@ -309,9 +309,9 @@ export class ProjectController {
             await this.projectService.cdProject(name);
         }
 
-        const containerName = `${name}.workspace`;
+        const project = await this.projectService.get();
 
-        await this.dockerService.attach(containerName);
+        await this.dockerService.attach(project.containerName);
     }
 
     @Command("config")
@@ -353,7 +353,7 @@ export class ProjectController {
             table.push([i, env[i]]);
         }
 
-        return table.toString() + "\n";
+        return table.toString();
     }
 
     @Command("config:get [...key]")
@@ -392,7 +392,7 @@ export class ProjectController {
             table.push([key, value]);
         }
 
-        return table.toString() + "\n";
+        return table.toString();
     }
 
     @Command("config:set [...configs]")
@@ -429,6 +429,15 @@ export class ProjectController {
         }
 
         await config.save();
+
+        if(!global) {
+            const project = await this.projectService.get();
+            const container = await this.dockerService.getContainer(project.containerName);
+
+            if(container) {
+                await this.projectService.start(true);
+            }
+        }
     }
 
     @Command("config:unset [...configs]")
@@ -468,6 +477,15 @@ export class ProjectController {
         }
 
         await project.save();
+
+        if(!global) {
+            const project = await this.projectService.get();
+            const container = await this.dockerService.getContainer(project.containerName);
+
+            if(container) {
+                await this.projectService.start(true);
+            }
+        }
     }
 
     @Command("build-args")
@@ -494,7 +512,7 @@ export class ProjectController {
             table.push([i, typeof buildArgs[i] === "string" ? buildArgs[i] : JSON.stringify(buildArgs[i])]);
         }
 
-        return table.toString() + "\n";
+        return table.toString();
     }
 
     @Command("build-args:get [...buildArgs]")
@@ -526,7 +544,7 @@ export class ProjectController {
             }
         }
 
-        return table.toString() + "\n";
+        return table.toString();
     }
 
     @Command("build-args:set [...buildArgs]")
@@ -623,7 +641,7 @@ export class ProjectController {
             table.push([volume]);
         }
 
-        return table.toString() + "\n";
+        return table.toString();
     }
 
     @Command("volume:mount [...volumes]")

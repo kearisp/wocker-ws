@@ -23,6 +23,6 @@ export class ImageController {
             table.push([image.Id]);
         }
 
-        return table.toString() + "\n";
+        return table.toString();
     }
 }

@@ -5,7 +5,6 @@ import * as Path from "path";
 
 import {PRESETS_DIR} from "../env";
 import {injectVariables, volumeParse, volumeFormat} from "../utils";
-import {FS} from "../makes";
 import {
     AppConfigService,
     AppEventsService,
@@ -184,29 +183,27 @@ export class PresetController {
             return;
         }
 
-        const source = new FS(this.appConfigService.presetPath(preset.name));
-        const destination = new FS(this.appConfigService.getPWD());
-
-        const fs = new FSManager(
+        const copier = new FSManager(
             this.appConfigService.presetPath(preset.name),
             this.appConfigService.getPWD()
         );
 
         if(preset.dockerfile) {
-            if(!destination.exists(preset.dockerfile)) {
-                await fs.copy(preset.dockerfile);
+            if(!copier.destination.exists(preset.dockerfile)) {
+                await copier.copy(preset.dockerfile);
             }
 
             project.type = "dockerfile";
             project.dockerfile = preset.dockerfile;
         }
 
-        const files = await source.readdirFiles("", {
+        const files = await copier.source.readdirFiles("", {
             recursive: true
-        });
+        } as any);
 
         for(const path of files) {
-            const stat = source.stat(path);
+            const stat = copier.source.stat(path),
+                dir = Path.dirname(path);
 
             if(stat.isFile() && path === "config.json") {
                 continue;
@@ -216,19 +213,17 @@ export class PresetController {
                 continue;
             }
 
-            if(destination.exists(path)) {
+            if(copier.destination.exists(path)) {
                 continue;
             }
 
-            const dir = Path.dirname(path);
-
-            if(!destination.exists(dir)) {
-                destination.mkdir(dir, {
+            if(!copier.destination.exists(dir)) {
+                copier.destination.mkdir(dir, {
                     recursive: true
                 } as any);
             }
 
-            await fs.copy(path);
+            await copier.copy(path);
         }
 
         delete project.preset;

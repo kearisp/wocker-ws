@@ -1,55 +1,14 @@
+import {
+    Injectable,
+    DockerServiceParams as Params
+} from "@wocker/core";
+import {demuxOutput} from "@wocker/utils";
 import Docker, {Container} from "dockerode";
-import {Injectable, DockerServiceParams as Params} from "@wocker/core";
 
 import {followProgress} from "../utils";
 import {FS, Logger} from "../makes";
 import {LogService} from "./LogService";
 
-
-// namespace Params {
-//     export type CreateContainer = {
-//         name: string;
-//         image: string;
-//         restart?: "always";
-//         projectId?: string;
-//         tty?: boolean;
-//         ulimits?: {
-//             [key: string]: {
-//                 hard?: number;
-//                 soft?: number;
-//             };
-//         };
-//         links?: string[];
-//         env?: {
-//             [key: string]: string;
-//         };
-//         networkMode?: string;
-//         extraHosts?: any;
-//         volumes?: string[];
-//         ports?: string[];
-//         cmd?: string[];
-//     };
-//
-//     export type ImageList = {
-//         tag?: string;
-//         reference?: string;
-//         labels?: {
-//             [key: string]: string;
-//         };
-//     };
-//
-//     export type BuildImage = {
-//         tag: string;
-//         buildArgs?: {
-//             [key: string]: string;
-//         };
-//         labels?: {
-//             [key: string]: string;
-//         };
-//         context: string;
-//         src: string;
-//     };
-// }
 
 @Injectable("DOCKER_SERVICE")
 export class DockerService {
@@ -324,13 +283,18 @@ export class DockerService {
     public async attach(name: string) {
         const container = await this.getContainer(name);
 
+        if(!container) {
+            return;
+        }
+
         const stream = await container.attach({
             logs: true,
             stream: true,
             hijack: true,
             stdin: true,
             stdout: true,
-            stderr: true
+            stderr: true,
+            detachKeys: "ctrl-c"
         });
 
         process.stdin.resume();
@@ -344,14 +308,8 @@ export class DockerService {
             }
         });
 
-        stream.setEncoding("utf8");
-        stream.pipe(process.stdout);
-
-        const [width, height] = process.stdout.getWindowSize();
-
-        await container.resize({
-            w: width,
-            h: height
+        stream.on("data", (data) => {
+            process.stdout.write(demuxOutput(data));
         });
 
         stream.on("end", async () => {
@@ -365,6 +323,31 @@ export class DockerService {
                 w: width,
                 h: height
             });
+        });
+
+        const [width, height] = process.stdout.getWindowSize();
+
+        await container.resize({
+            w: width,
+            h: height
+        });
+    }
+
+    public async logs(name: string): Promise<void> {
+        const container = await this.getContainer(name);
+
+        if(!container) {
+            return;
+        }
+
+        const stream = await container.logs({
+            stdout: true,
+            stderr: true,
+            follow: true
+        });
+
+        stream.on("data", (data) => {
+            process.stdout.write(demuxOutput(data));
         });
     }
 
