@@ -120,7 +120,7 @@ export class PresetController {
             throw new Error(`Preset ${project.preset} not found`);
         }
 
-        const imageName = preset.getImageName(project.buildArgs || {});
+        const imageName = this.presetService.getImageName(preset, project.buildArgs || {});
         const exists = await this.dockerService.imageExists(imageName);
 
         if(exists) {
@@ -138,7 +138,7 @@ export class PresetController {
         const preset = await this.presetService.get(project.preset);
 
         if(preset.dockerfile) {
-            project.imageName = preset.getImageName(project.buildArgs);
+            project.imageName = this.presetService.getImageName(preset, project.buildArgs);
 
             if(!await this.dockerService.imageExists(project.imageName)) {
                 await this.dockerService.buildImage({
@@ -250,7 +250,7 @@ export class PresetController {
             buildArgs = await promptGroup(preset.buildArgsOptions);
         }
 
-        const imageName = preset.getImageName(buildArgs);
+        const imageName = this.presetService.getImageName(preset, buildArgs);
 
         await this.dockerService.buildImage({
             tag: imageName,

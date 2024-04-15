@@ -44,6 +44,20 @@ export class ProjectController {
         });
     }
 
+    @Completion("script")
+    public async getScriptNames() {
+        try {
+            const project = await this.projectService.get();
+
+            return Object.keys(project.scripts);
+        }
+        catch(err) {
+            return [];
+        }
+
+
+    }
+
     @Command("init")
     public async init(
         @Option("name", {

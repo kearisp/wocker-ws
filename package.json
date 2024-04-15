@@ -1,9 +1,14 @@
 {
     "name": "@wocker/ws",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Docker workspace for web projects",
     "license": "MIT",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "bin": {
+        "ws": "./bin/ws.js"
+    },
     "homepage": "https://kearisp.github.io/wocker",
     "repository": {
         "type": "git",
@@ -11,11 +16,6 @@
     },
     "bugs": {
         "url": "https://github.com/kearisp/wocker-ws/issues"
-    },
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
-    "bin": {
-        "ws": "./bin/ws.js"
     },
     "scripts": {
         "prepare": "npm run build",
