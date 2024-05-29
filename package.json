@@ -25,8 +25,7 @@
         "lint": "eslint \"**/*.{js,jsx,ts,tsx}\""
     },
     "dependencies": {
-        "@kearisp/cli": "^1.0.7",
-        "@wocker/core": "^1.0.10",
+        "@wocker/core": "^1.0.11",
         "@wocker/utils": "^1.0.4",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",

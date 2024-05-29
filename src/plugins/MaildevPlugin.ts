@@ -1,5 +1,4 @@
 import {Controller} from "@wocker/core";
-import {Cli} from "@kearisp/cli";
 
 import {DockerService, AppConfigService} from "../services";
 
@@ -13,13 +12,13 @@ export class MaildevPlugin {
         protected readonly dockerService: DockerService
     ) {}
 
-    public install(cli: Cli) {
-        cli.command("maildev:start")
-            .action(() => this.start());
-
-        cli.command("maildev:stop")
-            .action(() => this.stop());
-    }
+    // public install(cli: Cli) {
+    //     cli.command("maildev:start")
+    //         .action(() => this.start());
+    //
+    //     cli.command("maildev:stop")
+    //         .action(() => this.stop());
+    // }
 
     public async start() {
         console.log("Maildev starting...");

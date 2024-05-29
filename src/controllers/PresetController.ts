@@ -154,6 +154,11 @@ export class PresetController {
         }
     }
 
+    @Command("preset:add <preset>")
+    public async add(preset: string) {
+        //
+    }
+
     @Command("preset:eject")
     public async eject(
         @Option("name", {

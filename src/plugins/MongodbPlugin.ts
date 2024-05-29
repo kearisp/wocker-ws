@@ -1,6 +1,5 @@
 import {Controller} from "@wocker/core";
 import {demuxOutput, promptConfirm, promptSelect} from "@wocker/utils";
-import {Cli} from "@kearisp/cli";
 import * as Path from "path";
 import * as dateFns from "date-fns";
 
@@ -25,75 +24,75 @@ export class MongodbPlugin {
         return Path.join(this.dataDir, ...parts);
     }
 
-    public install(cli: Cli) {
-        cli.command("mongodb:start").action(() => {
-            return this.start();
-        });
-
-        cli.command("mongodb:stop").action(() => {
-            return this.stop();
-        });
-
-        cli.command("mongodb:restart").action(() => {
-            return this.restart();
-        });
-
-        cli.command("mongodb:backup [database]")
-            .completion("database", () => {
-                return this.getDatabases();
-            })
-            .action((options, database?: string) => {
-                return this.backup(database);
-            });
-
-        cli.command("mongodb:restore [database] [filename]")
-            .completion("database", () => {
-                const dumpPath = this.dataPath("dump");
-
-                return FS.readdir(dumpPath);
-            })
-            .completion("filename", (options, database: string) => {
-                if(!database) {
-                    return [];
-                }
-
-                const dirPath = this.dataPath("dump", database);
-
-                if(!FS.existsSync(dirPath)) {
-                    return [];
-                }
-
-                return FS.readdir(dirPath);
-            })
-            .action((options, database?: string, filename?: string) => {
-                return this.restore(database, filename);
-            });
-
-        cli.command("mongodb:delete-backup [database] [filename]")
-            .option("yes", {
-                type: "boolean",
-                alias: "y"
-            })
-            .completion("database", () => {
-                return this.getDatabasesDumps();
-            })
-            .completion("filename", (options, database?: string) => {
-                if(!database) {
-                    return [];
-                }
-
-                const dumpPath = this.dataPath("dump", database);
-
-                if(!FS.existsSync(dumpPath)) {
-                    return [];
-                }
-
-                return FS.readdirFiles(dumpPath);
-            })
-            .action((options, database?: string, filename?: string) => {
-                return this.deleteBackup(database, filename, options.yes)
-            });
-    }
+    // public install(cli: Cli) {
+    //     cli.command("mongodb:start").action(() => {
+    //         return this.start();
+    //     });
+    //
+    //     cli.command("mongodb:stop").action(() => {
+    //         return this.stop();
+    //     });
+    //
+    //     cli.command("mongodb:restart").action(() => {
+    //         return this.restart();
+    //     });
+    //
+    //     cli.command("mongodb:backup [database]")
+    //         .completion("database", () => {
+    //             return this.getDatabases();
+    //         })
+    //         .action((options, database?: string) => {
+    //             return this.backup(database);
+    //         });
+    //
+    //     cli.command("mongodb:restore [database] [filename]")
+    //         .completion("database", () => {
+    //             const dumpPath = this.dataPath("dump");
+    //
+    //             return FS.readdir(dumpPath);
+    //         })
+    //         .completion("filename", (options, database: string) => {
+    //             if(!database) {
+    //                 return [];
+    //             }
+    //
+    //             const dirPath = this.dataPath("dump", database);
+    //
+    //             if(!FS.existsSync(dirPath)) {
+    //                 return [];
+    //             }
+    //
+    //             return FS.readdir(dirPath);
+    //         })
+    //         .action((options, database?: string, filename?: string) => {
+    //             return this.restore(database, filename);
+    //         });
+    //
+    //     cli.command("mongodb:delete-backup [database] [filename]")
+    //         .option("yes", {
+    //             type: "boolean",
+    //             alias: "y"
+    //         })
+    //         .completion("database", () => {
+    //             return this.getDatabasesDumps();
+    //         })
+    //         .completion("filename", (options, database?: string) => {
+    //             if(!database) {
+    //                 return [];
+    //             }
+    //
+    //             const dumpPath = this.dataPath("dump", database);
+    //
+    //             if(!FS.existsSync(dumpPath)) {
+    //                 return [];
+    //             }
+    //
+    //             return FS.readdirFiles(dumpPath);
+    //         })
+    //         .action((options, database?: string, filename?: string) => {
+    //             return this.deleteBackup(database, filename, options.yes)
+    //         });
+    // }
 
     async getDatabases() {
         const stream = await this.dockerService.exec(

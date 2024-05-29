@@ -2,7 +2,9 @@ import {
     Controller,
     Completion,
     Command,
+    Description,
     Option,
+    Param,
     Project,
     PROJECT_TYPE_DOCKERFILE,
     PROJECT_TYPE_IMAGE,
@@ -78,7 +80,7 @@ export class ProjectController {
             description: "Preset"
         })
         preset: string
-    ) {
+    ): Promise<void> {
         let project = await this.projectService.searchOne({
             path: this.appConfigService.getPWD()
         });
@@ -167,7 +169,7 @@ export class ProjectController {
             description: "All projects"
         })
         all: boolean
-    ) {
+    ): Promise<string> {
         const table = new CliTable({
             head: ["Name", "Type", "Status"],
             colAligns: ["left", "center", "center"]
@@ -199,29 +201,34 @@ export class ProjectController {
     }
 
     @Command("start")
+    @Description("Starting project")
     public async start(
         @Option("name", {
             type: "string",
             alias: "n",
-            description: "Project name"
+            description: "Project name",
+            help: true
         })
         name?: string,
         @Option("detach", {
             type: "boolean",
+            description: "Detach",
             alias: "d"
         })
         detach?: boolean,
         @Option("build", {
             type: "boolean",
+            description: "Build",
             alias: "b"
         })
         rebuild?: boolean,
         @Option("restart", {
             type: "boolean",
-            alias: "r"
+            alias: "r",
+            description: "Restart"
         })
         restart?: boolean
-    ) {
+    ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -260,7 +267,7 @@ export class ProjectController {
             description: "Project name"
         })
         name: string,
-    ) {
+    ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -277,7 +284,7 @@ export class ProjectController {
         })
         name: string,
         script: string
-    ) {
+    ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -318,7 +325,7 @@ export class ProjectController {
             alias: "n"
         })
         name?: string
-    ) {
+    ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -341,7 +348,7 @@ export class ProjectController {
             alias: "g"
         })
         global?: boolean
-    ) {
+    ): Promise<string> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -382,6 +389,7 @@ export class ProjectController {
             alias: "g"
         })
         global: boolean,
+        @Param("key")
         keys: string[]
     ) {
         if(name) {
@@ -732,6 +740,12 @@ export class ProjectController {
             const prepareLog = (str: string) => {
                 return str.replace(/^\[.*]\s([^:]+):\s.*$/gm, (substring, type) => {
                     switch(type) {
+                        case "debug":
+                            return chalk.grey(substring);
+
+                        case "log":
+                            return chalk.white(substring);
+
                         case "info":
                             return chalk.green(substring);
 

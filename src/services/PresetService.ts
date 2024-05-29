@@ -46,19 +46,17 @@ export class PresetService {
 
     public async get(name: string): Promise<Preset> {
         const config = await FS.readJSON(PRESETS_DIR, name, "config.json");
+        const _this = this;
 
         return new class extends Preset {
-            public constructor(
-                protected readonly presetService: PresetService,
-                data: any
-            ) {
+            public constructor(data: any) {
                 super(data);
             }
 
             public async save() {
                 //
             }
-        }(this, {
+        }({
             name,
             ...config
         });
@@ -78,12 +76,7 @@ export class PresetService {
                 continue;
             }
 
-            const config = await FS.readJSON(PRESETS_DIR, dir, "config.json");
-
-            const preset = new Preset({
-                name: dir,
-                ...config
-            });
+            const preset = await this.get(dir);
 
             presets.push(preset);
         }

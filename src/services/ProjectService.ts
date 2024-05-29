@@ -93,6 +93,8 @@ class ProjectService {
             }
         }
 
+        await this.appEventsService.emit("project:beforeStart", project);
+
         let container = await this.dockerService.getContainer(project.containerName);
 
         if(container && restart) {
@@ -128,8 +130,6 @@ class ProjectService {
                 Status
             }
         } = await container.inspect();
-
-        await this.appEventsService.emit("project:beforeStart", project);
 
         if(Status === "created" || Status === "exited") {
             await container.start();
