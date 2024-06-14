@@ -1,7 +1,6 @@
 import {Controller, Project} from "@wocker/core";
 import {promptConfirm, promptText} from "@wocker/utils";
 import axios from "axios";
-import {Cli} from "@kearisp/cli";
 
 import {Logger} from "../makes";
 import {
@@ -39,71 +38,71 @@ export class LocaltunnelPlugin {
         protected readonly dockerService: DockerService
     ) {}
 
-    public install(cli: Cli) {
-        this.appEventsService.on("project:start", (project: Project) => this.onProjectStart(project));
-        this.appEventsService.on("project:stop", (project: Project) => this.onProjectStop(project));
-
-        cli.command("localtunnel:init")
-            .option("name", {
-                alias: "n",
-                type: "string",
-                description: "Project name"
-            })
-            .action((options: InitOptions) => this.init(options));
-
-        cli.command("localtunnel:start")
-            .option("name", {
-                alias: "n",
-                type: "string",
-                description: "Project name"
-            })
-            .option("detach", {
-                type: "boolean",
-                alias: "d",
-                description: "Detach"
-            })
-            .action((options: StartOptions) => this.start(options));
-
-        cli.command("localtunnel:restart")
-            .option("name", {
-                alias: "n",
-                type: "string",
-                description: "Project name"
-            })
-            .option("detach", {
-                type: "boolean",
-                alias: "d",
-                description: "Detach"
-            })
-            .action((options: StartOptions) => this.restart(options));
-
-        cli.command("localtunnel:stop")
-            .option("name", {
-                alias: "n",
-                type: "string",
-                description: "Project name"
-            })
-            .action((options: StopOptions) => this.stop(options));
-
-        cli.command("localtunnel:build")
-            .action(() => this.build());
-
-        cli.command("localtunnel:rebuild")
-            .action(() => this.rebuild());
-
-        cli.command("localtunnel:logs")
-            .option("name", {
-                alias: "n",
-                type: "string",
-                description: "Project name"
-            })
-            .option("detach", {
-                type: "boolean",
-                alias: "d",
-                description: "Detach"
-            })
-            .action((options: LogsOptions) => this.logs(options));
-    }
+    // public install(cli: Cli) {
+    //     this.appEventsService.on("project:start", (project: Project) => this.onProjectStart(project));
+    //     this.appEventsService.on("project:stop", (project: Project) => this.onProjectStop(project));
+    //
+    //     cli.command("localtunnel:init")
+    //         .option("name", {
+    //             alias: "n",
+    //             type: "string",
+    //             description: "Project name"
+    //         })
+    //         .action((input: CommandInput) => this.init({name: input.option("name")}));
+    //
+    //     cli.command("localtunnel:start")
+    //         .option("name", {
+    //             alias: "n",
+    //             type: "string",
+    //             description: "Project name"
+    //         })
+    //         .option("detach", {
+    //             type: "boolean",
+    //             alias: "d",
+    //             description: "Detach"
+    //         })
+    //         .action((options: StartOptions) => this.start(options));
+    //
+    //     cli.command("localtunnel:restart")
+    //         .option("name", {
+    //             alias: "n",
+    //             type: "string",
+    //             description: "Project name"
+    //         })
+    //         .option("detach", {
+    //             type: "boolean",
+    //             alias: "d",
+    //             description: "Detach"
+    //         })
+    //         .action((options: StartOptions) => this.restart(options));
+    //
+    //     cli.command("localtunnel:stop")
+    //         .option("name", {
+    //             alias: "n",
+    //             type: "string",
+    //             description: "Project name"
+    //         })
+    //         .action((options: StopOptions) => this.stop(options));
+    //
+    //     cli.command("localtunnel:build")
+    //         .action(() => this.build());
+    //
+    //     cli.command("localtunnel:rebuild")
+    //         .action(() => this.rebuild());
+    //
+    //     cli.command("localtunnel:logs")
+    //         .option("name", {
+    //             alias: "n",
+    //             type: "string",
+    //             description: "Project name"
+    //         })
+    //         .option("detach", {
+    //             type: "boolean",
+    //             alias: "d",
+    //             description: "Detach"
+    //         })
+    //         .action((options: LogsOptions) => this.logs(options));
+    // }
 
     public async getIp() {
         const res = await axios.get("https://ipv4.icanhazip.com");

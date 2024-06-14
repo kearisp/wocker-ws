@@ -1,5 +1,4 @@
 import {Controller, FSManager} from "@wocker/core";
-import {Cli} from "@kearisp/cli";
 
 import {
     AppConfigService,
@@ -26,18 +25,18 @@ export class ElasticSearchPlugin {
         );
     }
 
-    public install(cli: Cli) {
-        cli.command("elastica:start")
-            .option("restart", {
-                type: "boolean",
-                alias: "r",
-                description: "Restart service"
-            })
-            .action((options) => this.start(options));
-
-        cli.command("elastica:stop")
-            .action(() => this.stop());
-    }
+    // public install(cli: Cli) {
+    //     cli.command("elastica:start")
+    //         .option("restart", {
+    //             type: "boolean",
+    //             alias: "r",
+    //             description: "Restart service"
+    //         })
+    //         .action((options) => this.start(options));
+    //
+    //     cli.command("elastica:stop")
+    //         .action(() => this.stop());
+    // }
 
     public async start(options: StartOptions) {
         const {

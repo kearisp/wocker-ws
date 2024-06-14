@@ -1,6 +1,5 @@
 import {Controller, Project} from "@wocker/core";
 import {promptText, promptConfirm} from "@wocker/utils";
-import {Cli} from "@kearisp/cli";
 
 import {
     AppConfigService,
@@ -42,42 +41,42 @@ export class PageKitePlugin {
         return this.appConfigService.pluginsPath("pagekite", ...parts);
     }
 
-    public install(cli: Cli) {
-        this.appEventsService.on("project:start", (project: Project) => this.onProjectStart(project));
-        this.appEventsService.on("project:stop", (project: Project) => this.onProjectStop(project));
-
-        cli.command("pagekite:init")
-            .action((options: InitOptions) => this.init(options));
-
-        cli.command("pagekite:start")
-            .option("name", {
-                type: "string",
-                alias: "n",
-                description: "Project name"
-            })
-            .option("restart", {
-                type: "boolean",
-                alias: "r",
-                description: "Restart"
-            })
-            .action((options: StartOptions) => this.start(options));
-
-        cli.command("pagekite:stop")
-            .option("name", {
-                type: "string",
-                alias: "n",
-                description: "Project name"
-            })
-            .action((options: StopOptions) => this.stop(options));
-
-        cli.command("pagekite:build")
-            .option("rebuild", {
-                type: "boolean",
-                alias: "r",
-                description: "Rebuild"
-            })
-            .action((options: BuildOptions) => this.build(options));
-    }
+    // public install(cli: Cli) {
+    //     this.appEventsService.on("project:start", (project: Project) => this.onProjectStart(project));
+    //     this.appEventsService.on("project:stop", (project: Project) => this.onProjectStop(project));
+    //
+    //     cli.command("pagekite:init")
+    //         .action((options: InitOptions) => this.init(options));
+    //
+    //     cli.command("pagekite:start")
+    //         .option("name", {
+    //             type: "string",
+    //             alias: "n",
+    //             description: "Project name"
+    //         })
+    //         .option("restart", {
+    //             type: "boolean",
+    //             alias: "r",
+    //             description: "Restart"
+    //         })
+    //         .action((options: StartOptions) => this.start(options));
+    //
+    //     cli.command("pagekite:stop")
+    //         .option("name", {
+    //             type: "string",
+    //             alias: "n",
+    //             description: "Project name"
+    //         })
+    //         .action((options: StopOptions) => this.stop(options));
+    //
+    //     cli.command("pagekite:build")
+    //         .option("rebuild", {
+    //             type: "boolean",
+    //             alias: "r",
+    //             description: "Rebuild"
+    //         })
+    //         .action((options: BuildOptions) => this.build(options));
+    // }
 
     public async onProjectStart(project: Project) {
         if(!project || project.getEnv("PAGEKITE_ENABLE", "false") !== "true") {
