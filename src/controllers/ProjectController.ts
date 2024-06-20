@@ -38,7 +38,7 @@ export class ProjectController {
     ) {}
 
     @Completion("name")
-    protected async getProjectNames() {
+    protected async getProjectNames(): Promise<string[]> {
         const projects = await this.projectService.search();
 
         return projects.map((project) => {
@@ -47,7 +47,7 @@ export class ProjectController {
     }
 
     @Completion("script")
-    public async getScriptNames() {
+    public async getScriptNames(): Promise<string[]> {
         try {
             const project = await this.projectService.get();
 
@@ -56,8 +56,6 @@ export class ProjectController {
         catch(err) {
             return [];
         }
-
-
     }
 
     @Command("init")
@@ -216,6 +214,12 @@ export class ProjectController {
             alias: "d"
         })
         detach?: boolean,
+        @Option("attach", {
+            type: "boolean",
+            description: "Attach",
+            alias: "a"
+        })
+        attach?: boolean,
         @Option("build", {
             type: "boolean",
             description: "Build",
@@ -236,14 +240,16 @@ export class ProjectController {
         const project = await this.projectService.get();
 
         if(rebuild) {
-            await this.projectService.stop();
-
-            await this.appEventsService.emit("project:rebuild", project);
+            await this.projectService.rebuild(project);
         }
 
-        await this.projectService.start(restart);
+        await this.projectService.start(project, restart);
 
-        if(!detach) {
+        if(detach) {
+            console.info(chalk.yellow("Warning: Detach option is deprecated"));
+        }
+
+        if(attach) {
             const project = await this.projectService.get();
 
             const containerName = project.containerName;
@@ -272,7 +278,9 @@ export class ProjectController {
             await this.projectService.cdProject(name);
         }
 
-        await this.projectService.stop();
+        const project = await this.projectService.get();
+
+        await this.projectService.stop(project);
     }
 
     @Command("run <script>")
@@ -391,7 +399,7 @@ export class ProjectController {
         global: boolean,
         @Param("key")
         keys: string[]
-    ) {
+    ): Promise<string> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -457,7 +465,7 @@ export class ProjectController {
             const container = await this.dockerService.getContainer(project.containerName);
 
             if(container) {
-                await this.projectService.start(true);
+                await this.projectService.start(project, true);
             }
         }
     }
@@ -505,7 +513,7 @@ export class ProjectController {
             const container = await this.dockerService.getContainer(project.containerName);
 
             if(container) {
-                await this.projectService.start(true);
+                await this.projectService.start(project, true);
             }
         }
     }
@@ -517,7 +525,7 @@ export class ProjectController {
             alias: "n"
         })
         name?: string
-    ) {
+    ): Promise<string> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -545,7 +553,7 @@ export class ProjectController {
         })
         name: string,
         args: string[]
-    ) {
+    ): Promise<string> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -646,7 +654,7 @@ export class ProjectController {
             alias: "n"
         })
         name?: string
-    ) {
+    ): Promise<string> {
         if(name) {
             await this.projectService.cdProject(name);
         }

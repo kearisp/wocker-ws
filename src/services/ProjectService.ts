@@ -73,9 +73,25 @@ class ProjectService {
         return this.dockerService.getContainer(project.containerName);
     }
 
-    public async start(restart?: boolean) {
-        const project = await this.get();
+    public async rebuild(project: Project) {
+        await this.stop(project);
 
+        if(project.type === "dockerfile") {
+            project.imageName = `project-${project.name}:develop`;
+
+            const images = await this.dockerService.imageLs({
+                tag: project.imageName
+            });
+
+            if(images.length > 0) {
+                await this.dockerService.imageRm(project.imageName);
+            }
+        }
+
+        await this.appEventsService.emit("project:rebuild", project);
+    }
+
+    public async start(project: Project, restart?: boolean): Promise<void> {
         if(project.type === "dockerfile") {
             project.imageName = `project-${project.name}:develop`;
 
@@ -138,9 +154,7 @@ class ProjectService {
         await this.appEventsService.emit("project:start", project);
     }
 
-    public async stop() {
-        const project = await this.get();
-
+    public async stop(project: Project): Promise<void> {
         const container = await this.dockerService.getContainer(project.containerName);
 
         if(!container) {

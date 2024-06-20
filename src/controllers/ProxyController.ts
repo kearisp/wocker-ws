@@ -221,8 +221,8 @@ export class ProxyController {
         const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
         if(container) {
-            await this.projectService.stop();
-            await this.projectService.start();
+            await this.projectService.stop(project);
+            await this.projectService.start(project);
         }
     }
 
@@ -262,8 +262,8 @@ export class ProxyController {
         const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
         if(container) {
-            await this.projectService.stop();
-            await this.projectService.start();
+            await this.projectService.stop(project);
+            await this.projectService.start(project);
         }
     }
 
@@ -318,8 +318,8 @@ export class ProxyController {
         const container = await this.dockerService.getContainer(`${project.name}.workspace`);
 
         if(container) {
-            await this.projectService.stop();
-            await this.projectService.start();
+            await this.projectService.stop(project);
+            await this.projectService.start(project);
         }
     }
 
