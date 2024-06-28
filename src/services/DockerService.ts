@@ -198,7 +198,7 @@ export class DockerService {
             labels,
             buildargs: Object.keys(buildArgs).reduce((res, key) => {
                 res[key] = typeof buildArgs[key] !== "string"
-                    ? buildArgs[key].toString()
+                    ? (buildArgs[key] as any).toString()
                     : buildArgs[key];
 
                 return res;
