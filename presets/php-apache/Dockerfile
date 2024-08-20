@@ -5,7 +5,7 @@ FROM php:${PHP_VERSION}-apache
 ARG UID=1000
 ARG USER=www-data
 
-RUN usermod -u $UID www-data && \
+RUN usermod -u $UID -s /bin/bash $USER && \
     mkdir -p /home/$USER && \
     touch /home/$USER/.bashrc && \
     chown -R $USER:$USER /home/$USER

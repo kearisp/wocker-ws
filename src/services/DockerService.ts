@@ -70,7 +70,6 @@ export class DockerService {
             OpenStdin: true,
             StdinOnce: false,
             Entrypoint: entrypoint,
-            // U
             Tty: tty,
             Cmd: cmd,
             Env: Object.keys(env).map((key) => {
@@ -116,7 +115,7 @@ export class DockerService {
                     }
 
                     return res;
-                }, {}),
+                }, {})
             },
             NetworkingConfig: {
                 EndpointsConfig: networkMode === "host" ? {} : {
@@ -147,7 +146,7 @@ export class DockerService {
         return null;
     }
 
-    public async removeContainer(name: string) {
+    public async removeContainer(name: string): Promise<void> {
         const container = await this.getContainer(name);
 
         if(!container) {
@@ -177,7 +176,7 @@ export class DockerService {
         }
     }
 
-    public async buildImage(params: Params.BuildImage) {
+    public async buildImage(params: Params.BuildImage): Promise<void> {
         const {
             tag,
             labels = {},
@@ -223,9 +222,11 @@ export class DockerService {
     }
 
     public async imageRm(tag: string): Promise<void> {
-        const image = await this.docker.getImage(tag);
+        const image = this.docker.getImage(tag);
 
-        if(!image) {
+        const exists = await this.imageExists(tag);
+
+        if(!exists) {
             return;
         }
 
@@ -280,11 +281,18 @@ export class DockerService {
         await followProgress(stream);
     }
 
-    public async attach(name: string) {
-        const container = await this.getContainer(name);
+    public async attach(containerOrName: string|Container): Promise<NodeJS.ReadWriteStream> {
+        let container: Container;
 
-        if(!container) {
-            return;
+        if(typeof containerOrName === "string") {
+            container = await this.getContainer(containerOrName);
+        }
+        else {
+            if(!containerOrName) {
+                return;
+            }
+
+            container = containerOrName;
         }
 
         const stream = await container.attach({
@@ -309,28 +317,27 @@ export class DockerService {
         });
 
         stream.on("data", (data) => {
-            process.stdout.write(demuxOutput(data));
+            process.stdout.write(data);
         });
 
-        stream.on("end", async () => {
+        stream.on("end", async (): Promise<void> => {
             process.exit();
         });
 
-        process.stdout.on("resize", () => {
+        const handleResize = (): void => {
             const [width, height] = process.stdout.getWindowSize();
 
             container.resize({
                 w: width,
                 h: height
             });
-        });
+        };
 
-        const [width, height] = process.stdout.getWindowSize();
+        process.stdout.on("resize", handleResize);
 
-        await container.resize({
-            w: width,
-            h: height
-        });
+        handleResize();
+
+        return stream;
     }
 
     public async logs(name: string): Promise<void> {
@@ -351,7 +358,7 @@ export class DockerService {
         });
     }
 
-    public async attachStream(stream: NodeJS.ReadWriteStream) {
+    public async attachStream(stream: NodeJS.ReadWriteStream): Promise<void> {
         process.stdin.resume();
         process.stdin.setEncoding("utf8");
         process.stdin.pipe(stream);
