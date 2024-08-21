@@ -1,4 +1,12 @@
-import {Controller, Command, Option, Project, FSManager} from "@wocker/core";
+import {
+    Controller,
+    Command,
+    Param,
+    Option,
+    Project,
+    FSManager,
+    PROJECT_TYPE_PRESET
+} from "@wocker/core";
 import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
 import {promptConfirm} from "@wocker/utils";
 import * as Path from "path";
@@ -30,7 +38,7 @@ export class PresetController {
         this.appEventsService.on("project:rebuild", (project) => this.onRebuild(project));
     }
 
-    public async presets() {
+    public async presets(): Promise<string[]> {
         const presets = await this.presetService.search();
 
         return presets.map((preset) => {
@@ -38,7 +46,7 @@ export class PresetController {
         });
     }
 
-    protected async onInit(project: Project) {
+    protected async onInit(project: Project): Promise<void> {
         if(project.type !== "preset") {
             return;
         }
@@ -109,8 +117,8 @@ export class PresetController {
         }
     }
 
-    protected async onRebuild(project: Project) {
-        if(project.type !== "preset") {
+    protected async onRebuild(project: Project): Promise<void> {
+        if(project.type !== PROJECT_TYPE_PRESET) {
             return;
         }
 
@@ -127,11 +135,13 @@ export class PresetController {
             console.info(`Removing image: ${imageName}`);
 
             await this.dockerService.imageRm(imageName);
+
+            // await this.presetService.
         }
     }
 
-    protected async onBeforeStart(project: Project) {
-        if(project.type !== "preset") {
+    protected async onBeforeStart(project: Project): Promise<void> {
+        if(project.type !== PROJECT_TYPE_PRESET) {
             return;
         }
 
@@ -147,7 +157,7 @@ export class PresetController {
                         presetName: preset.name
                     },
                     buildArgs: project.buildArgs,
-                    context: Path.join(PRESETS_DIR, preset.name),
+                    context: preset.path,
                     src: preset.dockerfile
                 });
             }
@@ -155,8 +165,43 @@ export class PresetController {
     }
 
     @Command("preset:add <preset>")
-    public async add(preset: string) {
-        //
+    public async add(
+        @Param("preset")
+        name: string
+    ): Promise<void> {
+        await this.presetService.addPreset(name);
+
+        // const preset = await this.presetService.getConfigFromGithub(name);
+
+        // await preset.save();
+    }
+
+    @Command("preset:delete <preset>")
+    public async delete(
+        @Param("preset")
+        name: string,
+        @Option("yes", {
+            alias: "y",
+            description: "Confirm deletion"
+        })
+        confirm?: boolean
+    ): Promise<void> {
+        const preset = await this.presetService.get(name);
+
+        if(typeof confirm === "undefined" || confirm === null) {
+            confirm = await promptConfirm({
+                message: `Delete preset ${name}?`,
+                default: false
+            });
+        }
+
+        if(!confirm) {
+            return;
+        }
+
+        console.info("Deleting...");
+
+        await preset.delete();
     }
 
     @Command("preset:eject")
@@ -167,7 +212,7 @@ export class PresetController {
             description: "Project name"
         })
         name?: string
-    ) {
+    ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -246,7 +291,7 @@ export class PresetController {
         })
         rebuild: boolean,
         presetName: string
-    ) {
+    ): Promise<void> {
         const preset = await this.presetService.get(presetName);
 
         let buildArgs: Project["buildArgs"] = {};

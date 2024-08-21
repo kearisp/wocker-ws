@@ -1,4 +1,9 @@
-import {Injectable, Project, ProjectProperties} from "@wocker/core"
+import {
+    Injectable,
+    Project,
+    ProjectProperties,
+    PROJECT_TYPE_DOCKERFILE
+} from "@wocker/core"
 import * as Path from "path";
 
 import {FS} from "../makes";
@@ -37,6 +42,18 @@ class ProjectService {
         }(data as ProjectProperties);
     }
 
+    public async get(): Promise<Project> {
+        const project = await this.searchOne({
+            path: this.appConfigService.getPWD()
+        });
+
+        if(!project) {
+            throw new Error("Project not found");
+        }
+
+        return project;
+    }
+
     public async getById(id: string): Promise<Project> {
         const data = await FS.readJSON(this.appConfigService.dataPath("projects", id, "config.json"));
 
@@ -55,19 +72,7 @@ class ProjectService {
         this.appConfigService.setPWD(project.path);
     }
 
-    public async get(): Promise<Project> {
-        const project = await this.searchOne({
-            path: this.appConfigService.getPWD()
-        });
-
-        if(!project) {
-            throw new Error("Project not found");
-        }
-
-        return project;
-    }
-
-    public async start(project: Project, rebuild?: boolean, restart?: boolean): Promise<void> {
+    public async start(project: Project, restart?: boolean, rebuild?: boolean): Promise<void> {
         let container = await this.dockerService.getContainer(project.containerName);
 
         if(container && (restart || rebuild)) {
@@ -79,9 +84,7 @@ class ProjectService {
         }
 
         if(!container) {
-            await this.appEventsService.emit("project:beforeStart", project);
-
-            if(project.type === "dockerfile") {
+            if(project.type === PROJECT_TYPE_DOCKERFILE) {
                 project.imageName = `project-${project.name}:develop`;
 
                 if(rebuild) {
@@ -105,6 +108,8 @@ class ProjectService {
             if(rebuild) {
                 await this.appEventsService.emit("project:rebuild", project);
             }
+
+            await this.appEventsService.emit("project:beforeStart", project);
 
             const config = await this.appConfigService.getConfig();
 
@@ -150,7 +155,7 @@ class ProjectService {
         await this.dockerService.removeContainer(project.containerName);
     }
 
-    public async save(project: Project) {
+    public async save(project: Project): Promise<void> {
         if(!project.name) {
             throw new Error("Project should has a name");
         }

@@ -1,7 +1,7 @@
 import {Injectable, Project} from "@wocker/core";
-import {promptText, promptConfirm} from "@wocker/utils";
+import {promptText} from "@wocker/utils";
 
-import {FS} from "../makes/FS";
+import {FS} from "../makes";
 import {AppConfigService} from "./AppConfigService";
 import {DockerService} from "./DockerService";
 
@@ -17,31 +17,18 @@ export class ProxyService {
     ) {}
 
     public async init(project: Project): Promise<void> {
-        const enable = await promptConfirm({
-            message: "Enable local proxy?",
-            default: project.getMeta<string>("WITH_PROXY", "false") === "true"
+        const appPort = await promptText({
+            message: "App port:",
+            type: "number",
+            default: project.getEnv("VIRTUAL_PORT", "80")
         });
 
-        if(enable) {
-            const appPort = await promptText({
-                message: "App port:",
-                type: "number",
-                default: project.getEnv("VIRTUAL_PORT", "80")
-            });
-
-            project.setEnv("VIRTUAL_PORT", appPort);
-            project.setMeta("WITH_PROXY", "true");
-        }
-        else {
-            project.setMeta("WITH_PROXY", "false");
-        }
+        project.setEnv("VIRTUAL_PORT", appPort);
 
         await project.save();
     }
 
     public async start(restart?: boolean): Promise<void> {
-        console.info("Proxy starting...");
-
         if(restart) {
             await this.stop();
         }
@@ -49,6 +36,8 @@ export class ProxyService {
         let container = await this.dockerService.getContainer(this.containerName);
 
         if(!container) {
+            console.info("Proxy starting...");
+
             await this.dockerService.pullImage(this.imageName);
 
             const certsDir = this.appConfigService.dataPath("certs");
@@ -89,13 +78,11 @@ export class ProxyService {
             } = await container.inspect();
 
             if(["created", "exited"].includes(Status)) {
-                console.info("Starting...");
-
                 await container.start();
+
+                console.info("Started");
             }
         }
-
-        // if(!FS.)
     }
 
     public async stop(): Promise<void> {

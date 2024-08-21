@@ -1,4 +1,6 @@
 {
+    "name": "shopify",
+    "version": "1.0.0",
     "dockerfile": "./Dockerfile",
     "buildArgsOptions": {
         "PHP_VERSION": {
