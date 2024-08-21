@@ -1,4 +1,4 @@
-import {Injectable, Project, PickProperties} from "@wocker/core"
+import {Injectable, Project, ProjectProperties} from "@wocker/core"
 import * as Path from "path";
 
 import {FS} from "../makes";
@@ -23,18 +23,18 @@ class ProjectService {
         protected readonly dockerService: DockerService
     ) {}
 
-    public fromObject(data: Partial<PickProperties<Project>>): Project {
-        const projectService = this;
+    public fromObject(data: Partial<ProjectProperties>): Project {
+        const _this = this;
 
         return new class extends Project {
-            public constructor(data: PickProperties<Project>) {
+            public constructor(data: ProjectProperties) {
                 super(data);
             }
 
-            public async save() {
-                await projectService.save(this);
+            public async save(): Promise<void> {
+                await _this.save(this);
             }
-        }(data as PickProperties<Project>);
+        }(data as ProjectProperties);
     }
 
     public async getById(id: string): Promise<Project> {
@@ -43,7 +43,7 @@ class ProjectService {
         return this.fromObject(data);
     }
 
-    public async cdProject(name: string) {
+    public async cdProject(name: string): Promise<void> {
         const project = await this.searchOne({
             name
         });
@@ -55,7 +55,7 @@ class ProjectService {
         this.appConfigService.setPWD(project.path);
     }
 
-    public async get() {
+    public async get(): Promise<Project> {
         const project = await this.searchOne({
             path: this.appConfigService.getPWD()
         });
@@ -67,53 +67,10 @@ class ProjectService {
         return project;
     }
 
-    public async getContainer() {
-        const project = await this.get();
-
-        return this.dockerService.getContainer(project.containerName);
-    }
-
-    public async rebuild(project: Project) {
-        await this.stop(project);
-
-        if(project.type === "dockerfile") {
-            project.imageName = `project-${project.name}:develop`;
-
-            const images = await this.dockerService.imageLs({
-                tag: project.imageName
-            });
-
-            if(images.length > 0) {
-                await this.dockerService.imageRm(project.imageName);
-            }
-        }
-
-        await this.appEventsService.emit("project:rebuild", project);
-    }
-
-    public async start(project: Project, restart?: boolean): Promise<void> {
-        if(project.type === "dockerfile") {
-            project.imageName = `project-${project.name}:develop`;
-
-            const images = await this.dockerService.imageLs({
-                tag: project.imageName
-            });
-
-            if(images.length === 0) {
-                await this.dockerService.buildImage({
-                    tag: project.imageName,
-                    buildArgs: project.buildArgs,
-                    context: this.appConfigService.getPWD(),
-                    src: project.dockerfile
-                });
-            }
-        }
-
-        await this.appEventsService.emit("project:beforeStart", project);
-
+    public async start(project: Project, rebuild?: boolean, restart?: boolean): Promise<void> {
         let container = await this.dockerService.getContainer(project.containerName);
 
-        if(container && restart) {
+        if(container && (restart || rebuild)) {
             container = null;
 
             await this.appEventsService.emit("project:stop", project);
@@ -122,6 +79,33 @@ class ProjectService {
         }
 
         if(!container) {
+            await this.appEventsService.emit("project:beforeStart", project);
+
+            if(project.type === "dockerfile") {
+                project.imageName = `project-${project.name}:develop`;
+
+                if(rebuild) {
+                    await this.dockerService.imageRm(project.imageName);
+                }
+
+                const images = await this.dockerService.imageLs({
+                    tag: project.imageName
+                });
+
+                if(images.length === 0) {
+                    await this.dockerService.buildImage({
+                        tag: project.imageName,
+                        buildArgs: project.buildArgs,
+                        context: this.appConfigService.getPWD(),
+                        src: project.dockerfile
+                    });
+                }
+            }
+
+            if(rebuild) {
+                await this.appEventsService.emit("project:rebuild", project);
+            }
+
             const config = await this.appConfigService.getConfig();
 
             container = await this.dockerService.createContainer({

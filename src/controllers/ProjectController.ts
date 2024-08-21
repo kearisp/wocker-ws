@@ -63,7 +63,7 @@ export class ProjectController {
         @Option("name", {
             type: "string",
             alias: "n",
-            description: "Project name"
+            description: "The name of the project"
         })
         name: string,
         @Option("type", {
@@ -100,6 +100,8 @@ export class ProjectController {
                 message: "Project name:",
                 default: project.name || Path.basename(project.path)
             });
+
+            project.addDomain(project.containerName);
         }
 
         if(type) {
@@ -204,7 +206,7 @@ export class ProjectController {
         @Option("name", {
             type: "string",
             alias: "n",
-            description: "Project name",
+            description: "The name of the project",
             help: true
         })
         name?: string,
@@ -239,11 +241,7 @@ export class ProjectController {
 
         const project = await this.projectService.get();
 
-        if(rebuild) {
-            await this.projectService.rebuild(project);
-        }
-
-        await this.projectService.start(project, restart);
+        await this.projectService.start(project, rebuild, restart);
 
         if(detach) {
             console.info(chalk.yellow("Warning: Detach option is deprecated"));
@@ -270,7 +268,7 @@ export class ProjectController {
         @Option("name", {
             type: "string",
             alias: "n",
-            description: "Project name"
+            description: "The name of the project"
         })
         name: string,
     ): Promise<void> {
@@ -283,15 +281,41 @@ export class ProjectController {
         await this.projectService.stop(project);
     }
 
-    @Command("run <script>")
-    public async run(
+    @Command("domains")
+    public async domains(
         @Option("name", {
             type: "string",
             alias: "n",
-            description: "Project name"
+            description: "The name of the project"
+        })
+        name?: string
+    ): Promise<string> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        const table = new CliTable({
+            head: [chalk.yellow("Domain")]
+        });
+
+        for(const domain of project.domains) {
+            table.push([domain]);
+        }
+
+        return table.toString();
+    }
+
+    @Command("domain:add [...domains]")
+    public async addDomain(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
         })
         name: string,
-        script: string
+        addDomains: string[]
     ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
@@ -299,38 +323,81 @@ export class ProjectController {
 
         const project = await this.projectService.get();
 
-        if(!project.scripts || !project.scripts[script]) {
-            throw new Error(`Script ${script} not found`);
+        for(const domain of addDomains) {
+            project.addDomain(domain);
         }
 
-        const container = await this.dockerService.getContainer(`${project.name}.workspace`);
+        await project.save();
 
-        if(!container) {
-            throw new Error("The project is not started");
-        }
-
-        const exec = await container.exec({
-            Cmd: ["bash", "-i", "-c", project.scripts[script]],
-            AttachStdin: true,
-            AttachStdout: true,
-            AttachStderr: true,
-            Tty: process.stdin.isTTY
-        });
-
-        const stream = await exec.start({
-            hijack: true,
-            stdin: true,
-            Tty: process.stdin.isTTY
-        });
-
-        await this.dockerService.attachStream(stream);
+        // const container = await this.dockerService.getContainer(`${project.name}.workspace`);
+        //
+        // if(container) {
+        //     await this.projectService.stop(project);
+        //     await this.projectService.start(project);
+        // }
     }
 
-    @Command("attach")
-    public async attach(
+    @Command("domain:set [...domains]")
+    public async setDomains(
         @Option("name", {
             type: "string",
-            alias: "n"
+            alias: "n",
+            description: "Project name"
+        })
+        name: string,
+        domains: string[]
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        project.clearDomains();
+
+        for(const domain of domains) {
+            project.addDomain(domain);
+        }
+
+        await project.save();
+
+        // const container = await this.dockerService.getContainer(`${project.name}.workspace`);
+        //
+        // if(container) {
+        //     await this.projectService.stop(project);
+        //     await this.projectService.start(project);
+        // }
+    }
+
+    @Command("domain:remove [...domains]")
+    public async removeDomain(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name: string,
+        removeDomains: string[]
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        for(const domain of removeDomains) {
+            project.removeDomain(domain);
+        }
+
+        await project.save();
+    }
+
+    @Command("domain:clear")
+    public async clearDomain(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
         })
         name?: string
     ): Promise<void> {
@@ -340,7 +407,116 @@ export class ProjectController {
 
         const project = await this.projectService.get();
 
-        await this.dockerService.attach(project.containerName);
+        project.clearDomains();
+
+        await project.save();
+
+        // const container = await this.dockerService.getContainer(`${project.name}.workspace`);
+        //
+        // if(container) {
+        //     await this.projectService.stop(project);
+        //     await this.projectService.start(project);
+        // }
+    }
+
+    @Command("ports")
+    public async ports(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name?: string
+    ): Promise<string> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        const table = new CliTable({
+            head: ["Ports"]
+        });
+
+        for(const port of project.ports || []) {
+            table.push([port]);
+        }
+
+        return table.toString();
+    }
+
+    @Command("port:add <host-port>:<container-port>")
+    public async addPort(
+        @Param("host-port")
+        hostPort: string,
+        @Param("container-port")
+        containerPort: string,
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name?: string
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        project.linkPort(parseInt(hostPort), parseInt(containerPort));
+
+        await project.save();
+
+        // console.log(name, hostPort, containerPort);
+        //
+        // console.log(project.ports);
+    }
+
+    @Command("port:remove <host-port>:<container-port>")
+    public async removePort(
+        @Param("host-port")
+        hostPort: string,
+        @Param("container-port")
+        containerPort: string,
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name?: string
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        project.unlinkPort(parseInt(hostPort), parseInt(containerPort));
+
+        await project.save();
+    }
+
+    @Command("port:clear")
+    public async clearPorts(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name?: string
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        if(project.ports) {
+            delete project.ports;
+
+            await project.save();
+        }
     }
 
     @Command("config")
@@ -348,7 +524,7 @@ export class ProjectController {
         @Option("name", {
             type: "string",
             alias: "n",
-            description: "Project name"
+            description: "The name of the project"
         })
         name?: string,
         @Option("global", {
@@ -389,7 +565,8 @@ export class ProjectController {
     public async configGet(
         @Option("name", {
             type: "string",
-            alias: "n"
+            alias: "n",
+            description: "The name of the project"
         })
         name: string,
         @Option("global", {
@@ -429,7 +606,8 @@ export class ProjectController {
     public async configSet(
         @Option("name", {
             type: "string",
-            alias: "n"
+            alias: "n",
+            description: "The name of the project"
         })
         name: string,
         @Option("global", {
@@ -438,7 +616,7 @@ export class ProjectController {
         })
         global: boolean,
         variables: string[]
-    ) {
+    ): Promise<void> {
         if(!global && name) {
             await this.projectService.cdProject(name);
         }
@@ -474,7 +652,8 @@ export class ProjectController {
     public async configUnset(
         @Option("name", {
             type: "string",
-            alias: "n"
+            alias: "n",
+            description: "The name of the project"
         })
         name: string,
         @Option("global", {
@@ -483,7 +662,7 @@ export class ProjectController {
         })
         global: boolean,
         configs: string[]
-    ) {
+    ): Promise<void> {
         const env: Project["env"] = configs.reduce((env, config) => {
             const [key] = config.split("=");
 
@@ -522,7 +701,8 @@ export class ProjectController {
     public async buildArgsList(
         @Option("name", {
             type: "string",
-            alias: "n"
+            alias: "n",
+            description: "The name of the project"
         })
         name?: string
     ): Promise<string> {
@@ -550,6 +730,7 @@ export class ProjectController {
         @Option("name", {
             type: "string",
             alias: "n",
+            description: "The name of the project"
         })
         name: string,
         args: string[]
@@ -581,11 +762,12 @@ export class ProjectController {
     public async buildArgsSet(
         @Option("name", {
             type: "string",
-            alias: "n"
+            alias: "n",
+            description: "The name of the project"
         })
         name: string,
         args: string[]
-    ) {
+    ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -615,11 +797,12 @@ export class ProjectController {
     public async buildArgsUnset(
         @Option("name", {
             type: "string",
-            alias: "n"
+            alias: "n",
+            description: "The name of the project"
         })
         name: string,
         args: string[]
-    ) {
+    ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -651,7 +834,8 @@ export class ProjectController {
     public async volumeList(
         @Option("name", {
             type: "string",
-            alias: "n"
+            alias: "n",
+            description: "The name of the project"
         })
         name?: string
     ): Promise<string> {
@@ -678,11 +862,12 @@ export class ProjectController {
     public async volumeMount(
         @Option("name", {
             type: "string",
-            alias: "n"
+            alias: "n",
+            description: "The name of the project"
         })
         name: string,
         volumes: string[]
-    ) {
+    ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -700,11 +885,12 @@ export class ProjectController {
     public async volumeUnmount(
         @Option("name", {
             type: "string",
-            alias: "n"
+            alias: "n",
+            description: "The name of the project"
         })
         name: string,
         volumes: string[]
-    ) {
+    ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
         }
@@ -723,25 +909,25 @@ export class ProjectController {
         @Option("name", {
             type: "string",
             alias: "n",
-            description: "Project name"
+            description: "The name of the project"
         })
-        name: string,
+        name?: string,
         @Option("global", {
             type: "boolean",
             alias: "g"
         })
-        global: boolean,
+        global?: boolean,
         @Option("detach", {
             type: "boolean",
             alias: "d"
         })
-        detach: boolean,
+        detach?: boolean,
         @Option("follow", {
             type: "boolean",
             alias: "f"
         })
-        follow: boolean
-    ) {
+        follow?: boolean
+    ): Promise<void> {
         if(global) {
             const logFilepath = Path.join(DATA_DIR, "ws.log");
 
@@ -827,7 +1013,12 @@ export class ProjectController {
             });
 
             stream.on("data", (data) => {
-                process.stdout.write(demuxOutput(data));
+                try {
+                    data = demuxOutput(data);
+                }
+                catch(err) {}
+
+                process.stdout.write(data);
             });
         }
         else {
@@ -846,19 +1037,81 @@ export class ProjectController {
         @Option("name", {
             type: "string",
             alias: "n",
-            description: "Project name"
+            description: "The name of the project"
         })
         name?: string,
         command?: string[]
-    ) {
+    ): Promise<void> {
         if(name) {
             await this.projectService.cdProject(name);
         }
 
         const project = await this.projectService.get();
 
-        const containerName = `${project.name}.workspace`;
+        await this.dockerService.exec(project.containerName, command);
+    }
 
-        await this.dockerService.exec(containerName, command);
+    @Command("run <script> [...args]")
+    public async run(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name: string,
+        @Param("script")
+        script: string,
+        @Param("args")
+        args?: string[]
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        if(!project.scripts || !project.scripts[script]) {
+            throw new Error(`Script ${script} not found`);
+        }
+
+        const container = await this.dockerService.getContainer(`${project.name}.workspace`);
+
+        if(!container) {
+            throw new Error("The project is not started");
+        }
+
+        const exec = await container.exec({
+            Cmd: ["bash", "-i", "-c", [project.scripts[script], ...args || []].join(" ")],
+            AttachStdin: true,
+            AttachStdout: true,
+            AttachStderr: true,
+            Tty: process.stdin.isTTY
+        });
+
+        const stream = await exec.start({
+            hijack: true,
+            stdin: true,
+            Tty: process.stdin.isTTY
+        });
+
+        await this.dockerService.attachStream(stream);
+    }
+
+    @Command("attach")
+    public async attach(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name?: string
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        await this.dockerService.attach(project.containerName);
     }
 }

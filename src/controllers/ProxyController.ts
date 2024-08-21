@@ -5,16 +5,14 @@ import {
     Option,
     Project
 } from "@wocker/core";
-import {promptText, demuxOutput} from "@wocker/utils";
-import CliTable from "cli-table3";
+import {promptText} from "@wocker/utils";
 import chalk from "chalk";
 
-import {FS} from "../makes";
 import {
     AppConfigService,
     AppEventsService,
     ProjectService,
-    DockerService
+    ProxyService
 } from "../services";
 
 
@@ -26,42 +24,36 @@ export class ProxyController {
         protected readonly appConfigService: AppConfigService,
         protected readonly appEventsService: AppEventsService,
         protected readonly projectService: ProjectService,
-        protected readonly dockerService: DockerService
+        protected readonly proxyService: ProxyService
     ) {
-        this.appEventsService.on("project:beforeStart", (project: Project) => this.onProjectStart(project));
-        this.appEventsService.on("project:stop", (project: Project) => this.onProjectStop(project));
+        this.appEventsService.on("project:init", (project: Project): Promise<void> => this.proxyService.init(project));
+        this.appEventsService.on("project:start", (project: Project): Promise<void> => this.onProjectStart(project));
+        this.appEventsService.on("project:stop", (project: Project): Promise<void> => this.onProjectStop(project));
     }
 
-    public async onProjectStart(project: Project) {
-        if(!project.hasEnv("VIRTUAL_HOST")) {
-            project.setEnv("VIRTUAL_HOST", project.containerName);
+    public async onProjectStart(project: Project): Promise<void> {
+        if(project.domains.length === 0) {
+            return;
+        }
+
+        console.info(chalk.green("Don't forget to add these lines into hosts file:"));
+
+        for(const domain of project.domains) {
+            console.info(chalk.gray(`127.0.0.1 ${domain}`));
         }
 
         await this.start();
     }
 
-    public async onProjectStop(project: Project) {
-        //
+    public async onProjectStop(project: Project): Promise<void> {
+        // TODO: Stop proxy if no containers needed
     }
 
     @Completion("name")
-    public async getProjectNames() {
+    public async getProjectNames(): Promise<string[]> {
         const projects = await this.projectService.search();
 
         return projects.map((project) => project.name);
-    }
-
-    @Command("domains")
-    public async getDomains(name: string | undefined, selected: string[]) {
-        if(name) {
-            await this.projectService.cdProject(name);
-        }
-
-        const project = await this.projectService.get();
-
-        return (project.getEnv("VIRTUAL_HOST") || "").split(",").filter((domain: string) => {
-            return !selected.includes(domain);
-        });
     }
 
     @Command("proxy:init")
@@ -76,7 +68,7 @@ export class ProxyController {
             description: "Https port"
         })
         httpsPort: number
-    ) {
+    ): Promise<void> {
         const config = await this.appConfigService.getConfig();
 
         if(typeof httpPort === "undefined" || isNaN(httpPort)) {
@@ -105,240 +97,26 @@ export class ProxyController {
     }
 
     @Command("proxy:start")
-    public async start() {
-        console.info("Proxy starting...");
-
-        const config = await this.appConfigService.getConfig();
-
-        await this.dockerService.pullImage("nginxproxy/nginx-proxy");
-
-        const httpPort = config.getMeta("PROXY_HTTP_PORT", "80");
-        const httpsPort = config.getMeta("PROXY_HTTPS_PORT", "443");
-
-        let container = await this.dockerService.getContainer(this.containerName);
-
-        if(!container) {
-            const certsDir = this.appConfigService.dataPath("certs");
-
-            if(!FS.existsSync(certsDir)) {
-                FS.mkdirSync(certsDir, {
-                    recursive: true
-                });
-            }
-
-            container = await this.dockerService.createContainer({
-                name: this.containerName,
-                image: "nginxproxy/nginx-proxy",
-                restart: "always",
-                env: {
-                    DEFAULT_HOST: "index.workspace"
-                },
-                ports: [
-                    `${httpPort}:80`,
-                    `${httpsPort}:443`
-                ],
-                volumes: [
-                    "/var/run/docker.sock:/tmp/docker.sock:ro",
-                    `${certsDir}:/etc/nginx/certs`
-                ]
-            });
-        }
-
-        const {
-            State: {
-                Status
-            }
-        } = await container.inspect();
-
-        if(["created", "exited"].includes(Status)) {
-            console.info("Starting...", Status)
-
-            await container.start();
-        }
+    public async start(
+        @Option("restart", {
+            type: "boolean",
+            alias: "r",
+            description: "Restart"
+        })
+        restart?: boolean
+    ): Promise<void> {
+        await this.proxyService.start(restart);
     }
 
     @Command("proxy:stop")
-    public async stop() {
+    public async stop(): Promise<void> {
         console.info("Proxy stopping...");
 
-        await this.dockerService.removeContainer(this.containerName);
-    }
-
-    @Command("proxy:restart")
-    public async restart() {
-        await this.stop();
-        await this.start();
-    }
-
-    @Command("domains")
-    public async domainList(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "Project name"
-        })
-        name: string
-    ) {
-        if(name) {
-            await this.projectService.cdProject(name);
-        }
-
-        const project = await this.projectService.get();
-
-        const table = new CliTable({
-            head: [chalk.yellow("Domain")]
-        });
-
-        const domains = project.getEnv("VIRTUAL_HOST", "").split(",");
-
-        for(const domain of domains) {
-            table.push([domain]);
-        }
-
-        return table.toString() + "\n";
-    }
-
-    @Command("domain:set [...domains]")
-    public async setDomains(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "Project name"
-        })
-        name: string,
-        domains: string[]
-    ) {
-        if(name) {
-            await this.projectService.cdProject(name);
-        }
-
-        const project = await this.projectService.get();
-
-        project.setEnv("VIRTUAL_HOST", domains.join(","));
-
-        await project.save();
-
-        const container = await this.dockerService.getContainer(`${project.name}.workspace`);
-
-        if(container) {
-            await this.projectService.stop(project);
-            await this.projectService.start(project);
-        }
-    }
-
-    @Command("domain:add [...domains]")
-    public async addDomain(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "Project name"
-        })
-        name: string,
-        addDomains: string[]
-    ) {
-        if(name) {
-            await this.projectService.cdProject(name);
-        }
-
-        const project = await this.projectService.get();
-
-        let domains = project.getEnv("VIRTUAL_HOST", "").split(",").filter((domain: string) => {
-            return !!domain;
-        });
-
-        domains = [
-            ...domains,
-            ...addDomains.filter((domain) => {
-                return !domains.find((existDomain) => {
-                    return existDomain === domain;
-                });
-            })
-        ];
-
-        project.setEnv("VIRTUAL_HOST", domains.join(","));
-
-        await project.save();
-
-        const container = await this.dockerService.getContainer(`${project.name}.workspace`);
-
-        if(container) {
-            await this.projectService.stop(project);
-            await this.projectService.start(project);
-        }
-    }
-
-    @Command("domain:remove [...domains]")
-    public async removeDomain(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "Project name"
-        })
-        name: string,
-        removeDomains: string[]
-    ) {
-        if(name) {
-            await this.projectService.cdProject(name);
-        }
-
-        const project = await this.projectService.get();
-
-        let domains = project.getEnv("VIRTUAL_HOST", "").split(",").filter((domain: string) => {
-            return !!domain;
-        });
-
-        domains = domains.filter((domain) => {
-            return !removeDomains.includes(domain);
-        });
-
-        project.setEnv("VIRTUAL_HOST", domains.join(","));
-
-        await project.save();
-    }
-
-    @Command("domain:clear")
-    public async clearDomains(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "Project name"
-        })
-        name: string
-    ) {
-        if(name) {
-            await this.projectService.cdProject(name);
-        }
-
-        const project = await this.projectService.get();
-
-        project.unsetEnv("VIRTUAL_HOST");
-
-        await project.save();
-
-        const container = await this.dockerService.getContainer(`${project.name}.workspace`);
-
-        if(container) {
-            await this.projectService.stop(project);
-            await this.projectService.start(project);
-        }
+        await this.proxyService.stop();
     }
 
     @Command("proxy:logs")
-    public async logs() {
-        const container = await this.dockerService.getContainer(this.containerName);
-
-        if(!container) {
-            return;
-        }
-
-        const stream = await container.logs({
-            follow: true,
-            stdout: true,
-            stderr: true
-        });
-
-        stream.on("data", (data) => {
-            process.stdout.write(demuxOutput(data));
-        });
+    public async logs(): Promise<void> {
+        await this.proxyService.logs();
     }
 }

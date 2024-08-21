@@ -5,3 +5,4 @@ export * from "./LogService";
 export * from "./PluginService";
 export * from "./PresetService";
 export * from "./ProjectService";
+export * from "./ProxyService";

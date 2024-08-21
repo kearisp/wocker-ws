@@ -21,7 +21,8 @@ import {
     LogService,
     PluginService,
     PresetService,
-    ProjectService
+    ProjectService,
+    ProxyService
 } from "./services";
 
 
@@ -42,7 +43,8 @@ import {
         LogService,
         PluginService,
         PresetService,
-        ProjectService
+        ProjectService,
+        ProxyService
     ],
     exports: [
         AppConfigService,
