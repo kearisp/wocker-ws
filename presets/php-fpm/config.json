@@ -1,4 +1,5 @@
 {
+    "name": "php-fpm",
     "dockerfile": "./Dockerfile",
     "buildArgsOptions": {
         "PHP_VERSION": {

@@ -1,4 +1,5 @@
 {
+    "name": "go",
     "dockerfile": "./Dockerfile",
     "DocumentRoot": "/usr/app",
     "volumes": [

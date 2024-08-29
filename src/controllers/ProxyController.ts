@@ -62,31 +62,31 @@ export class ProxyController {
             type: "number",
             description: "Http port"
         })
-        httpPort: number,
+        httpPort?: number,
         @Option("https-port", {
             type: "number",
             description: "Https port"
         })
-        httpsPort: number
+        httpsPort?: number
     ): Promise<void> {
         const config = await this.appConfigService.getConfig();
 
-        if(typeof httpPort === "undefined" || isNaN(httpPort)) {
+        if(httpPort === null || typeof httpPort === "undefined" || isNaN(httpPort)) {
             httpPort = await promptText({
                 required: true,
                 message: "Http port:",
-                type: "int",
+                type: "number",
                 default: config.getMeta("PROXY_HTTP_PORT", "80")
             });
         }
 
         config.setMeta("PROXY_HTTP_PORT", httpPort.toString());
 
-        if(typeof httpsPort === "undefined" || isNaN(httpsPort)) {
+        if(httpsPort === null || typeof httpsPort === "undefined" || isNaN(httpsPort)) {
             httpsPort = await promptText({
                 required: true,
                 message: "Https port:",
-                type: "int",
+                type: "number",
                 default: config.getMeta("PROXY_HTTPS_PORT", "443")
             });
         }

@@ -241,7 +241,7 @@ export class ProjectController {
 
         const project = await this.projectService.get();
 
-        await this.projectService.start(project, rebuild, restart);
+        await this.projectService.start(project, restart, rebuild);
 
         if(detach) {
             console.info(chalk.yellow("Warning: Detach option is deprecated"));
@@ -249,17 +249,14 @@ export class ProjectController {
 
         if(attach) {
             const project = await this.projectService.get();
-
-            const containerName = project.containerName;
-
-            const container = await this.dockerService.getContainer(containerName);
+            const container = await this.dockerService.getContainer(project.containerName);
 
             await container.resize({
                 w: process.stdout.columns,
                 h: process.stdout.rows
             });
 
-            await this.dockerService.attach(containerName);
+            await this.dockerService.attach(project.containerName);
         }
     }
 
@@ -615,6 +612,7 @@ export class ProjectController {
             alias: "g"
         })
         global: boolean,
+        @Param("configs")
         variables: string[]
     ): Promise<void> {
         if(!global && name) {

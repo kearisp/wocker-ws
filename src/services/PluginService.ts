@@ -1,4 +1,8 @@
-import {Cli, Injectable, MODULE_METADATA} from "@wocker/core";
+import {
+    Cli,
+    Injectable,
+    PLUGIN_NAME_METADATA
+} from "@wocker/core";
 
 import {AppConfigService} from "./AppConfigService";
 import {LogService} from "./LogService";
@@ -18,7 +22,7 @@ export class PluginService {
         try {
             const {default: Plugin} = await import(pluginName);
 
-            const name = Reflect.getMetadata(MODULE_METADATA.NAME, Plugin);
+            const name = Reflect.getMetadata(PLUGIN_NAME_METADATA, Plugin);
 
             if(!name) {
                 console.log("No name");

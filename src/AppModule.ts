@@ -2,6 +2,7 @@ import {
     Module,
     Container,
     MODULE_METADATA,
+    PLUGIN_NAME_METADATA,
     PLUGIN_DIR_KEY
 } from "@wocker/core";
 
@@ -70,7 +71,7 @@ export class AppModule {
                     continue;
                 }
 
-                const name = Reflect.getMetadata(MODULE_METADATA.NAME, Plugin);
+                const name = Reflect.getMetadata(PLUGIN_NAME_METADATA, Plugin);
 
                 Reflect.defineMetadata(MODULE_METADATA.PROVIDERS, [
                     ...Reflect.getMetadata(MODULE_METADATA.PROVIDERS, Plugin) || [],
