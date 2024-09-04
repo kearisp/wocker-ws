@@ -1,4 +1,10 @@
-import {Command, Completion, Controller} from "@wocker/core";
+import {
+    Command,
+    Description,
+    Param,
+    Completion,
+    Controller
+} from "@wocker/core";
 
 import {AppConfigService, LogService} from "../services";
 
@@ -10,17 +16,55 @@ export class DebugController {
         protected readonly logService: LogService
     ) {}
 
+    @Command("debug:<status>")
     @Command("debug <status>")
-    public async debug(status: string) {
-        const config = await this.appConfigService.getConfig();
+    public async debug(
+        @Param("status")
+        status: string
+    ): Promise<void> {
+        const config = this.appConfigService.getConfig();
 
         config.debug = status === "on";
 
         await config.save();
     }
 
+    @Description("Set the log level (options: debug, log, info, warn, error)")
+    @Command("loglevel <level>")
+    public async setLog(
+        @Param("level")
+        level: string
+    ): Promise<void> {
+        const validLevels = this.getLevels();
+
+        if (!validLevels.includes(level)) {
+            throw new Error(`Invalid log level: ${level}. Valid options are ${validLevels.join(', ')}`);
+        }
+
+        const config = this.appConfigService.getConfig();
+
+        config.logLevel = level as any;
+
+        await config.save();
+    }
+
+    @Command("log:<level> [...args]")
+    public async testLog(
+        @Param("level")
+        level: string,
+        @Param("args")
+        args: string[]
+    ): Promise<void> {
+        (this.logService as any)._log(level, ...args);
+    }
+
     @Completion("status")
-    public async debugCompletion() {
+    public async debugCompletion(): Promise<string[]> {
         return ["on", "off"];
+    }
+
+    @Completion("level")
+    public getLevels(): string[] {
+        return ["debug", "info", "warn", "error"];
     }
 }
