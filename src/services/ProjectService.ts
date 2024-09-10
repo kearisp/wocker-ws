@@ -2,7 +2,8 @@ import {
     Injectable,
     Project,
     ProjectProperties,
-    PROJECT_TYPE_DOCKERFILE
+    PROJECT_TYPE_DOCKERFILE,
+    FileSystem
 } from "@wocker/core"
 import * as Path from "path";
 
@@ -15,7 +16,6 @@ import {
 
 
 type SearchParams = Partial<{
-    id: string;
     name: string;
     path: string;
 }>;
@@ -44,7 +44,7 @@ class ProjectService {
 
     public async get(): Promise<Project> {
         const project = await this.searchOne({
-            path: this.appConfigService.getPWD()
+            path: this.appConfigService.pwd()
         });
 
         if(!project) {
@@ -55,9 +55,14 @@ class ProjectService {
     }
 
     public async getById(id: string): Promise<Project> {
+        const config = this.appConfigService.getConfig();
+        const projectData = config.getProject(id);
         const data = await FS.readJSON(this.appConfigService.dataPath("projects", id, "config.json"));
 
-        return this.fromObject(data);
+        return this.fromObject({
+            ...data,
+            path: projectData.path || projectData.src
+        });
     }
 
     public async cdProject(name: string): Promise<void> {
@@ -99,7 +104,7 @@ class ProjectService {
                     await this.dockerService.buildImage({
                         tag: project.imageName,
                         buildArgs: project.buildArgs,
-                        context: this.appConfigService.getPWD(),
+                        context: this.appConfigService.pwd(),
                         src: project.dockerfile
                     });
                 }
@@ -120,11 +125,15 @@ class ProjectService {
                     ...config.env || {},
                     ...project.env || {}
                 },
-                volumes: (project.volumes || []).map((volume: string) => {
+                volumes: (project.volumes || []).map((volume: string): string => {
                     const regVolume = /^([^:]+):([^:]+)(?::([^:]+))?$/;
                     const [, source, destination, options] = regVolume.exec(volume);
 
-                    return `${Path.join(this.appConfigService.getPWD(), source)}:${destination}` + (options ? `:${options}` : "");
+                    if(source.startsWith("/")) {
+                        return volume;
+                    }
+
+                    return `${Path.join(this.appConfigService.pwd(), source)}:${destination}` + (options ? `:${options}` : "");
                 }),
                 ports: project.ports || []
             });
@@ -168,35 +177,37 @@ class ProjectService {
             project.id = project.name;
         }
 
-        const projectDirPath = this.appConfigService.dataPath("projects", project.id);
         const config = await this.appConfigService.getConfig();
-        const configPath = this.appConfigService.dataPath("projects", project.id, "config.json");
+        const fs = new FileSystem(this.appConfigService.dataPath("projects", project.id));
 
-        if(!FS.existsSync(projectDirPath)) {
-            await FS.mkdir(projectDirPath, {
-                recursive: true
-            } as any);
+        if(!fs.exists()) {
+            fs.mkdir("", {recursive: true});
         }
 
-        config.setProject(project.id, project.path);
+        const {
+            path,
+            ...rest
+        } = project.toJSON();
 
-        await FS.writeJSON(configPath, project);
+        config.addProject(project.id, project.name, path);
+
+        await fs.writeJSON("config.json", rest);
         await config.save();
     }
 
     public async search(params: Partial<SearchParams> = {}): Promise<Project[]> {
-        const {id, name, path} = params;
+        const {name, path} = params;
 
         const config = await this.appConfigService.getConfig();
 
         const projects: Project[] = [];
 
         for(const projectConfig of config.projects) {
-            if(id && projectConfig.id !== id) {
+            if(name && projectConfig.name !== name) {
                 continue;
             }
 
-            if(path && projectConfig.src !== path) {
+            if(path && (projectConfig.path || projectConfig.src) !== path) {
                 continue;
             }
 

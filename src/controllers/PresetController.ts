@@ -5,6 +5,7 @@ import {
     Option,
     Project,
     FSManager,
+    FileSystem,
     PROJECT_TYPE_PRESET
 } from "@wocker/core";
 import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
@@ -31,8 +32,6 @@ export class PresetController {
         protected readonly presetService: PresetService,
         protected readonly dockerService: DockerService
     ) {
-        this.appConfigService.registerProjectType("preset", "Preset");
-
         this.appEventsService.on("project:init", (project) => this.onInit(project));
         this.appEventsService.on("project:beforeStart", (project) => this.onBeforeStart(project));
         this.appEventsService.on("project:rebuild", (project) => this.onRebuild(project));
@@ -47,7 +46,7 @@ export class PresetController {
     }
 
     protected async onInit(project: Project): Promise<void> {
-        if(project.type !== "preset") {
+        if(project.type !== PROJECT_TYPE_PRESET) {
             return;
         }
 
@@ -164,16 +163,17 @@ export class PresetController {
         }
     }
 
+    @Command("preset:init")
+    public async init(): Promise<void> {
+        await this.presetService.init();
+    }
+
     @Command("preset:add <preset>")
     public async add(
         @Param("preset")
         name: string
     ): Promise<void> {
         await this.presetService.addPreset(name);
-
-        // const preset = await this.presetService.getConfigFromGithub(name);
-
-        // await preset.save();
     }
 
     @Command("preset:delete <preset>")
@@ -235,7 +235,7 @@ export class PresetController {
 
         const copier = new FSManager(
             this.appConfigService.presetPath(preset.name),
-            this.appConfigService.getPWD()
+            this.appConfigService.pwd()
         );
 
         if(preset.dockerfile) {

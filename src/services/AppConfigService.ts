@@ -1,13 +1,16 @@
 import {
     Injectable,
-    Config,
-    ConfigProperties,
-    AppConfigService as CoreAppConfigService
+    AppConfig,
+    AppConfigProperties,
+    AppConfigService as CoreAppConfigService,
+    FileSystem,
+    PROJECT_TYPE_PRESET,
+    PROJECT_TYPE_DOCKERFILE,
+    PROJECT_TYPE_IMAGE
 } from "@wocker/core";
 import * as Path from "path";
 
-import {MAP_PATH, DATA_DIR, PLUGINS_DIR, PRESETS_DIR} from "../env";
-import {FS} from "../makes";
+import {DATA_DIR, PLUGINS_DIR, PRESETS_DIR} from "../env";
 
 
 type TypeMap = {
@@ -16,16 +19,33 @@ type TypeMap = {
 
 @Injectable("APP_CONFIG")
 export class AppConfigService extends CoreAppConfigService {
-    protected pwd: string;
+    protected _pwd: string;
+
     protected mapTypes: TypeMap = {
-        image: "Image",
-        dockerfile: "Dockerfile"
+        [PROJECT_TYPE_IMAGE]: "Image",
+        [PROJECT_TYPE_DOCKERFILE]: "Dockerfile",
+        [PROJECT_TYPE_PRESET]: "Preset"
     };
 
     public constructor() {
         super();
 
-        this.pwd = (process.cwd() || process.env.PWD);
+        this._pwd = (process.cwd() || process.env.PWD) as string;
+    }
+
+    public setPWD(pwd: string): void {
+        this._pwd = pwd;
+    }
+
+    /**
+     * @deprecated
+     */
+    public getPWD(...parts: string[]): string {
+        return this.pwd(...parts);
+    }
+
+    public pwd(...parts: string[]): string {
+        return Path.join(this._pwd, ...parts);
     }
 
     public dataPath(...parts: string[]): string {
@@ -40,46 +60,55 @@ export class AppConfigService extends CoreAppConfigService {
         return Path.join(PRESETS_DIR, ...parts);
     }
 
-    public getPWD(): string {
-        return this.pwd;
-    }
-
-    public setPWD(pwd: string): void {
-        this.pwd = pwd;
-    }
-
-    public getProjectTypes() {
+    public getProjectTypes(): TypeMap {
         return this.mapTypes;
     }
 
-    public registerProjectType(name: string, title?: string) {
-        this.mapTypes[name] = title || name;
-    }
+    // noinspection JSUnusedGlobalSymbols
+    protected loadConfig(): AppConfig {
+        const fs = new FileSystem(DATA_DIR);
 
-    protected async loadConfig(): Promise<Config> {
-        const data = FS.existsSync(MAP_PATH)
-            ? await FS.readJSON(MAP_PATH)
-            : {};
+        let data: AppConfigProperties = {};
 
-        return new class extends Config {
-            public constructor(data: ConfigProperties) {
+        if(fs.exists("wocker.config.js")) {
+            try {
+                const {config} = require(fs.path("wocker.config.js"));
+
+                data = config;
+            }
+            catch(err) {
+                // TODO: Log somehow
+
+                if(fs.exists("wocker.json")) {
+                    data = fs.readJSON("wocker.json");
+                }
+            }
+        }
+        else if(fs.exists("wocker.json")) {
+            data = fs.readJSON("wocker.json");
+        }
+        else if(fs.exists("data.json")) {
+            data = fs.readJSON("data.json");
+        }
+
+        return new class extends AppConfig {
+            public constructor(data: AppConfigProperties) {
                 super(data);
             }
 
-            public addPlugin(plugin: string): void {
-                if(!this.plugins) {
-                    this.plugins = [];
-                }
-
-                if(this.plugins.includes(plugin)) {
-                    return;
-                }
-
-                this.plugins.push(plugin);
-            }
-
             public async save(): Promise<void> {
-                await FS.writeJSON(MAP_PATH, this.toJson());
+                if(!fs.exists()) {
+                    fs.mkdir("");
+                }
+
+                const json = JSON.stringify(this.toJson(), null, 4);
+
+                await fs.writeFile("wocker.config.js", `// Wocker config\nexports.config = ${json};`);
+                await fs.writeJSON("wocker.json", json);
+
+                if(fs.exists("data.json")) {
+                    await fs.rm("data.json");
+                }
             }
         }(data);
     }

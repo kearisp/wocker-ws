@@ -59,11 +59,11 @@ export class AppModule {
         const appConfigService = container.getModule(AppModule).get<AppConfigService>(AppConfigService);
         const logService = container.getModule(AppModule).get<LogService>(LogService);
         const pluginService = container.getModule(AppModule).get<PluginService>(PluginService);
-        const config = await appConfigService.getConfig();
+        const config = appConfigService.getConfig();
 
         const imports: any[] = [];
 
-        for(const plugin of config.plugins) {
+        for(const plugin of config.plugins || []) {
             try {
                 const {default: Plugin} = await import(plugin);
 

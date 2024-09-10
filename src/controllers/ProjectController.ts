@@ -6,8 +6,11 @@ import {
     Option,
     Param,
     Project,
+    ProjectType,
+    FileSystem,
     PROJECT_TYPE_DOCKERFILE,
     PROJECT_TYPE_IMAGE,
+    PROJECT_TYPE_PRESET,
     EnvConfig
 } from "@wocker/core";
 import {promptSelect, promptText, demuxOutput} from "@wocker/utils";
@@ -71,7 +74,7 @@ export class ProjectController {
             alias: "t",
             description: "Project type"
         })
-        type: string,
+        type: ProjectType,
         @Option("preset", {
             type: "string",
             alias: "p",
@@ -80,14 +83,17 @@ export class ProjectController {
         preset: string
     ): Promise<void> {
         let project = await this.projectService.searchOne({
-            path: this.appConfigService.getPWD()
+            path: this.appConfigService.pwd()
         });
+        const fs = new FileSystem(this.appConfigService.pwd());
 
         if(!project) {
             project = this.projectService.fromObject({
-                path: this.appConfigService.getPWD()
+                path: this.appConfigService.pwd()
             });
         }
+
+        project.path = this.appConfigService.pwd();
 
         if(name) {
             project.name = name;
@@ -111,16 +117,16 @@ export class ProjectController {
         const mapTypes = this.appConfigService.getProjectTypes();
 
         if(!type || !project.type || !mapTypes[project.type]) {
-            project.type = await promptSelect({
+            project.type = (await promptSelect({
                 message: "Project type:",
                 options: mapTypes,
                 default: project.type
-            });
+            })) as ProjectType;
         }
 
         switch(project.type) {
             case PROJECT_TYPE_DOCKERFILE: {
-                const files = await FS.readdirFiles(this.appConfigService.getPWD());
+                const files = await fs.readdirFiles();
 
                 const dockerfiles = files.filter((fileName: string) => {
                     if(new RegExp("^(.*)\\.dockerfile$").test(fileName)) {
@@ -131,12 +137,12 @@ export class ProjectController {
                 });
 
                 project.dockerfile = await promptSelect({
+                    message: "Dockerfile:",
                     options: dockerfiles.map((dockerfile) => {
                         return {
                             value: dockerfile
                         };
                     }),
-                    message: "Dockerfile",
                     default: project.dockerfile
                 });
                 break;
@@ -144,19 +150,21 @@ export class ProjectController {
 
             case PROJECT_TYPE_IMAGE: {
                 project.imageName = await promptText({
-                    message: "Image Name",
+                    message: "Image name:",
+                    required: true,
                     default: project.imageName
                 });
                 break;
             }
 
-            default:
+            case PROJECT_TYPE_PRESET:
                 break;
+
+            default:
+                throw new Error("Invalid project type");
         }
 
         await this.appEventsService.emit("project:init", project);
-
-        project.path = this.appConfigService.getPWD();
 
         await project.save();
     }
