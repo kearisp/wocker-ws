@@ -25,14 +25,6 @@ jobs:
                 node-version: 20
                 registry-url: 'https://registry.npmjs.org'
 
-          - name: Cache dependencies
-            uses: actions/cache@v3
-            with:
-                path: ~/.npm
-                key: ${{ runner.os }}-npm-${{ hashFiles('**/package.json') }}
-                restore-keys: |
-                    ${{ runner.os }}-npm-
-
           - name: Setup version
             run: |
                 PACKAGE_NAME=$(npm pkg get name | sed -e 's/^"//' -e 's/"$//')
@@ -44,11 +36,22 @@ jobs:
                     INDEX=0
                 fi
                 npm pkg set version=$PACKAGE_VERSION-dev.$INDEX
+
+          - name: Setup core version
+            run: |
                 CORE_VERSION=$(npm pkg get dependencies.@wocker/core | sed -e 's/^"//' -e 's/"$//')
                 CORE_DEV_VERSION=$(npm view @wocker/core@dev version 2> /dev/null || echo "")
                 if [[ "$CORE_DEV_VERSION" == "$CORE_VERSION"* ]]; then
                     npm pkg set "dependencies.@wocker/core=$CORE_DEV_VERSION"
                 fi
+
+          - name: Cache dependencies
+            uses: actions/cache@v3
+            with:
+                path: ~/.npm
+                key: ${{ runner.os }}-npm-${{ hashFiles('**/package.json') }}
+                restore-keys: |
+                    ${{ runner.os }}-npm-
 
           - name: Install dependencies
             run: npm install

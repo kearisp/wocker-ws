@@ -1,5 +1,6 @@
 import {
     Module,
+    Global,
     Container,
     MODULE_METADATA,
     PLUGIN_NAME_METADATA,
@@ -27,6 +28,7 @@ import {
 } from "./services";
 
 
+@Global()
 @Module({
     controllers: [
         CompletionController,
