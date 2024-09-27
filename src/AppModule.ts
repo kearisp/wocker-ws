@@ -53,14 +53,16 @@ import {
         AppConfigService,
         AppEventsService,
         DockerService,
-        LogService
+        LogService,
+        ProjectService,
+        ProxyService
     ]
 })
 export class AppModule {
     public async load(container: Container) {
         const appConfigService = container.getModule(AppModule).get<AppConfigService>(AppConfigService);
         const logService = container.getModule(AppModule).get<LogService>(LogService);
-        const pluginService = container.getModule(AppModule).get<PluginService>(PluginService);
+        // const pluginService = container.getModule(AppModule).get<PluginService>(PluginService);
         const config = appConfigService.getConfig();
 
         const imports: any[] = [];

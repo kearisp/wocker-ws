@@ -25,8 +25,7 @@ import {
     AppConfigService,
     AppEventsService,
     ProjectService,
-    DockerService,
-    LogService
+    DockerService
 } from "../services";
 
 
@@ -36,8 +35,7 @@ export class ProjectController {
         protected readonly appConfigService: AppConfigService,
         protected readonly appEventsService: AppEventsService,
         protected readonly projectService: ProjectService,
-        protected readonly dockerService: DockerService,
-        protected readonly logService: LogService
+        protected readonly dockerService: DockerService
     ) {}
 
     @Completion("name")
@@ -62,6 +60,7 @@ export class ProjectController {
     }
 
     @Command("init")
+    @Description("Project initialisation")
     public async init(
         @Option("name", {
             type: "string",
@@ -74,13 +73,7 @@ export class ProjectController {
             alias: "t",
             description: "Project type"
         })
-        type: ProjectType,
-        @Option("preset", {
-            type: "string",
-            alias: "p",
-            description: "Preset"
-        })
-        preset: string
+        type: ProjectType
     ): Promise<void> {
         let project = await this.projectService.searchOne({
             path: this.appConfigService.pwd()
@@ -136,6 +129,10 @@ export class ProjectController {
                     return new RegExp("^Dockerfile(\\..*)?").test(fileName);
                 });
 
+                if(dockerfiles.length === 0) {
+                    throw new Error("Dockerfiles not found");
+                }
+
                 project.dockerfile = await promptSelect({
                     message: "Dockerfile:",
                     options: dockerfiles.map((dockerfile) => {
@@ -170,6 +167,7 @@ export class ProjectController {
     }
 
     @Command("ps")
+    @Description("Projects list")
     public async projectList(
         @Option("all", {
             type: "boolean",
@@ -269,6 +267,7 @@ export class ProjectController {
     }
 
     @Command("stop")
+    @Description("Stopping project")
     public async stop(
         @Option("name", {
             type: "string",
@@ -287,6 +286,7 @@ export class ProjectController {
     }
 
     @Command("domains")
+    @Description("Project domain list")
     public async domains(
         @Option("name", {
             type: "string",
@@ -313,6 +313,7 @@ export class ProjectController {
     }
 
     @Command("domain:add [...domains]")
+    @Description("Adding project domain")
     public async addDomain(
         @Option("name", {
             type: "string",
@@ -343,6 +344,7 @@ export class ProjectController {
     }
 
     @Command("domain:set [...domains]")
+    @Description("Setting project domains")
     public async setDomains(
         @Option("name", {
             type: "string",
@@ -375,6 +377,7 @@ export class ProjectController {
     }
 
     @Command("domain:remove [...domains]")
+    @Description("Removing project domain")
     public async removeDomain(
         @Option("name", {
             type: "string",
@@ -398,6 +401,7 @@ export class ProjectController {
     }
 
     @Command("domain:clear")
+    @Description("Clearing project domain")
     public async clearDomain(
         @Option("name", {
             type: "string",
@@ -472,10 +476,6 @@ export class ProjectController {
         project.linkPort(parseInt(hostPort), parseInt(containerPort));
 
         await project.save();
-
-        // console.log(name, hostPort, containerPort);
-        //
-        // console.log(project.ports);
     }
 
     @Command("port:remove <host-port>:<container-port>")
@@ -550,7 +550,7 @@ export class ProjectController {
             env = project.env || {};
         }
         else {
-            const config = await this.appConfigService.getConfig();
+            const config = this.appConfigService.getConfig();
 
             env = config.env || {};
         }
@@ -587,7 +587,7 @@ export class ProjectController {
         }
 
         let config = global
-            ? await this.appConfigService.getConfig()
+            ? this.appConfigService.getConfig()
             : await this.projectService.get();
 
         const table = new CliTable({
@@ -628,7 +628,7 @@ export class ProjectController {
         }
 
         const config = global
-            ? await this.appConfigService.getConfig()
+            ? this.appConfigService.getConfig()
             : await this.projectService.get();
 
         for(const variable of variables) {
@@ -751,8 +751,6 @@ export class ProjectController {
             head: ["KEY", "VALUE"]
         });
 
-        this.logService.info("...");
-
         for(const key of args) {
             if(project.buildArgs && typeof project.buildArgs[key] !== "undefined") {
                 const value = project.buildArgs[key] || "";
@@ -781,9 +779,14 @@ export class ProjectController {
         const project = await this.projectService.get();
 
         const buildArgs: Project["buildArgs"] = args.reduce((env, config) => {
-            const [key, value] = config.split("=");
+            let [, key = "", value = ""] = config.split(/^([^=]+)=(.*)$/);
 
-            env[key.trim()] = value.trim();
+            key = key.trim();
+            value = value.trim();
+
+            if(key) {
+                env[key] = value;
+            }
 
             return env;
         }, {});
@@ -816,9 +819,12 @@ export class ProjectController {
         const project = await this.projectService.get();
 
         const buildArgs: Project["buildArgs"] = args.reduce((env, config) => {
-            const [key, value] = config.split("=");
+            let [, key = "", value = ""] = config.split(/^([^=]+)(?:=(.*))?$/);
 
-            env[key.trim()] = value.trim();
+            key = key.trim();
+            value = value.trim();
+
+            env[key] = value;
 
             return env;
         }, {});
