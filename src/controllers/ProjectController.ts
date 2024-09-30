@@ -19,7 +19,6 @@ import chalk from "chalk";
 import * as Path from "path";
 import {Mutex} from "async-mutex";
 
-import {DATA_DIR} from "../env";
 import {FS} from "../makes";
 import {
     AppConfigService,
@@ -184,7 +183,7 @@ export class ProjectController {
         const projects = await this.projectService.search({});
 
         for(const project of projects) {
-            const container = await this.dockerService.getContainer(`${project.name}.workspace`);
+            const container = await this.dockerService.getContainer(project.containerName);
 
             if(!container) {
                 if(all) {
@@ -916,6 +915,87 @@ export class ProjectController {
         }
     }
 
+    @Command("extra-hosts")
+    @Description("List of extra hosts")
+    public async extraHostList(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name?: string
+    ): Promise<string> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        if(!project.extraHosts) {
+            return "No extra hosts found";
+        }
+
+        const table = new CliTable({
+            head: ["Host", "Domain"]
+        });
+
+        for(const host in project.extraHosts) {
+            table.push([
+                host, project.extraHosts[host]
+            ]);
+        }
+
+        return table.toString();
+    }
+
+    @Command("extra-host:add <extraHost>:<extraDomain>")
+    @Description("Adding extra host")
+    public async addExtraHost(
+        @Param("extraHost")
+        extraHost: string,
+        @Param("extraDomain")
+        extraDomain: string,
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name?: string
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        project.addExtraHost(extraHost, extraDomain);
+
+        await project.save();
+    }
+
+    @Command("extra-host:remove <extraHost>")
+    @Description("Removing extra host")
+    public async removeExtraHost(
+        @Param("extraHost")
+        extraHost: string,
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name?: string
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        project.removeExtraHost(extraHost);
+
+        await project.save();
+    }
+
     @Command("logs")
     public async logs(
         @Option("name", {
@@ -931,7 +1011,8 @@ export class ProjectController {
         global?: boolean,
         @Option("detach", {
             type: "boolean",
-            alias: "d"
+            alias: "d",
+            description: "Detach"
         })
         detach?: boolean,
         @Option("follow", {
@@ -941,7 +1022,7 @@ export class ProjectController {
         follow?: boolean
     ): Promise<void> {
         if(global) {
-            const logFilepath = Path.join(DATA_DIR, "ws.log");
+            const logFilepath = this.appConfigService.dataPath("ws.log");
 
             const prepareLog = (str: string) => {
                 return str.replace(/^\[.*]\s([^:]+):\s.*$/gm, (substring, type) => {
@@ -1015,7 +1096,11 @@ export class ProjectController {
 
         const project = await this.projectService.get();
 
-        const container = await this.dockerService.getContainer(`${project.name}.workspace`);
+        const container = await this.dockerService.getContainer(project.containerName);
+
+        if(!container) {
+            throw new Error("Project not started");
+        }
 
         if(!detach) {
             const stream = await container.logs({
@@ -1086,7 +1171,7 @@ export class ProjectController {
             throw new Error(`Script ${script} not found`);
         }
 
-        const container = await this.dockerService.getContainer(`${project.name}.workspace`);
+        const container = await this.dockerService.getContainer(project.containerName);
 
         if(!container) {
             throw new Error("The project is not started");

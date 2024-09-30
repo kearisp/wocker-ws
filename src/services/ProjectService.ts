@@ -5,7 +5,6 @@ import {
     PROJECT_TYPE_DOCKERFILE,
     FileSystem
 } from "@wocker/core"
-import * as Path from "path";
 
 import {FS} from "../makes";
 import {
@@ -116,7 +115,7 @@ class ProjectService {
 
             await this.appEventsService.emit("project:beforeStart", project);
 
-            const config = await this.appConfigService.getConfig();
+            const config = this.appConfigService.getConfig();
 
             container = await this.dockerService.createContainer({
                 name: project.containerName,
@@ -125,6 +124,7 @@ class ProjectService {
                     ...config.env || {},
                     ...project.env || {}
                 },
+                ports: project.ports || [],
                 volumes: (project.volumes || []).map((volume: string): string => {
                     const regVolume = /^([^:]+):([^:]+)(?::([^:]+))?$/;
                     const [, source, destination, options] = regVolume.exec(volume);
@@ -133,9 +133,11 @@ class ProjectService {
                         return volume;
                     }
 
-                    return `${Path.join(this.appConfigService.pwd(), source)}:${destination}` + (options ? `:${options}` : "");
+                    return `${this.appConfigService.pwd(source)}:${destination}` + (options ? `:${options}` : "");
                 }),
-                ports: project.ports || []
+                extraHosts: Object.keys(project.extraHosts || {}).map((host: string) => {
+                    return `${host}:${project.extraHosts[host]}`;
+                })
             });
         }
 
