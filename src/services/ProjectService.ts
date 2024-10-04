@@ -136,7 +136,7 @@ class ProjectService {
                     return `${this.appConfigService.pwd(source)}:${destination}` + (options ? `:${options}` : "");
                 }),
                 extraHosts: Object.keys(project.extraHosts || {}).map((host: string) => {
-                    return `${host}:${project.extraHosts[host]}`;
+                    return `${project.extraHosts[host]}:${host}`;
                 })
             });
         }
