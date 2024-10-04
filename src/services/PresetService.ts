@@ -1,6 +1,7 @@
 import {
     EnvConfig,
     Injectable,
+    Project,
     Preset,
     AppConfig,
     PresetProperties,
@@ -118,7 +119,17 @@ export class PresetService {
         ];
     }
 
-    public getImageName(preset: Preset, buildArgs: EnvConfig = {}): string {
+    public getImageNameForProject(project: Project, preset: Preset): string {
+        switch(project.presetMode) {
+            case "project":
+                return `project-${project.name}:develop`;
+
+            default:
+                return this.getImageName(preset, project.buildArgs || {});
+        }
+    }
+
+    public getImageName(preset: Preset, buildArgs: EnvConfig): string {
         const rawValues = [];
         const hashValues = []
 

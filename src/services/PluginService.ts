@@ -25,7 +25,7 @@ export class PluginService {
             const name = Reflect.getMetadata(PLUGIN_NAME_METADATA, Plugin);
 
             if(!name) {
-                console.log("No name");
+                console.error("No name");
             }
 
             return !!name;

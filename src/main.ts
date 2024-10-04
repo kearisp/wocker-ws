@@ -6,7 +6,7 @@ import {AppConfigService, LogService} from "./services";
 
 
 export const app = {
-    async run(args: string[]) {
+    async run(args: string[]): Promise<void> {
         const app = await Factory.create(AppModule);
         const config = app.get(AppConfigService);
         const logger = app.get(LogService);
@@ -22,7 +22,7 @@ export const app = {
         catch(err) {
             console.error(chalk.red(err.message));
 
-            const {debug} = await config.getConfig();
+            const {debug} = config.getConfig();
 
             if(debug) {
                 logger.error(err.stack || err.message);

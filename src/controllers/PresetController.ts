@@ -67,6 +67,20 @@ export class PresetController {
             default: project.preset
         });
 
+        project.presetMode = await promptSelect({
+            message: "Preset mode:",
+            options: [
+                {
+                    label: "For project only",
+                    value: "project"
+                },
+                {
+                    label: "Global usage",
+                    value: "global"
+                }
+            ]
+        });
+
         const preset = await this.presetService.get(project.preset);
 
         if(!preset) {
@@ -112,7 +126,7 @@ export class PresetController {
         }
 
         if(preset.dockerfile) {
-            project.imageName = this.presetService.getImageName(preset, project.buildArgs);
+            project.imageName = this.presetService.getImageNameForProject(project, preset);
         }
     }
 
@@ -127,15 +141,13 @@ export class PresetController {
             throw new Error(`Preset ${project.preset} not found`);
         }
 
-        const imageName = this.presetService.getImageName(preset, project.buildArgs || {});
+        const imageName = this.presetService.getImageNameForProject(project, preset);
         const exists = await this.dockerService.imageExists(imageName);
 
         if(exists) {
             console.info(`Removing image: ${imageName}`);
 
             await this.dockerService.imageRm(imageName);
-
-            // await this.presetService.
         }
     }
 
@@ -147,7 +159,7 @@ export class PresetController {
         const preset = await this.presetService.get(project.preset);
 
         if(preset.dockerfile) {
-            project.imageName = this.presetService.getImageName(preset, project.buildArgs);
+            project.imageName = this.presetService.getImageNameForProject(project, preset);
 
             if(!await this.dockerService.imageExists(project.imageName)) {
                 await this.dockerService.buildImage({
