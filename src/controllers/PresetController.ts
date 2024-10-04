@@ -5,7 +5,6 @@ import {
     Option,
     Project,
     FSManager,
-    FileSystem,
     PROJECT_TYPE_PRESET
 } from "@wocker/core";
 import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
@@ -180,6 +179,11 @@ export class PresetController {
         await this.presetService.init();
     }
 
+    @Command("preset:deinit")
+    public async deinit(): Promise<void> {
+        await this.presetService.deinit();
+    }
+
     @Command("preset:add <preset>")
     public async add(
         @Param("preset")
@@ -313,6 +317,10 @@ export class PresetController {
         }
 
         const imageName = this.presetService.getImageName(preset, buildArgs);
+
+        if(rebuild) {
+            await this.dockerService.imageRm(imageName);
+        }
 
         await this.dockerService.buildImage({
             tag: imageName,

@@ -282,17 +282,12 @@ export class DockerService {
     }
 
     public async attach(containerOrName: string|Container): Promise<NodeJS.ReadWriteStream> {
-        let container: Container;
+        let container: Container = typeof containerOrName === "string"
+            ? await this.getContainer(containerOrName)
+            : containerOrName;
 
-        if(typeof containerOrName === "string") {
-            container = await this.getContainer(containerOrName);
-        }
-        else {
-            if(!containerOrName) {
-                return;
-            }
-
-            container = containerOrName;
+        if(!container) {
+            return;
         }
 
         const stream = await container.attach({
@@ -312,11 +307,24 @@ export class DockerService {
 
         process.stdin.on("data", (data) => {
             if(data.toString() === "\u0003") {
-                process.stdin.setRawMode(false);
+                stream.end();
+
+                setTimeout(() => {
+                    process.exit();
+                }, 5000);
             }
         });
 
-        stream.on("data", (data) => {
+        stream.on("data", (data): void => {
+            if(data instanceof Buffer) {
+                try {
+                    data = demuxOutput(data);
+                }
+                catch(err) {
+                    this.logService.error(err.toString(), err.stack);
+                }
+            }
+
             process.stdout.write(data);
         });
 

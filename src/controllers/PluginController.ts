@@ -1,10 +1,8 @@
-import {Controller, Command, Completion} from "@wocker/core";
+import {Controller, Command, Option, Param, Completion, Description} from "@wocker/core";
 import chalk from "chalk";
 import CliTable from "cli-table3";
 
-import {AppConfigService, PluginService, LogService} from "../services";
-import {exec} from "../utils";
-import {Http} from "../makes/Http";
+import {AppConfigService, PluginService, LogService, NpmService} from "../services";
 
 
 @Controller()
@@ -12,16 +10,22 @@ export class PluginController {
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly pluginService: PluginService,
+        protected readonly npmService: NpmService,
         protected readonly logService: LogService
     ) {}
 
     @Command("plugins")
-    public async list() {
-        const config = await this.appConfigService.getConfig();
+    @Description("Plugins list")
+    public async list(): Promise<string> {
+        const config = this.appConfigService.getConfig();
         const table = new CliTable({
             head: ["Name"],
             colWidths: [30]
         });
+
+        if(!config.plugins) {
+            return chalk.gray("No plugins installed");
+        }
 
         for(const name of config.plugins) {
             table.push([name]);
@@ -31,7 +35,18 @@ export class PluginController {
     }
 
     @Command("plugin:add <name>")
-    public async add(addName: string) {
+    @Command("plugin:install <name>")
+    @Description("Install a plugin")
+    public async add(
+        @Param("name")
+        addName: string,
+        @Option("dev", {
+            type: "boolean",
+            alias: "d",
+            description: "Use dev version of plugin"
+        })
+        dev?: boolean
+    ): Promise<void> {
         const [,
             prefix = "@wocker/",
             name,
@@ -40,9 +55,7 @@ export class PluginController {
 
         const fullName = `${prefix}${name}${suffix}`;
 
-        this.logService.info(`Installing plugin... ${fullName}`);
-
-        const config = await this.appConfigService.getConfig();
+        const config = this.appConfigService.getConfig();
 
         try {
             if(await this.pluginService.checkPlugin(fullName)) {
@@ -55,17 +68,9 @@ export class PluginController {
                 return;
             }
 
-            const res = await Http.get("https://registry.npmjs.org")
-                .send(fullName);
+            const packageInfo = await this.npmService.getPackageInfo(fullName);
 
-            if(res.status !== 200) {
-                console.error(chalk.red(`Plugin ${fullName} not found`));
-                return;
-            }
-
-            console.info(`Installing ${fullName}`);
-
-            await exec(`npm install -g ${fullName}`);
+            await this.npmService.install(fullName, packageInfo["dist-tags"].dev && dev ? "dev" : "latest");
 
             if(await this.pluginService.checkPlugin(fullName)) {
                 config.addPlugin(fullName);
@@ -92,7 +97,7 @@ export class PluginController {
 
         const fullName = `${prefix}${name}${suffix}`;
 
-        const config = await this.appConfigService.getConfig();
+        const config = this.appConfigService.getConfig();
 
         config.removePlugin(fullName);
 
@@ -108,8 +113,8 @@ export class PluginController {
 
     @Completion("name", "plugin:update [name]")
     @Completion("name", "plugin:remove <name>")
-    public async getInstalledPlugins() {
-        const config = await this.appConfigService.getConfig();
+    public getInstalledPlugins(): string[] {
+        const config = this.appConfigService.getConfig();
 
         return config.plugins || [];
     }

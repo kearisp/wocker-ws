@@ -24,7 +24,8 @@ import {
     AppConfigService,
     AppEventsService,
     ProjectService,
-    DockerService
+    DockerService,
+    LogService
 } from "../services";
 
 
@@ -34,7 +35,8 @@ export class ProjectController {
         protected readonly appConfigService: AppConfigService,
         protected readonly appEventsService: AppEventsService,
         protected readonly projectService: ProjectService,
-        protected readonly dockerService: DockerService
+        protected readonly dockerService: DockerService,
+        protected readonly logService: LogService
     ) {}
 
     @Completion("name")
@@ -1111,21 +1113,34 @@ export class ProjectController {
 
             stream.on("data", (data) => {
                 try {
-                    data = demuxOutput(data);
+                    if(data instanceof Buffer) {
+                        data = demuxOutput(data);
+                    }
                 }
-                catch(err) {}
+                catch(err) {
+                    this.logService.error(err.message, err);
+                }
 
                 process.stdout.write(data);
             });
         }
         else {
-            const buffer = await container.logs({
+            let data = await container.logs({
                 stdout: true,
                 stderr: true,
                 follow: false
             });
 
-            process.stdout.write(demuxOutput(buffer));
+            try {
+                if(data instanceof Buffer) {
+                    data = demuxOutput(data);
+                }
+            }
+            catch(err) {
+                this.logService.error(err.message, err);
+            }
+
+            process.stdout.write(data);
         }
     }
 
@@ -1195,6 +1210,7 @@ export class ProjectController {
     }
 
     @Command("attach")
+    @Description("Attach local standard input, output, and error streams to a running container")
     public async attach(
         @Option("name", {
             type: "string",

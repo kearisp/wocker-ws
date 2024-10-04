@@ -25,7 +25,7 @@ export const app = {
             const {debug} = config.getConfig();
 
             if(debug) {
-                logger.error(err.stack || err.message);
+                logger.error(err.stack || err.toString());
             }
         }
     }
