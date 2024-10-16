@@ -5,7 +5,6 @@ import {
     Option,
     Project,
     FSManager,
-    FileSystem,
     PROJECT_TYPE_PRESET
 } from "@wocker/core";
 import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
@@ -67,6 +66,20 @@ export class PresetController {
             default: project.preset
         });
 
+        project.presetMode = await promptSelect({
+            message: "Preset mode:",
+            options: [
+                {
+                    label: "For project only",
+                    value: "project"
+                },
+                {
+                    label: "Global usage",
+                    value: "global"
+                }
+            ]
+        });
+
         const preset = await this.presetService.get(project.preset);
 
         if(!preset) {
@@ -89,20 +102,22 @@ export class PresetController {
                 });
 
                 const {
+                    source,
                     destination,
                     options
                 } = volumeParse(volume);
 
                 let projectVolume = project.getVolumeByDestination(destination);
 
-                const source = await promptText({
-                    message: "Volume",
+                const newSource = await promptText({
+                    message: "Volume:",
+                    required: true,
                     suffix: `:${destination}`,
-                    default: projectVolume ? volumeParse(projectVolume).source : "./"
+                    default: projectVolume ? volumeParse(projectVolume).source : source
                 });
 
                 projectVolume = volumeFormat({
-                    source,
+                    source: newSource,
                     destination,
                     options
                 });
@@ -112,7 +127,7 @@ export class PresetController {
         }
 
         if(preset.dockerfile) {
-            project.imageName = this.presetService.getImageName(preset, project.buildArgs);
+            project.imageName = this.presetService.getImageNameForProject(project, preset);
         }
     }
 
@@ -127,15 +142,13 @@ export class PresetController {
             throw new Error(`Preset ${project.preset} not found`);
         }
 
-        const imageName = this.presetService.getImageName(preset, project.buildArgs || {});
+        const imageName = this.presetService.getImageNameForProject(project, preset);
         const exists = await this.dockerService.imageExists(imageName);
 
         if(exists) {
             console.info(`Removing image: ${imageName}`);
 
             await this.dockerService.imageRm(imageName);
-
-            // await this.presetService.
         }
     }
 
@@ -147,7 +160,7 @@ export class PresetController {
         const preset = await this.presetService.get(project.preset);
 
         if(preset.dockerfile) {
-            project.imageName = this.presetService.getImageName(preset, project.buildArgs);
+            project.imageName = this.presetService.getImageNameForProject(project, preset);
 
             if(!await this.dockerService.imageExists(project.imageName)) {
                 await this.dockerService.buildImage({
@@ -166,6 +179,11 @@ export class PresetController {
     @Command("preset:init")
     public async init(): Promise<void> {
         await this.presetService.init();
+    }
+
+    @Command("preset:deinit")
+    public async deinit(): Promise<void> {
+        await this.presetService.deinit();
     }
 
     @Command("preset:add <preset>")
@@ -301,6 +319,10 @@ export class PresetController {
         }
 
         const imageName = this.presetService.getImageName(preset, buildArgs);
+
+        if(rebuild) {
+            await this.dockerService.imageRm(imageName);
+        }
 
         await this.dockerService.buildImage({
             tag: imageName,

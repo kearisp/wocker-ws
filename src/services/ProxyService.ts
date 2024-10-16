@@ -49,7 +49,7 @@ export class ProxyService {
                 });
             }
 
-            const config = await this.appConfigService.getConfig();
+            const config = this.appConfigService.getConfig();
 
             const httpPort = config.getMeta("PROXY_HTTP_PORT", "80");
             const httpsPort = config.getMeta("PROXY_HTTPS_PORT", "443");
@@ -70,18 +70,18 @@ export class ProxyService {
                     `${certsDir}:/etc/nginx/certs`
                 ]
             });
+        }
 
-            const {
-                State: {
-                    Status
-                }
-            } = await container.inspect();
-
-            if(["created", "exited"].includes(Status)) {
-                await container.start();
-
-                console.info("Started");
+        const {
+            State: {
+                Status
             }
+        } = await container.inspect();
+
+        if(["created", "exited"].includes(Status)) {
+            await container.start();
+
+            console.info("Proxy started");
         }
     }
 

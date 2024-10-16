@@ -21,7 +21,7 @@ type TypeMap = {
 export class AppConfigService extends CoreAppConfigService {
     protected _pwd: string;
 
-    protected mapTypes: TypeMap = {
+    protected readonly mapTypes: TypeMap = {
         [PROJECT_TYPE_IMAGE]: "Image",
         [PROJECT_TYPE_DOCKERFILE]: "Dockerfile",
         [PROJECT_TYPE_PRESET]: "Preset"
@@ -35,13 +35,6 @@ export class AppConfigService extends CoreAppConfigService {
 
     public setPWD(pwd: string): void {
         this._pwd = pwd;
-    }
-
-    /**
-     * @deprecated
-     */
-    public getPWD(...parts: string[]): string {
-        return this.pwd(...parts);
     }
 
     public pwd(...parts: string[]): string {
@@ -79,13 +72,28 @@ export class AppConfigService extends CoreAppConfigService {
             catch(err) {
                 // TODO: Log somehow
 
-                if(fs.exists("wocker.json")) {
-                    data = fs.readJSON("wocker.json");
+                if(fs.exists("wocker.config.json")) {
+                    let json = fs.readJSON("wocker.config.json");
+
+                    if(typeof json === "string") {
+                        json = JSON.parse(json);
+                    }
+
+                    data = json;
                 }
             }
         }
+        else if(fs.exists("wocker.config.json")) {
+            data = fs.readJSON("wocker.config.json");
+        }
         else if(fs.exists("wocker.json")) {
-            data = fs.readJSON("wocker.json");
+            let json = fs.readJSON("wocker.json");
+
+            if(typeof json === "string") {
+                json = JSON.parse(json);
+            }
+
+            data = json;
         }
         else if(fs.exists("data.json")) {
             data = fs.readJSON("data.json");
@@ -104,10 +112,14 @@ export class AppConfigService extends CoreAppConfigService {
                 const json = JSON.stringify(this.toJson(), null, 4);
 
                 await fs.writeFile("wocker.config.js", `// Wocker config\nexports.config = ${json};`);
-                await fs.writeJSON("wocker.json", json);
+                await fs.writeFile("wocker.config.json", json);
 
                 if(fs.exists("data.json")) {
                     await fs.rm("data.json");
+                }
+
+                if(fs.exists("wocker.json")) {
+                    await fs.rm("wocker.json");
                 }
             }
         }(data);

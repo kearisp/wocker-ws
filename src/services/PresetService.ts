@@ -1,6 +1,7 @@
 import {
     EnvConfig,
     Injectable,
+    Project,
     Preset,
     AppConfig,
     PresetProperties,
@@ -118,7 +119,17 @@ export class PresetService {
         ];
     }
 
-    public getImageName(preset: Preset, buildArgs: EnvConfig = {}): string {
+    public getImageNameForProject(project: Project, preset: Preset): string {
+        switch(project.presetMode) {
+            case "project":
+                return `project-${project.name}:develop`;
+
+            default:
+                return this.getImageName(preset, project.buildArgs || {});
+        }
+    }
+
+    public getImageName(preset: Preset, buildArgs: EnvConfig): string {
         const rawValues = [];
         const hashValues = []
 
@@ -150,20 +161,25 @@ export class PresetService {
             path: this.appConfigService.pwd()
         });
 
-        if(preset) {
-            throw new Error("Preset is already registered");
-        }
-
         const fs = new FileSystem(this.appConfigService.pwd());
 
-        if(!fs.exists("config.json")) {
-            preset = this.toObject({
-                name: fs.basename(),
-                version: "1.0.0",
-                source: "external",
-                path: this.appConfigService.pwd()
-            });
+        if(!preset) {
+            if(!fs.exists("config.json")) {
+                preset = this.toObject({
+                    name: "",
+                    version: "",
+                    source: "external",
+                    path: this.appConfigService.pwd()
+                });
+            }
+            else {
+                preset = this.toObject(fs.readJSON("config.json"));
+                preset.source = "external";
+                preset.path = this.appConfigService.pwd();
+            }
+        }
 
+        if(!preset.name) {
             const list = await this.getList();
 
             preset.name = await promptText({
@@ -186,7 +202,9 @@ export class PresetService {
                 },
                 default: preset.name
             });
+        }
 
+        if(!preset.version) {
             preset.version = await promptText({
                 message: "Preset version:",
                 validate: (version?: string): string|boolean => {
@@ -198,14 +216,18 @@ export class PresetService {
                 },
                 default: preset.version
             });
+        }
 
+        if(!preset.type) {
             preset.type = await promptSelect({
                 message: "Preset type:",
                 options: ["dockerfile", "image"]
             });
+        }
 
-            switch(preset.type) {
-                case "dockerfile":
+        switch(preset.type) {
+            case "dockerfile":
+                if(!preset.dockerfile) {
                     const files = await fs.readdirFiles();
                     const dockerfiles = files.filter((fileName: string): boolean => {
                         if(new RegExp("^(.*)\\.dockerfile$").test(fileName)) {
@@ -223,13 +245,15 @@ export class PresetService {
                         message: "Preset dockerfile:",
                         options: dockerfiles
                     });
-                    break;
+                }
+                break;
 
-                case "image":
+            case "image":
+                if(preset.image) {
                     preset.image = await promptText({
                         message: "Preset image:",
                         required: true,
-                        validate(value?: string): boolean|string {
+                        validate(value?: string): boolean | string {
                             if(!/^[a-z0-9]+(?:[._-][a-z0-9]+)*(?::[a-z0-9]+(?:[._-][a-z0-9]+)*)?$/.test(value)) {
                                 return "Invalid image name";
                             }
@@ -237,19 +261,35 @@ export class PresetService {
                             return true;
                         }
                     });
-                    break;
-            }
-
-            console.info(JSON.stringify(preset.toJSON(), null, 4));
-
-            const confirm = await promptConfirm({
-                message: "Correct?"
-            });
-
-            if(confirm) {
-                await preset.save();
-            }
+                }
+                break;
         }
+
+        console.info(JSON.stringify(preset.toJSON(), null, 4));
+
+        const confirm = await promptConfirm({
+            message: "Correct?"
+        });
+
+        if(confirm) {
+            await preset.save();
+        }
+    }
+
+    public async deinit(): Promise<void> {
+        const preset = await this.searchOne({
+            path: this.appConfigService.pwd()
+        });
+
+        if(!preset) {
+            return;
+        }
+
+        const config = this.appConfigService.getConfig();
+
+        config.unregisterPreset(preset.name);
+
+        await config.save();
     }
 
     public async get(name: string): Promise<Preset> {
