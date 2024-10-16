@@ -102,20 +102,22 @@ export class PresetController {
                 });
 
                 const {
+                    source,
                     destination,
                     options
                 } = volumeParse(volume);
 
                 let projectVolume = project.getVolumeByDestination(destination);
 
-                const source = await promptText({
-                    message: "Volume",
+                const newSource = await promptText({
+                    message: "Volume:",
+                    required: true,
                     suffix: `:${destination}`,
-                    default: projectVolume ? volumeParse(projectVolume).source : "./"
+                    default: projectVolume ? volumeParse(projectVolume).source : source
                 });
 
                 projectVolume = volumeFormat({
-                    source,
+                    source: newSource,
                     destination,
                     options
                 });
