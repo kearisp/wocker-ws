@@ -98,6 +98,11 @@ export class AppConfigService extends CoreAppConfigService {
         else if(fs.exists("data.json")) {
             data = fs.readJSON("data.json");
         }
+        else if(!fs.exists()) {
+            fs.mkdir("", {
+                recursive: true
+            });
+        }
 
         return new class extends AppConfig {
             public constructor(data: AppConfigProperties) {

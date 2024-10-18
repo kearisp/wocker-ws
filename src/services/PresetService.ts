@@ -99,7 +99,9 @@ export class PresetService {
 
     protected async getList(): Promise<AppConfig["presets"]> {
         const dirs = await FS.readdir(PRESETS_DIR);
-        const {presets} = this.appConfigService.getConfig();
+        const {
+            presets = []
+        } = this.appConfigService.getConfig();
 
         return [
             ...dirs.map((name: string) => {
