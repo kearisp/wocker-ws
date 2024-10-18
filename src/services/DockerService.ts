@@ -3,7 +3,11 @@ import {
     DockerServiceParams as Params
 } from "@wocker/core";
 import {demuxOutput} from "@wocker/utils";
-import Docker, {Container} from "dockerode";
+import Docker, {
+    Container,
+    Volume,
+    VolumeCreateResponse
+} from "dockerode";
 
 import {followProgress} from "../utils";
 import {FS, Logger} from "../makes";
@@ -19,6 +23,42 @@ export class DockerService {
     ) {
         this.docker = new Docker({
             socketPath: "/var/run/docker.sock"
+        });
+    }
+
+    public async createVolume(name: string): Promise<VolumeCreateResponse> {
+        return await this.docker.createVolume({
+            Name: name,
+            Driver: "local"
+        });
+    }
+
+    public async hasVolume(name: string) {
+        const volume = await this.getVolume(name);
+
+        try {
+            await volume.inspect();
+
+            return true;
+        }
+        catch(err) {
+            return false;
+        }
+    }
+
+    public async getVolume(name: string): Promise<Volume> {
+        return this.docker.getVolume(name);
+    }
+
+    public async rmVolume(name: string) {
+        const volume = await this.getVolume(name);
+
+        await volume.remove();
+    }
+
+    public async createSecret() {
+        await this.docker.createSecret({
+
         });
     }
 

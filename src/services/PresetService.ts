@@ -52,7 +52,7 @@ export class PresetService {
 
                 const config = _this.appConfigService.getConfig();
 
-                let presetData = config.presets.find((presetData): boolean => {
+                let presetData = (config.presets || []).find((presetData): boolean => {
                     return presetData.name === this.name;
                 });
 
