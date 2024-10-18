@@ -52,7 +52,7 @@ export class PresetService {
 
                 const config = _this.appConfigService.getConfig();
 
-                let presetData = config.presets.find((presetData): boolean => {
+                let presetData = (config.presets || []).find((presetData): boolean => {
                     return presetData.name === this.name;
                 });
 
@@ -99,7 +99,9 @@ export class PresetService {
 
     protected async getList(): Promise<AppConfig["presets"]> {
         const dirs = await FS.readdir(PRESETS_DIR);
-        const {presets} = this.appConfigService.getConfig();
+        const {
+            presets = []
+        } = this.appConfigService.getConfig();
 
         return [
             ...dirs.map((name: string) => {

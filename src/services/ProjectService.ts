@@ -200,11 +200,11 @@ class ProjectService {
     public async search(params: Partial<SearchParams> = {}): Promise<Project[]> {
         const {name, path} = params;
 
-        const config = await this.appConfigService.getConfig();
+        const config = this.appConfigService.getConfig();
 
         const projects: Project[] = [];
 
-        for(const projectConfig of config.projects) {
+        for(const projectConfig of config.projects || []) {
             if(name && projectConfig.name !== name) {
                 continue;
             }

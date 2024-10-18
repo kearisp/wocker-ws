@@ -1,6 +1,6 @@
 {
     "name": "@wocker/ws",
-    "version": "1.0.17",
+    "version": "1.0.18",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Docker workspace for web projects",
     "license": "MIT",
@@ -25,7 +25,7 @@
         "lint": "eslint \"**/*.{js,jsx,ts,tsx}\""
     },
     "dependencies": {
-        "@wocker/core": "1.0.17",
+        "@wocker/core": "1.0.18",
         "@wocker/utils": "^1.0.7",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",
