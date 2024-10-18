@@ -33,12 +33,12 @@ export class AppConfigService extends CoreAppConfigService {
         this._pwd = (process.cwd() || process.env.PWD) as string;
     }
 
-    public setPWD(pwd: string): void {
-        this._pwd = pwd;
-    }
-
     public pwd(...parts: string[]): string {
         return Path.join(this._pwd, ...parts);
+    }
+
+    public setPWD(pwd: string): void {
+        this._pwd = pwd;
     }
 
     public dataPath(...parts: string[]): string {
@@ -117,6 +117,7 @@ export class AppConfigService extends CoreAppConfigService {
                 const json = JSON.stringify(this.toJson(), null, 4);
 
                 await fs.writeFile("wocker.config.js", `// Wocker config\nexports.config = ${json};`);
+                // Backup file
                 await fs.writeFile("wocker.config.json", json);
 
                 if(fs.exists("data.json")) {
