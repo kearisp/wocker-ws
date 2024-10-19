@@ -56,12 +56,6 @@ export class DockerService {
         await volume.remove();
     }
 
-    public async createSecret() {
-        await this.docker.createSecret({
-
-        });
-    }
-
     public async createContainer(params: Params.CreateContainer): Promise<Container> {
         const {
             name,
