@@ -10,7 +10,7 @@ import {
 } from "@wocker/core";
 import * as Path from "path";
 
-import {DATA_DIR, PLUGINS_DIR, PRESETS_DIR} from "../env";
+import {WOCKER_VERSION, DATA_DIR, PLUGINS_DIR, PRESETS_DIR} from "../env";
 
 
 type TypeMap = {
@@ -31,6 +31,10 @@ export class AppConfigService extends CoreAppConfigService {
         super();
 
         this._pwd = (process.cwd() || process.env.PWD) as string;
+    }
+
+    get version(): string {
+        return WOCKER_VERSION;
     }
 
     public pwd(...parts: string[]): string {

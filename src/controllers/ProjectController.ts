@@ -998,6 +998,90 @@ export class ProjectController {
         await project.save();
     }
 
+    @Command("attach")
+    @Description("Attach local standard input, output, and error streams to a running container")
+    public async attach(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+            name?: string
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        await this.dockerService.attach(project.containerName);
+    }
+
+    @Command("exec [...command]")
+    public async exec(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name?: string,
+        command?: string[]
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        await this.dockerService.exec(project.containerName, command, true);
+    }
+
+    @Command("run <script> [...args]")
+    public async run(
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name: string,
+        @Param("script")
+        script: string,
+        @Param("args")
+        args?: string[]
+    ): Promise<void> {
+        if(name) {
+            await this.projectService.cdProject(name);
+        }
+
+        const project = await this.projectService.get();
+
+        if(!project.scripts || !project.scripts[script]) {
+            throw new Error(`Script ${script} not found`);
+        }
+
+        const container = await this.dockerService.getContainer(project.containerName);
+
+        if(!container) {
+            throw new Error("The project is not started");
+        }
+
+        const exec = await container.exec({
+            AttachStdin: true,
+            AttachStdout: true,
+            AttachStderr: true,
+            Tty: process.stdin.isTTY,
+            Cmd: ["bash", "-i", "-c", [project.scripts[script], ...args || []].join(" ")]
+        });
+
+        const stream = await exec.start({
+            hijack: true,
+            stdin: true,
+            Tty: process.stdin.isTTY
+        });
+
+        await this.dockerService.attachStream(stream);
+    }
+
     @Command("logs")
     public async logs(
         @Option("name", {
@@ -1108,18 +1192,19 @@ export class ProjectController {
             const stream = await container.logs({
                 stdout: true,
                 stderr: true,
-                follow: true
+                follow: true,
+                tail: 4
             });
 
             stream.on("data", (data) => {
-                try {
-                    if(data instanceof Buffer) {
-                        data = demuxOutput(data);
-                    }
-                }
-                catch(err) {
-                    this.logService.error(err.message, err);
-                }
+                // try {
+                //     if(data instanceof Buffer) {
+                //         data = demuxOutput(data);
+                //     }
+                // }
+                // catch(err) {
+                //     this.logService.error(err.message, err);
+                // }
 
                 process.stdout.write(data);
             });
@@ -1142,89 +1227,5 @@ export class ProjectController {
 
             process.stdout.write(data);
         }
-    }
-
-    @Command("exec [...command]")
-    public async exec(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "The name of the project"
-        })
-        name?: string,
-        command?: string[]
-    ): Promise<void> {
-        if(name) {
-            await this.projectService.cdProject(name);
-        }
-
-        const project = await this.projectService.get();
-
-        await this.dockerService.exec(project.containerName, command);
-    }
-
-    @Command("run <script> [...args]")
-    public async run(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "The name of the project"
-        })
-        name: string,
-        @Param("script")
-        script: string,
-        @Param("args")
-        args?: string[]
-    ): Promise<void> {
-        if(name) {
-            await this.projectService.cdProject(name);
-        }
-
-        const project = await this.projectService.get();
-
-        if(!project.scripts || !project.scripts[script]) {
-            throw new Error(`Script ${script} not found`);
-        }
-
-        const container = await this.dockerService.getContainer(project.containerName);
-
-        if(!container) {
-            throw new Error("The project is not started");
-        }
-
-        const exec = await container.exec({
-            Cmd: ["bash", "-i", "-c", [project.scripts[script], ...args || []].join(" ")],
-            AttachStdin: true,
-            AttachStdout: true,
-            AttachStderr: true,
-            Tty: process.stdin.isTTY
-        });
-
-        const stream = await exec.start({
-            hijack: true,
-            stdin: true,
-            Tty: process.stdin.isTTY
-        });
-
-        await this.dockerService.attachStream(stream);
-    }
-
-    @Command("attach")
-    @Description("Attach local standard input, output, and error streams to a running container")
-    public async attach(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "The name of the project"
-        })
-        name?: string
-    ): Promise<void> {
-        if(name) {
-            await this.projectService.cdProject(name);
-        }
-
-        const project = await this.projectService.get();
-
-        await this.dockerService.attach(project.containerName);
     }
 }

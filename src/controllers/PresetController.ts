@@ -77,7 +77,8 @@ export class PresetController {
                     label: "Global usage",
                     value: "global"
                 }
-            ]
+            ],
+            default: project.presetMode
         });
 
         const preset = await this.presetService.get(project.preset);

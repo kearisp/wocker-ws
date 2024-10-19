@@ -33,7 +33,7 @@ export class DockerService {
         });
     }
 
-    public async hasVolume(name: string) {
+    public async hasVolume(name: string): Promise<boolean> {
         const volume = await this.getVolume(name);
 
         try {
@@ -50,7 +50,7 @@ export class DockerService {
         return this.docker.getVolume(name);
     }
 
-    public async rmVolume(name: string) {
+    public async rmVolume(name: string): Promise<void> {
         const volume = await this.getVolume(name);
 
         await volume.remove();
@@ -104,7 +104,7 @@ export class DockerService {
             OpenStdin: true,
             StdinOnce: false,
             Entrypoint: entrypoint,
-            Tty: tty,
+            Tty: true,
             Cmd: cmd,
             Env: Object.keys(env).map((key) => {
                 const value = env[key];
@@ -255,7 +255,7 @@ export class DockerService {
         }
     }
 
-    public async imageRm(tag: string): Promise<void> {
+    public async imageRm(tag: string, force: boolean = false): Promise<void> {
         const image = this.docker.getImage(tag);
 
         const exists = await this.imageExists(tag);
@@ -264,7 +264,9 @@ export class DockerService {
             return;
         }
 
-        await image.remove();
+        await image.remove({
+            force
+        });
     }
 
     public async imageLs(options?: Params.ImageList) {
@@ -279,7 +281,7 @@ export class DockerService {
         if(reference) {
             filters.reference = [
                 ...filters.reference || [],
-                reference
+                ...reference
             ];
         }
 
@@ -324,47 +326,17 @@ export class DockerService {
             return;
         }
 
-        const stream = await container.attach({
-            logs: true,
+        const stream: NodeJS.ReadWriteStream = await container.attach({
             stream: true,
             hijack: true,
             stdin: true,
             stdout: true,
             stderr: true,
-            detachKeys: "ctrl-c"
+            logs: true,
+            detachKeys: "ctrl-d"
         });
 
-        process.stdin.resume();
-        process.stdin.setEncoding("utf8");
-        process.stdin.setRawMode(true);
-        process.stdin.pipe(stream);
-
-        process.stdin.on("data", (data) => {
-            if(data.toString() === "\u0003") {
-                stream.end();
-
-                setTimeout(() => {
-                    process.exit();
-                }, 5000);
-            }
-        });
-
-        stream.on("data", (data): void => {
-            if(data instanceof Buffer) {
-                try {
-                    data = demuxOutput(data);
-                }
-                catch(err) {
-                    this.logService.error(err.toString(), err.stack);
-                }
-            }
-
-            process.stdout.write(data);
-        });
-
-        stream.on("end", async (): Promise<void> => {
-            process.exit();
-        });
+        await this.attachStream(stream);
 
         const handleResize = (): void => {
             const [width, height] = process.stdout.getWindowSize();
@@ -382,53 +354,34 @@ export class DockerService {
         return stream;
     }
 
-    public async logs(name: string): Promise<void> {
-        const container = await this.getContainer(name);
-
-        if(!container) {
-            return;
-        }
-
-        const stream = await container.logs({
-            stdout: true,
-            stderr: true,
-            follow: true
-        });
-
-        stream.on("data", (data) => {
-            process.stdout.write(demuxOutput(data));
-        });
-    }
-
-    public async attachStream(stream: NodeJS.ReadWriteStream): Promise<void> {
-        process.stdin.resume();
-        process.stdin.setEncoding("utf8");
-        process.stdin.pipe(stream);
-
+    public async attachStream(stream: NodeJS.ReadWriteStream): Promise<NodeJS.ReadWriteStream> {
         if(process.stdin.isTTY) {
             process.stdin.setRawMode(true);
         }
 
+        process.stdin.resume();
+        process.stdin.setEncoding("utf8");
+        process.stdin.pipe(stream);
+
         stream.setEncoding("utf8");
         stream.pipe(process.stdout);
 
-        const end = () => {
+        const onEnd = () => {
             process.stdin.pause();
-            process.stdin.unpipe(stream);
 
             if(process.stdin.isTTY) {
                 process.stdin.setRawMode(false);
             }
 
+            process.stdin.unpipe(stream);
+
             stream.unpipe(process.stdout);
         };
 
-        await new Promise((resolve, reject) => {
-            stream.on("end", end);
-            stream.on("error", end);
-            stream.on("end", resolve);
-            stream.on("error", reject);
-        });
+        stream.on("end", onEnd);
+        stream.on("error", onEnd);
+
+        return stream;
     }
 
     public async exec(name: string, args?: string[], tty = false) {
@@ -484,6 +437,33 @@ export class DockerService {
         //
         //     process.exit();
         // }, 4000);
+
+        return stream;
+    }
+
+    public async logs(containerOrName: string|Container): Promise<NodeJS.ReadableStream> {
+        const container: Container = typeof containerOrName === "string"
+            ? await this.getContainer(containerOrName)
+            : containerOrName;
+
+        if(!container) {
+            return;
+        }
+
+        const stream = await container.logs({
+            stdout: true,
+            stderr: true,
+            follow: true,
+            tail: 4
+        });
+
+        stream.on("data", (data: any) => {
+            process.stdout.write(data);
+        });
+
+        stream.on("error", (data: any) => {
+            process.stderr.write(data);
+        });
 
         return stream;
     }
