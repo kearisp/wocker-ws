@@ -24,7 +24,7 @@
         "watch": "tsc -w"
     },
     "dependencies": {
-        "@wocker/core": "1.0.18",
+        "@wocker/core": "1.0.19",
         "@wocker/utils": "^1.0.7",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",
