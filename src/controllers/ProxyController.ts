@@ -50,8 +50,8 @@ export class ProxyController {
     }
 
     @Completion("name")
-    public async getProjectNames(): Promise<string[]> {
-        const projects = await this.projectService.search();
+    public getProjectNames(): string[] {
+        const projects = this.projectService.search();
 
         return projects.map((project) => project.name);
     }
@@ -69,7 +69,7 @@ export class ProxyController {
         })
         httpsPort?: number
     ): Promise<void> {
-        const config = await this.appConfigService.getConfig();
+        const config = this.appConfigService.getConfig();
 
         if(httpPort === null || typeof httpPort === "undefined" || isNaN(httpPort)) {
             httpPort = await promptText({

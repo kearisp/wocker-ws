@@ -2,11 +2,9 @@ import {
     Injectable,
     Project,
     ProjectProperties,
-    PROJECT_TYPE_DOCKERFILE,
-    FileSystem
+    PROJECT_TYPE_DOCKERFILE
 } from "@wocker/core"
 
-import {FS} from "../makes";
 import {
     DockerService,
     AppConfigService,
@@ -41,22 +39,28 @@ class ProjectService {
         }(data as ProjectProperties);
     }
 
-    public async get(): Promise<Project> {
-        const project = await this.searchOne({
-            path: this.appConfigService.pwd()
-        });
+    public get(name?: string): Project {
+        const project = name
+            ? this.searchOne({name})
+            : this.searchOne({
+                path: this.appConfigService.pwd()
+            });
 
         if(!project) {
             throw new Error("Project not found");
         }
 
+        if(name) {
+            this.appConfigService.setPWD(project.path);
+        }
+
         return project;
     }
 
-    public async getById(id: string): Promise<Project> {
+    public getById(id: string): Project {
         const config = this.appConfigService.getConfig();
         const projectData = config.getProject(id);
-        const data = await FS.readJSON(this.appConfigService.dataPath("projects", id, "config.json"));
+        const data = this.appConfigService.fs.readJSON("projects", id, "config.json");
 
         return this.fromObject({
             ...data,
@@ -64,8 +68,8 @@ class ProjectService {
         });
     }
 
-    public async cdProject(name: string): Promise<void> {
-        const project = await this.searchOne({
+    public cdProject(name: string): void {
+        const project = this.searchOne({
             name
         });
 
@@ -179,11 +183,10 @@ class ProjectService {
             project.id = project.name;
         }
 
-        const config = await this.appConfigService.getConfig();
-        const fs = new FileSystem(this.appConfigService.dataPath("projects", project.id));
+        const config = this.appConfigService.getConfig();
 
-        if(!fs.exists()) {
-            fs.mkdir("", {recursive: true});
+        if(!this.appConfigService.fs.exists(`projects/${project.id}`)) {
+            this.appConfigService.fs.mkdir(`projects/${project.id}`, {recursive: true});
         }
 
         const {
@@ -193,11 +196,11 @@ class ProjectService {
 
         config.addProject(project.id, project.name, path);
 
-        await fs.writeJSON("config.json", rest);
+        this.appConfigService.fs.writeJSON(`projects/${project.id}/config.json`, rest);
         await config.save();
     }
 
-    public async search(params: Partial<SearchParams> = {}): Promise<Project[]> {
+    public search(params: Partial<SearchParams> = {}): Project[] {
         const {name, path} = params;
 
         const config = this.appConfigService.getConfig();
@@ -213,7 +216,7 @@ class ProjectService {
                 continue;
             }
 
-            const project = await this.getById(projectConfig.id);
+            const project = this.getById(projectConfig.id);
 
             if(name && project.name !== name) {
                 continue;
@@ -225,8 +228,8 @@ class ProjectService {
         return projects;
     }
 
-    public async searchOne(params: Partial<SearchParams> = {}): Promise<Project | null> {
-        const [project] = await this.search(params);
+    public searchOne(params: Partial<SearchParams> = {}): Project | null {
+        const [project] = this.search(params);
 
         return project || null;
     }

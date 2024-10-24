@@ -233,10 +233,10 @@ export class PresetController {
         name?: string
     ): Promise<void> {
         if(name) {
-            await this.projectService.cdProject(name);
+            this.projectService.cdProject(name);
         }
 
-        const project = await this.projectService.get();
+        const project = this.projectService.get();
         const preset = await this.presetService.get(project.preset);
 
         if(!preset) {

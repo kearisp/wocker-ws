@@ -20,6 +20,7 @@ type TypeMap = {
 @Injectable("APP_CONFIG")
 export class AppConfigService extends CoreAppConfigService {
     protected _pwd: string;
+    protected _fs?: FileSystem;
 
     protected readonly mapTypes: TypeMap = {
         [PROJECT_TYPE_IMAGE]: "Image",
@@ -35,6 +36,14 @@ export class AppConfigService extends CoreAppConfigService {
 
     get version(): string {
         return WOCKER_VERSION;
+    }
+
+    get fs(): FileSystem {
+        if(!this._fs) {
+            this._fs = new FileSystem(DATA_DIR);
+        }
+
+        return this._fs;
     }
 
     public pwd(...parts: string[]): string {
@@ -63,7 +72,7 @@ export class AppConfigService extends CoreAppConfigService {
 
     // noinspection JSUnusedGlobalSymbols
     protected loadConfig(): AppConfig {
-        const fs = new FileSystem(DATA_DIR);
+        const fs = this.fs;
 
         let data: AppConfigProperties = {};
 
