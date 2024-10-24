@@ -9,7 +9,7 @@ import {DockerService} from "./DockerService";
 @Injectable("PROXY_SERVICE")
 export class ProxyService {
     protected containerName = "proxy.workspace";
-    protected imageName = "nginxproxy/nginx-proxy";
+    protected imageName = "nginxproxy/nginx-proxy:latest";
 
     public constructor(
         protected readonly appConfigService: AppConfigService,

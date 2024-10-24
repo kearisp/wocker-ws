@@ -10,7 +10,7 @@ import {
 } from "@wocker/core";
 import * as Path from "path";
 
-import {DATA_DIR, PLUGINS_DIR, PRESETS_DIR} from "../env";
+import {WOCKER_VERSION, DATA_DIR, PLUGINS_DIR, PRESETS_DIR} from "../env";
 
 
 type TypeMap = {
@@ -20,6 +20,7 @@ type TypeMap = {
 @Injectable("APP_CONFIG")
 export class AppConfigService extends CoreAppConfigService {
     protected _pwd: string;
+    protected _fs?: FileSystem;
 
     protected readonly mapTypes: TypeMap = {
         [PROJECT_TYPE_IMAGE]: "Image",
@@ -31,6 +32,18 @@ export class AppConfigService extends CoreAppConfigService {
         super();
 
         this._pwd = (process.cwd() || process.env.PWD) as string;
+    }
+
+    get version(): string {
+        return WOCKER_VERSION;
+    }
+
+    get fs(): FileSystem {
+        if(!this._fs) {
+            this._fs = new FileSystem(DATA_DIR);
+        }
+
+        return this._fs;
     }
 
     public pwd(...parts: string[]): string {
@@ -59,7 +72,7 @@ export class AppConfigService extends CoreAppConfigService {
 
     // noinspection JSUnusedGlobalSymbols
     protected loadConfig(): AppConfig {
-        const fs = new FileSystem(DATA_DIR);
+        const fs = this.fs;
 
         let data: AppConfigProperties = {};
 
