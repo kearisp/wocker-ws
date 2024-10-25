@@ -2,7 +2,6 @@ import {
     Injectable,
     DockerServiceParams as Params
 } from "@wocker/core";
-import {demuxOutput} from "@wocker/utils";
 import Docker, {
     Container,
     Volume,
@@ -19,7 +18,7 @@ export class DockerService {
     protected docker: Docker;
 
     public constructor(
-        protected readonly logService: LogService
+        // protected readonly logService: LogService
     ) {
         this.docker = new Docker({
             socketPath: "/var/run/docker.sock"
@@ -384,19 +383,29 @@ export class DockerService {
         return stream;
     }
 
-    public async exec(name: string, args?: string[], tty = false) {
-        const container = await this.getContainer(name);
+    public async exec(nameOrContainer: string|Container, options: Params.Exec|string[], _tty?: boolean) {
+        const container: Container = typeof nameOrContainer === "string"
+            ? await this.getContainer(nameOrContainer)
+            : nameOrContainer;
 
         if(!container) {
             return;
         }
+
+        const {
+            cmd = [],
+            tty = false
+        } = Array.isArray(options) ? {
+            cmd: options,
+            tty: _tty
+        } as Params.Exec : options;
 
         const exec = await container.exec({
             AttachStdin: true,
             AttachStdout: true,
             AttachStderr: tty,
             Tty: tty,
-            Cmd: args || []
+            Cmd: cmd
         });
 
         const stream = await exec.start({
@@ -406,30 +415,31 @@ export class DockerService {
         });
 
         if(tty) {
-            stream.setEncoding("utf-8");
-
-            process.stdin.resume();
-
-            if(process.stdin.setRawMode) {
-                process.stdin.setRawMode(true);
-            }
-
-            process.stdin.setEncoding("utf-8");
-            process.stdin.pipe(stream);
-
-            stream.pipe(process.stdout);
-
-            stream.on("error", (err) => {
-                Logger.error(err.message);
-            });
-
-            stream.on("end", async () => {
-                process.stdin.setRawMode(false);
-            });
-
-            stream.on("end", async () => {
-                process.exit();
-            });
+            await this.attachStream(stream);
+            // stream.setEncoding("utf-8");
+            //
+            // process.stdin.resume();
+            //
+            // if(process.stdin.setRawMode) {
+            //     process.stdin.setRawMode(true);
+            // }
+            //
+            // process.stdin.setEncoding("utf-8");
+            // process.stdin.pipe(stream);
+            //
+            // stream.pipe(process.stdout);
+            //
+            // stream.on("error", (err) => {
+            //     Logger.error(err.message);
+            // });
+            //
+            // stream.on("end", async () => {
+            //     process.stdin.setRawMode(false);
+            // });
+            //
+            // stream.on("end", async () => {
+            //     process.exit();
+            // });
         }
 
         // setTimeout(() => {

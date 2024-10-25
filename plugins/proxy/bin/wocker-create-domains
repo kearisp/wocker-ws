@@ -1,0 +1,21 @@
+#!/bin/bash
+
+NAME=$1
+CERT_DIR=/etc/nginx/certs
+
+shift
+
+CONTENT="authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+[alt_names]"
+
+index=1
+for arg in "$@"; do
+    CONTENT="$CONTENT
+DNS.$index = $arg"
+    ((index++))
+done
+
+echo "$CONTENT" > $CERT_DIR/$NAME.ext

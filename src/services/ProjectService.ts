@@ -5,11 +5,9 @@ import {
     PROJECT_TYPE_DOCKERFILE
 } from "@wocker/core"
 
-import {
-    DockerService,
-    AppConfigService,
-    AppEventsService,
-} from "../services";
+import {AppConfigService} from "./AppConfigService";
+import {AppEventsService} from "./AppEventsService";
+import {DockerService} from "./DockerService";
 
 
 type SearchParams = Partial<{

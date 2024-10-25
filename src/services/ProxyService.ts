@@ -1,6 +1,8 @@
 import {Injectable, Project} from "@wocker/core";
 import {promptText} from "@wocker/utils";
+import * as Path from "path";
 
+import {PLUGINS_DIR} from "../env";
 import {FS} from "../makes";
 import {AppConfigService} from "./AppConfigService";
 import {DockerService} from "./DockerService";
@@ -10,6 +12,7 @@ import {DockerService} from "./DockerService";
 export class ProxyService {
     protected containerName = "proxy.workspace";
     protected imageName = "nginxproxy/nginx-proxy:latest";
+    protected image = "wocker-proxy:1.0.0";
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
@@ -28,8 +31,8 @@ export class ProxyService {
         await project.save();
     }
 
-    public async start(restart?: boolean): Promise<void> {
-        if(restart) {
+    public async start(restart?: boolean, rebuild?: boolean): Promise<void> {
+        if(restart || rebuild) {
             await this.stop();
         }
 
@@ -38,7 +41,8 @@ export class ProxyService {
         if(!container) {
             console.info("Proxy starting...");
 
-            await this.dockerService.pullImage(this.imageName);
+            await this.build(rebuild);
+            // await this.dockerService.pullImage(this.imageName);
 
             const certsDir = this.appConfigService.dataPath("certs");
 
@@ -56,7 +60,7 @@ export class ProxyService {
 
             container = await this.dockerService.createContainer({
                 name: this.containerName,
-                image: this.imageName,
+                image: this.image,
                 restart: "always",
                 env: {
                     DEFAULT_HOST: "index.workspace"
@@ -87,6 +91,26 @@ export class ProxyService {
 
     public async stop(): Promise<void> {
         await this.dockerService.removeContainer(this.containerName);
+    }
+
+    public async build(rebuild?: boolean): Promise<void> {
+        let exists = await this.dockerService.imageExists(this.image);
+
+        if(rebuild && exists) {
+            await this.dockerService.imageRm(this.image);
+
+            exists = false;
+        }
+
+        if(exists) {
+            return;
+        }
+
+        await this.dockerService.buildImage({
+            tag: this.image,
+            context: Path.join(PLUGINS_DIR, "proxy"),
+            src: "./Dockerfile"
+        });
     }
 
     public async logs(): Promise<void> {

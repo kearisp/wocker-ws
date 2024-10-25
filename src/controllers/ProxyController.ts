@@ -103,9 +103,15 @@ export class ProxyController {
             alias: "r",
             description: "Restart"
         })
-        restart?: boolean
+        restart?: boolean,
+        @Option("rebuild", {
+            type: "boolean",
+            alias: "b",
+            description: "Rebuild"
+        })
+        rebuild?: boolean
     ): Promise<void> {
-        await this.proxyService.start(restart);
+        await this.proxyService.start(restart, rebuild);
     }
 
     @Command("proxy:stop")

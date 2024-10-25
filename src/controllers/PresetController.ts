@@ -10,6 +10,7 @@ import {
 import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
 import {promptConfirm} from "@wocker/utils";
 import * as Path from "path";
+import CliTable from "cli-table3";
 
 import {PRESETS_DIR} from "../env";
 import {injectVariables, volumeParse, volumeFormat} from "../utils";
@@ -193,6 +194,24 @@ export class PresetController {
         name: string
     ): Promise<void> {
         await this.presetService.addPreset(name);
+    }
+
+    @Command("preset:ls")
+    public async list(): Promise<string> {
+        const presets = await this.presetService.search();
+
+        const table = new CliTable({
+            head: [
+                "Name",
+                "Source"
+            ]
+        });
+
+        for(const preset of presets) {
+            table.push([preset.name, preset.source]);
+        }
+
+        return table.toString();
     }
 
     @Command("preset:delete <preset>")

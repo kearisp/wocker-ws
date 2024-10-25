@@ -1,6 +1,6 @@
 {
     "name": "@wocker/ws",
-    "version": "1.0.19",
+    "version": "1.0.20",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Docker workspace for web projects",
     "license": "MIT",
@@ -24,7 +24,7 @@
         "watch": "tsc -w"
     },
     "dependencies": {
-        "@wocker/core": "1.0.19",
+        "@wocker/core": "1.0.20",
         "@wocker/utils": "^1.0.7",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",
