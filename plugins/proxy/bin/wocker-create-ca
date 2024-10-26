@@ -1,0 +1,19 @@
+#!/bin/bash
+
+CERT_DIR=/etc/nginx/certs
+
+if [ ! -f $CERT_DIR/CA/Wocker-CA.key ]; then
+    mkdir -p $CERT_DIR/CA
+
+    openssl req -x509 -nodes -new -sha256 \
+        -days 1024 \
+        -newkey rsa:2048 \
+        -keyout $CERT_DIR/CA/Wocker-CA.key \
+        -out $CERT_DIR/CA/Wocker-CA.pem \
+        -subj "/C=UA/ST=Kyiv/O=Wocker/CN=Wocker-CA"
+
+    openssl x509 \
+        -outform pem \
+        -in $CERT_DIR/CA/Wocker-CA.pem \
+        -out $CERT_DIR/CA/Wocker-CA.crt
+fi

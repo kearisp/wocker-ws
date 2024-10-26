@@ -1,23 +1,20 @@
 #!/bin/bash
 
-# Перевірка, чи введено домен
 if [ -z "$1" ]; then
-    echo "Використання: $0 <файл>"
+    echo "Usage: $0 <name>"
     exit 1
 fi
 
-# Змінні
 NAME=$1
 CERT_DIR=/etc/nginx/certs
 DAYS_VALID=365
-COUNTRY="US"
-STATE="State"
-CITY="City"
-ORGANIZATION="Organization"
-ORG_UNIT="Department"
+COUNTRY="UA"
+STATE="Kyiv"
+CITY="Kyiv"
+ORGANIZATION="Wocker"
+ORG_UNIT="Wocker"
 COMMON_NAME=$NAME
 
-# Створення директорії
 mkdir -p $CERT_DIR
 
 openssl req \
@@ -33,8 +30,8 @@ openssl x509 \
     -sha256 \
     -days 1024 \
     -in $CERT_DIR/$NAME.csr \
-    -CA $CERT_DIR/RootCA.pem \
-    -CAkey $CERT_DIR/RootCA.key \
+    -CA $CERT_DIR/CA/Wocker-CA.pem \
+    -CAkey $CERT_DIR/CA/Wocker-CA.key \
     -CAcreateserial \
     -extfile $CERT_DIR/$NAME.ext \
     -out $CERT_DIR/$NAME.crt

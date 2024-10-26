@@ -18,7 +18,7 @@ export class DockerService {
     protected docker: Docker;
 
     public constructor(
-        // protected readonly logService: LogService
+        protected readonly logService: LogService
     ) {
         this.docker = new Docker({
             socketPath: "/var/run/docker.sock"
@@ -66,7 +66,7 @@ export class DockerService {
             restart,
             ulimits,
             extraHosts,
-            networkMode,
+            networkMode = "bridge",
             links = [],
             env = {},
             volumes = [],
@@ -94,6 +94,7 @@ export class DockerService {
             User: user,
             Image: image,
             Hostname: name,
+            Domainname: name,
             Labels: {
                 ...projectId ? {projectId} : {}
             },
@@ -111,10 +112,10 @@ export class DockerService {
                 return `${key}=${value}`;
             }),
             ExposedPorts: ports.reduce((res, value) => {
-                const [,, containerPort] = /(\d+):(\d+)/.exec(value) || [];
+                const [,, containerPort, type = "tcp"] = /(\d+):(\d+)(?:\/(\w+))?/.exec(value) || [];
 
                 if(containerPort) {
-                    res[`${containerPort}/tcp`] = {};
+                    res[`${containerPort}/${type}`] = {};
                 }
 
                 return res;
@@ -139,12 +140,15 @@ export class DockerService {
                 } : {},
                 Binds: volumes,
                 PortBindings: ports.reduce((res, value) => {
-                    const [, hostPort, containerPort] = /(\d+):(\d+)/.exec(value) || [];
+                    const [, hostPort, containerPort, type = "tcp"] = /(\d+):(\d+)(?:\/(\w+))?/.exec(value) || [];
 
                     if(hostPort && containerPort) {
-                        res[`${containerPort}/tcp`] = [
+                        res[`${containerPort}/${type}`] = [
                             {HostPort: hostPort}
                         ];
+                    }
+                    else {
+                        this.logService.warn(`Invalid port format for container "${name}": "${value}". Expected format: hostPort:containerPort[/protocol]`);
                     }
 
                     return res;
@@ -153,7 +157,8 @@ export class DockerService {
             NetworkingConfig: {
                 EndpointsConfig: networkMode === "host" ? {} : {
                     workspace: {
-                        Links: links
+                        Links: links,
+                        Aliases: env.VIRTUAL_HOST ? env.VIRTUAL_HOST.split(",") : undefined
                     }
                 }
             }

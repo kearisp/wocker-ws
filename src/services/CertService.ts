@@ -23,7 +23,7 @@ export class CertService {
         await this.dockerService.exec(container, {
             tty: true,
             user: "1000",
-            cmd: ["wocker-create-root-cert"]
+            cmd: ["wocker-create-ca"]
         });
 
         await this.dockerService.exec(container, {
@@ -35,7 +35,7 @@ export class CertService {
         await this.dockerService.exec(container, {
             tty: true,
             user: "1000",
-            cmd: ["wocker-create-cert-v2", name]
+            cmd: ["wocker-create-cert", name]
         });
     }
 

@@ -1,14 +1,14 @@
 FROM nginxproxy/nginx-proxy:latest
 
-COPY ./bin/wocker-create-root-cert /usr/local/bin/wocker-create-root-cert
-COPY ./bin/wocker-create-cert-v2 /usr/local/bin/wocker-create-cert-v2
+#VOLUME /etc/nginx/certs
+
+COPY ./bin/wocker-create-ca /usr/local/bin/wocker-create-ca
+COPY ./bin/wocker-create-cert /usr/local/bin/wocker-create-cert
 COPY ./bin/wocker-create-domains /usr/local/bin/wocker-create-domains
 
-RUN chmod +x /usr/local/bin/wocker-create-root-cert && \
-    chmod +x /usr/local/bin/wocker-create-cert-v2 && \
+RUN chmod +x /usr/local/bin/wocker-create-ca && \
+    chmod +x /usr/local/bin/wocker-create-cert && \
     chmod +x /usr/local/bin/wocker-create-domains
-
-#VOLUME /etc/nginx/certs
 
 #RUN apt update && apt install -y wget unzip
 

@@ -63,7 +63,8 @@ export class ProxyService {
                 image: this.image,
                 restart: "always",
                 env: {
-                    DEFAULT_HOST: "index.workspace"
+                    DEFAULT_HOST: "localhost",
+                    TRUST_DOWNSTREAM_PROXY: "true"
                 },
                 ports: [
                     `${httpPort}:80`,

@@ -302,13 +302,14 @@ export class ProjectController {
     @Command("domain:add [...domains]")
     @Description("Adding project domain")
     public async addDomain(
+        @Param("domains")
+        addDomains: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
-        addDomains: string[]
+        name: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);
