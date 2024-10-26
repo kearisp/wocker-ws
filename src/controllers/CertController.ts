@@ -1,5 +1,6 @@
 import {
     Controller,
+    Completion,
     Command,
     Param,
     Option
@@ -7,7 +8,8 @@ import {
 
 import {
     ProjectService,
-    CertService
+    CertService,
+    LogService
 } from "../services";
 
 
@@ -15,12 +17,27 @@ import {
 export class CertController {
     public constructor(
         protected readonly projectService: ProjectService,
-        protected readonly certService: CertService
+        protected readonly certService: CertService,
+        protected readonly logService: LogService
     ) {}
 
-    @Command("cert:generate [name]")
-    public async create(
-        @Param("name")
+    @Command("cert:generate [cert]")
+    public async createCert(
+        @Param("cert")
+        certName?: string,
+        @Option("dns", {
+            type: "string",
+            alias: "d",
+            description: "DNS for cert"
+        })
+        dns?: string[]
+    ): Promise<void> {
+        await this.certService.generate(certName, dns);
+    }
+
+    @Command("cert:use [cert]")
+    public async use(
+        @Param("cert")
         certName?: string,
         @Option("name", {
             type: "string",
@@ -30,15 +47,14 @@ export class CertController {
         name?: string
     ): Promise<void> {
         const project = this.projectService.get(name);
-        // console.log(certName, name);
 
-        await this.certService.generate(project, certName);
+        await this.certService.use(project, certName);
     }
 
-    @Command("cert:use [name]")
-    public async use(
-        @Param("name")
-        certName?: string,
+    @Command("cert:remove <cert>")
+    public async remove(
+        @Param("cert")
+        cert: string,
         @Option("name", {
             type: "string",
             alias: "n",
@@ -49,15 +65,26 @@ export class CertController {
 
     }
 
-    @Command("cert:remove <name>")
-    public async remove(
-        @Param("name")
-        name: string
+    @Command("cert:delete <cert>")
+    public async delete(
+        @Param("cert")
+        cert: string
     ): Promise<void> {
-
+        await this.certService.delete(cert);
     }
 
-    public async list(): Promise<void> {
+    @Completion("cert", "cert:remove <cert>")
+    @Completion("cert", "cert:delete <cert>")
+    public async existsNames(
+        @Param("cert")
+        name?: string
+    ): Promise<string[]> {
+        this.logService.info(name);
+        return ["test1", "test2"];
+    }
 
+    @Completion("cert")
+    public async existsOtherNames(): Promise<string[]> {
+        return [];
     }
 }

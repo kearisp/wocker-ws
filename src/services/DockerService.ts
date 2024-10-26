@@ -394,7 +394,8 @@ export class DockerService {
 
         const {
             cmd = [],
-            tty = false
+            tty = false,
+            user
         } = Array.isArray(options) ? {
             cmd: options,
             tty: _tty
@@ -405,6 +406,7 @@ export class DockerService {
             AttachStdout: true,
             AttachStderr: tty,
             Tty: tty,
+            User: user,
             Cmd: cmd
         });
 
