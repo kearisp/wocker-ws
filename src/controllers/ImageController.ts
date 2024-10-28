@@ -12,7 +12,7 @@ export class ImageController {
     ) {}
 
     @Command("images")
-    public async list() {
+    public async list(): Promise<string> {
         const images = await this.dockerService.imageLs({});
 
         const table = new CliTable({

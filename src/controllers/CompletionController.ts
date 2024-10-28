@@ -12,7 +12,7 @@ export class CompletionController {
     ) {}
 
     @Command("completion script")
-    public completion() {
+    public completion(): string {
         return this.cli.completionScript() + "\n";
     }
 }

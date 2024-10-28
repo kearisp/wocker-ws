@@ -11,8 +11,7 @@ import {DockerService} from "./DockerService";
 @Injectable("PROXY_SERVICE")
 export class ProxyService {
     protected containerName = "proxy.workspace";
-    protected imageName = "nginxproxy/nginx-proxy:latest";
-    protected image = "wocker-proxy:1.0.0";
+    protected imageName = "wocker-proxy:1.0.0";
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
@@ -60,7 +59,7 @@ export class ProxyService {
 
             container = await this.dockerService.createContainer({
                 name: this.containerName,
-                image: this.image,
+                image: this.imageName,
                 restart: "always",
                 env: {
                     DEFAULT_HOST: "localhost",
@@ -95,10 +94,10 @@ export class ProxyService {
     }
 
     public async build(rebuild?: boolean): Promise<void> {
-        let exists = await this.dockerService.imageExists(this.image);
+        let exists = await this.dockerService.imageExists(this.imageName);
 
         if(rebuild && exists) {
-            await this.dockerService.imageRm(this.image);
+            await this.dockerService.imageRm(this.imageName);
 
             exists = false;
         }
@@ -108,7 +107,7 @@ export class ProxyService {
         }
 
         await this.dockerService.buildImage({
-            tag: this.image,
+            tag: this.imageName,
             context: Path.join(PLUGINS_DIR, "proxy"),
             src: "./Dockerfile"
         });

@@ -322,13 +322,14 @@ export class PresetController {
 
     @Command("preset:build <preset>")
     public async build(
+        @Param("preset")
+        presetName: string,
         @Option("rebuild", {
             type: "boolean",
             alias: "r",
             description: "Rebuild image"
         })
-        rebuild: boolean,
-        presetName: string
+        rebuild?: boolean
     ): Promise<void> {
         const preset = await this.presetService.get(presetName);
 

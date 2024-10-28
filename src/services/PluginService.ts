@@ -42,7 +42,7 @@ export class PluginService {
     }
 
     public async update() {
-        const config = await this.appConfigService.getConfig();
+        const config = this.appConfigService.getConfig();
 
         if(!config.plugins) {
             return;

@@ -29,7 +29,7 @@ export class CertService {
         await this.dockerService.exec(container, {
             tty: true,
             user: "1000",
-            cmd: ["wocker-create-domains", name, ...dns]
+            cmd: ["wocker-create-domains", name, ...(dns.length > 0 ? dns : [name])]
         });
 
         await this.dockerService.exec(container, {
