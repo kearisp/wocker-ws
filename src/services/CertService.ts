@@ -6,6 +6,10 @@ import {DockerService} from "./DockerService";
 import {ProjectService} from "./ProjectService";
 
 
+type CertMap = {
+    [name: string]: string[];
+};
+
 @Injectable()
 export class CertService {
     public constructor(
@@ -39,10 +43,10 @@ export class CertService {
         });
     }
 
-    public async use(project: Project, name: string): Promise<void> {
-        const files = await this.appConfigService.fs.readdir("certs");
+    public async getCertsMap(): Promise<CertMap> {
+        const files = await this.appConfigService.fs.readdir("certs/projects");
 
-        const certs = files.reduce((res, file) => {
+        return files.reduce((res, file) => {
             const ext = Path.extname(file);
             const name = Path.basename(file, ext);
 
@@ -54,6 +58,10 @@ export class CertService {
 
             return res;
         }, {});
+    }
+
+    public async use(project: Project, name: string): Promise<void> {
+        const certs = await this.getCertsMap();
 
         if(!(name in certs)) {
             throw new Error(`Cert ${name} not found`);
@@ -74,11 +82,21 @@ export class CertService {
         await project.save();
     }
 
-    public async remove(name: string) {
-
+    public async remove(name: string): Promise<void> {
     }
 
     public async delete(name: string): Promise<void> {
+        const certs = await this.getCertsMap();
 
+        if(!(name in certs)) {
+            console.warn(`Cert ${name} not found`);
+            return;
+        }
+
+        for(const ext of certs[name]) {
+            this.appConfigService.fs.rm(`certs/projects/${name}${ext}`);
+        }
+
+        console.info(`Cert ${name} deleted`);
     }
 }

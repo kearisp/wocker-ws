@@ -6,6 +6,7 @@ if [ -z "$1" ]; then
 fi
 
 NAME=$1
+CA_DIR=/etc/nginx/ca-certs
 CERT_DIR=/etc/nginx/certs
 DAYS_VALID=365
 COUNTRY="UA"
@@ -30,8 +31,8 @@ openssl x509 \
     -sha256 \
     -days 1024 \
     -in $CERT_DIR/$NAME.csr \
-    -CA $CERT_DIR/CA/Wocker-CA.pem \
-    -CAkey $CERT_DIR/CA/Wocker-CA.key \
+    -CA $CA_DIR/Wocker-CA.pem \
+    -CAkey $CA_DIR/Wocker-CA.key \
     -CAcreateserial \
     -extfile $CERT_DIR/$NAME.ext \
     -out $CERT_DIR/$NAME.crt

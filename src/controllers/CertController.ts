@@ -62,7 +62,7 @@ export class CertController {
         })
         name?: string
     ): Promise<void> {
-
+        await this.certService.remove(cert);
     }
 
     @Command("cert:delete <cert>")
@@ -79,8 +79,7 @@ export class CertController {
         @Param("cert")
         name?: string
     ): Promise<string[]> {
-        this.logService.info(name);
-        return ["test1", "test2"];
+        return Object.keys(await this.certService.getCertsMap());
     }
 
     @Completion("cert")

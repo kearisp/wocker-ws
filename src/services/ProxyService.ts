@@ -41,9 +41,22 @@ export class ProxyService {
             console.info("Proxy starting...");
 
             await this.build(rebuild);
-            // await this.dockerService.pullImage(this.imageName);
 
             const certsDir = this.appConfigService.dataPath("certs");
+
+            if(!this.appConfigService.fs.exists("certs/ca")) {
+                this.appConfigService.fs.mkdir("certs/ca", {
+                    recursive: true,
+                    mode: 0o700
+                });
+            }
+
+            if(!this.appConfigService.fs.exists("certs/projects")) {
+                this.appConfigService.fs.mkdir("certs/projects", {
+                    recursive: true,
+                    mode: 0o700
+                });
+            }
 
             if(!FS.existsSync(certsDir)) {
                 FS.mkdirSync(certsDir, {
@@ -71,7 +84,8 @@ export class ProxyService {
                 ],
                 volumes: [
                     "/var/run/docker.sock:/tmp/docker.sock:ro",
-                    `${certsDir}:/etc/nginx/certs`
+                    `${this.appConfigService.fs.path("certs/projects")}:/etc/nginx/certs`,
+                    `${this.appConfigService.fs.path("certs/ca")}:/etc/nginx/ca-certs`
                 ]
             });
         }
