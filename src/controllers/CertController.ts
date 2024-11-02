@@ -21,6 +21,11 @@ export class CertController {
         protected readonly logService: LogService
     ) {}
 
+    @Command("certs")
+    public async list(): Promise<string> {
+        return this.certService.list();
+    }
+
     @Command("cert:generate [cert]")
     public async createCert(
         @Param("cert")
@@ -51,10 +56,8 @@ export class CertController {
         await this.certService.use(project, certName);
     }
 
-    @Command("cert:remove <cert>")
+    @Command("cert:remove")
     public async remove(
-        @Param("cert")
-        cert: string,
         @Option("name", {
             type: "string",
             alias: "n",
@@ -62,7 +65,9 @@ export class CertController {
         })
         name?: string
     ): Promise<void> {
-        await this.certService.remove(cert);
+        const project = this.projectService.get(name);
+
+        await this.certService.remove(project);
     }
 
     @Command("cert:delete <cert>")
@@ -73,12 +78,9 @@ export class CertController {
         await this.certService.delete(cert);
     }
 
-    @Completion("cert", "cert:remove <cert>")
+    @Completion("cert", "cert:use [cert]")
     @Completion("cert", "cert:delete <cert>")
-    public async existsNames(
-        @Param("cert")
-        name?: string
-    ): Promise<string[]> {
+    public async existsNames(): Promise<string[]> {
         return Object.keys(await this.certService.getCertsMap());
     }
 

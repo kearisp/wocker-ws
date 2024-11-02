@@ -1,5 +1,6 @@
 import {Injectable, Project} from "@wocker/core";
 import * as Path from "path";
+import CliTable from "cli-table3";
 
 import {AppConfigService} from "./AppConfigService";
 import {DockerService} from "./DockerService";
@@ -17,7 +18,27 @@ export class CertService {
         protected readonly dockerService: DockerService
     ) {}
 
-    public async generate(name: string, dns: string[]): Promise<void> {
+    public async list(): Promise<string> {
+        const table = new CliTable({
+            head: [
+                "Name"
+            ]
+        });
+
+        const certMap = await this.getCertsMap();
+
+        for(const name in certMap) {
+            table.push([name]);
+        }
+
+        return table.toString();
+    }
+
+    public async generate(certName: string, dns: string[]): Promise<void> {
+        if(!certName) {
+            throw new Error("Cert name missing");
+        }
+
         const container = await this.dockerService.getContainer("proxy.workspace");
 
         if(!container) {
@@ -33,13 +54,13 @@ export class CertService {
         await this.dockerService.exec(container, {
             tty: true,
             user: "1000",
-            cmd: ["wocker-create-domains", name, ...(dns.length > 0 ? dns : [name])]
+            cmd: ["wocker-create-domains", certName, ...(dns.length > 0 ? dns : [certName])]
         });
 
         await this.dockerService.exec(container, {
             tty: true,
             user: "1000",
-            cmd: ["wocker-create-cert", name]
+            cmd: ["wocker-create-cert", certName]
         });
     }
 
@@ -63,6 +84,10 @@ export class CertService {
     public async use(project: Project, name: string): Promise<void> {
         const certs = await this.getCertsMap();
 
+        if(!name) {
+            name = project.domains.find((domain) => domain in certs);
+        }
+
         if(!(name in certs)) {
             throw new Error(`Cert ${name} not found`);
         }
@@ -82,7 +107,14 @@ export class CertService {
         await project.save();
     }
 
-    public async remove(name: string): Promise<void> {
+    public async remove(project: Project): Promise<void> {
+        if(!project.hasEnv("CERT_NAME")) {
+            return;
+        }
+
+        project.unsetEnv("CERT_NAME");
+
+        await project.save();
     }
 
     public async delete(name: string): Promise<void> {
