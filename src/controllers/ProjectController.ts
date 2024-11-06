@@ -598,6 +598,7 @@ export class ProjectController {
     }
 
     @Command("config:set [...configs]")
+    @Description("Setting env variables")
     public async configSet(
         @Param("configs")
         variables: string[],
