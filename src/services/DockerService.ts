@@ -2,7 +2,6 @@ import {
     Injectable,
     DockerServiceParams as Params
 } from "@wocker/core";
-import {demuxOutput} from "@wocker/utils";
 import Docker, {
     Container,
     Volume,
@@ -67,7 +66,7 @@ export class DockerService {
             restart,
             ulimits,
             extraHosts,
-            networkMode,
+            networkMode = "bridge",
             links = [],
             env = {},
             volumes = [],
@@ -95,6 +94,7 @@ export class DockerService {
             User: user,
             Image: image,
             Hostname: name,
+            Domainname: name,
             Labels: {
                 ...projectId ? {projectId} : {}
             },
@@ -112,10 +112,10 @@ export class DockerService {
                 return `${key}=${value}`;
             }),
             ExposedPorts: ports.reduce((res, value) => {
-                const [,, containerPort] = /(\d+):(\d+)/.exec(value) || [];
+                const [,, containerPort, type = "tcp"] = /(\d+):(\d+)(?:\/(\w+))?/.exec(value) || [];
 
                 if(containerPort) {
-                    res[`${containerPort}/tcp`] = {};
+                    res[`${containerPort}/${type}`] = {};
                 }
 
                 return res;
@@ -140,12 +140,15 @@ export class DockerService {
                 } : {},
                 Binds: volumes,
                 PortBindings: ports.reduce((res, value) => {
-                    const [, hostPort, containerPort] = /(\d+):(\d+)/.exec(value) || [];
+                    const [, hostPort, containerPort, type = "tcp"] = /(\d+):(\d+)(?:\/(\w+))?/.exec(value) || [];
 
                     if(hostPort && containerPort) {
-                        res[`${containerPort}/tcp`] = [
+                        res[`${containerPort}/${type}`] = [
                             {HostPort: hostPort}
                         ];
+                    }
+                    else {
+                        this.logService.warn(`Invalid port format for container "${name}": "${value}". Expected format: hostPort:containerPort[/protocol]`);
                     }
 
                     return res;
@@ -154,7 +157,8 @@ export class DockerService {
             NetworkingConfig: {
                 EndpointsConfig: networkMode === "host" ? {} : {
                     workspace: {
-                        Links: links
+                        Links: links,
+                        Aliases: env.VIRTUAL_HOST ? env.VIRTUAL_HOST.split(",") : undefined
                     }
                 }
             }
@@ -384,19 +388,31 @@ export class DockerService {
         return stream;
     }
 
-    public async exec(name: string, args?: string[], tty = false) {
-        const container = await this.getContainer(name);
+    public async exec(nameOrContainer: string|Container, options: Params.Exec|string[], _tty?: boolean) {
+        const container: Container = typeof nameOrContainer === "string"
+            ? await this.getContainer(nameOrContainer)
+            : nameOrContainer;
 
         if(!container) {
             return;
         }
+
+        const {
+            cmd = [],
+            tty = false,
+            user
+        } = Array.isArray(options) ? {
+            cmd: options,
+            tty: _tty
+        } as Params.Exec : options;
 
         const exec = await container.exec({
             AttachStdin: true,
             AttachStdout: true,
             AttachStderr: tty,
             Tty: tty,
-            Cmd: args || []
+            User: user,
+            Cmd: cmd
         });
 
         const stream = await exec.start({
@@ -406,30 +422,31 @@ export class DockerService {
         });
 
         if(tty) {
-            stream.setEncoding("utf-8");
-
-            process.stdin.resume();
-
-            if(process.stdin.setRawMode) {
-                process.stdin.setRawMode(true);
-            }
-
-            process.stdin.setEncoding("utf-8");
-            process.stdin.pipe(stream);
-
-            stream.pipe(process.stdout);
-
-            stream.on("error", (err) => {
-                Logger.error(err.message);
-            });
-
-            stream.on("end", async () => {
-                process.stdin.setRawMode(false);
-            });
-
-            stream.on("end", async () => {
-                process.exit();
-            });
+            await this.attachStream(stream);
+            // stream.setEncoding("utf-8");
+            //
+            // process.stdin.resume();
+            //
+            // if(process.stdin.setRawMode) {
+            //     process.stdin.setRawMode(true);
+            // }
+            //
+            // process.stdin.setEncoding("utf-8");
+            // process.stdin.pipe(stream);
+            //
+            // stream.pipe(process.stdout);
+            //
+            // stream.on("error", (err) => {
+            //     Logger.error(err.message);
+            // });
+            //
+            // stream.on("end", async () => {
+            //     process.stdin.setRawMode(false);
+            // });
+            //
+            // stream.on("end", async () => {
+            //     process.exit();
+            // });
         }
 
         // setTimeout(() => {

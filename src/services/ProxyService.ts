@@ -1,6 +1,8 @@
 import {Injectable, Project} from "@wocker/core";
 import {promptText} from "@wocker/utils";
+import * as Path from "path";
 
+import {PLUGINS_DIR} from "../env";
 import {FS} from "../makes";
 import {AppConfigService} from "./AppConfigService";
 import {DockerService} from "./DockerService";
@@ -9,7 +11,7 @@ import {DockerService} from "./DockerService";
 @Injectable("PROXY_SERVICE")
 export class ProxyService {
     protected containerName = "proxy.workspace";
-    protected imageName = "nginxproxy/nginx-proxy:latest";
+    protected imageName = "wocker-proxy:1.0.0";
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
@@ -28,8 +30,8 @@ export class ProxyService {
         await project.save();
     }
 
-    public async start(restart?: boolean): Promise<void> {
-        if(restart) {
+    public async start(restart?: boolean, rebuild?: boolean): Promise<void> {
+        if(restart || rebuild) {
             await this.stop();
         }
 
@@ -38,9 +40,23 @@ export class ProxyService {
         if(!container) {
             console.info("Proxy starting...");
 
-            await this.dockerService.pullImage(this.imageName);
+            await this.build(rebuild);
 
             const certsDir = this.appConfigService.dataPath("certs");
+
+            if(!this.appConfigService.fs.exists("certs/ca")) {
+                this.appConfigService.fs.mkdir("certs/ca", {
+                    recursive: true,
+                    mode: 0o700
+                });
+            }
+
+            if(!this.appConfigService.fs.exists("certs/projects")) {
+                this.appConfigService.fs.mkdir("certs/projects", {
+                    recursive: true,
+                    mode: 0o700
+                });
+            }
 
             if(!FS.existsSync(certsDir)) {
                 FS.mkdirSync(certsDir, {
@@ -59,7 +75,8 @@ export class ProxyService {
                 image: this.imageName,
                 restart: "always",
                 env: {
-                    DEFAULT_HOST: "index.workspace"
+                    DEFAULT_HOST: "localhost",
+                    TRUST_DOWNSTREAM_PROXY: "true"
                 },
                 ports: [
                     `${httpPort}:80`,
@@ -67,7 +84,8 @@ export class ProxyService {
                 ],
                 volumes: [
                     "/var/run/docker.sock:/tmp/docker.sock:ro",
-                    `${certsDir}:/etc/nginx/certs`
+                    `${this.appConfigService.fs.path("certs/projects")}:/etc/nginx/certs`,
+                    `${this.appConfigService.fs.path("certs/ca")}:/etc/nginx/ca-certs`
                 ]
             });
         }
@@ -87,6 +105,26 @@ export class ProxyService {
 
     public async stop(): Promise<void> {
         await this.dockerService.removeContainer(this.containerName);
+    }
+
+    public async build(rebuild?: boolean): Promise<void> {
+        let exists = await this.dockerService.imageExists(this.imageName);
+
+        if(rebuild && exists) {
+            await this.dockerService.imageRm(this.imageName);
+
+            exists = false;
+        }
+
+        if(exists) {
+            return;
+        }
+
+        await this.dockerService.buildImage({
+            tag: this.imageName,
+            context: Path.join(PLUGINS_DIR, "proxy"),
+            src: "./Dockerfile"
+        });
     }
 
     public async logs(): Promise<void> {

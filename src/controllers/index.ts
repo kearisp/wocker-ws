@@ -1,3 +1,4 @@
+export * from "./CertController";
 export * from "./CompletionController";
 export * from "./DebugController";
 export * from "./ImageController";

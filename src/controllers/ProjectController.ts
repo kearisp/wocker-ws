@@ -302,13 +302,14 @@ export class ProjectController {
     @Command("domain:add [...domains]")
     @Description("Adding project domain")
     public async addDomain(
+        @Param("domains")
+        addDomains: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
-        addDomains: string[]
+        name: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);
@@ -333,13 +334,14 @@ export class ProjectController {
     @Command("domain:set [...domains]")
     @Description("Setting project domains")
     public async setDomains(
+        @Param("domains")
+        domains: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "Project name"
         })
-        name: string,
-        domains: string[]
+        name: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);
@@ -366,13 +368,14 @@ export class ProjectController {
     @Command("domain:remove [...domains]")
     @Description("Removing project domain")
     public async removeDomain(
+        @Param("domains")
+        removeDomains: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
-        removeDomains: string[]
+        name: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);
@@ -555,6 +558,8 @@ export class ProjectController {
 
     @Command("config:get [...key]")
     public async configGet(
+        @Param("key")
+        keys: string[],
         @Option("name", {
             type: "string",
             alias: "n",
@@ -565,9 +570,7 @@ export class ProjectController {
             type: "boolean",
             alias: "g"
         })
-        global: boolean,
-        @Param("key")
-        keys: string[]
+        global: boolean
     ): Promise<string> {
         if(name) {
             this.projectService.cdProject(name);
@@ -595,7 +598,10 @@ export class ProjectController {
     }
 
     @Command("config:set [...configs]")
+    @Description("Setting env variables")
     public async configSet(
+        @Param("configs")
+        variables: string[],
         @Option("name", {
             type: "string",
             alias: "n",
@@ -606,9 +612,7 @@ export class ProjectController {
             type: "boolean",
             alias: "g"
         })
-        global: boolean,
-        @Param("configs")
-        variables: string[]
+        global: boolean
     ): Promise<void> {
         if(!global && name) {
             this.projectService.cdProject(name);
@@ -643,18 +647,19 @@ export class ProjectController {
 
     @Command("config:unset [...configs]")
     public async configUnset(
+        @Param("configs")
+        configs: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
+        name?: string,
         @Option("global", {
             type: "boolean",
             alias: "g"
         })
-        global: boolean,
-        configs: string[]
+        global?: boolean
     ): Promise<void> {
         const env: Project["env"] = configs.reduce((env, config) => {
             const [key] = config.split("=");
@@ -720,13 +725,14 @@ export class ProjectController {
 
     @Command("build-args:get [...buildArgs]")
     public async buildArgsGet(
+        @Param("buildArgs")
+        args: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
-        args: string[]
+        name?: string
     ): Promise<string> {
         if(name) {
             this.projectService.cdProject(name);
@@ -791,13 +797,14 @@ export class ProjectController {
 
     @Command("build-args:unset [...buildArgs]")
     public async buildArgsUnset(
+        @Param("buildArgs")
+        args: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
-        args: string[]
+        name: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);
@@ -859,13 +866,14 @@ export class ProjectController {
 
     @Command("volume:mount [...volumes]")
     public async volumeMount(
+        @Param("volumes")
+        volumes: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
-        volumes: string[]
+        name: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);
@@ -882,13 +890,14 @@ export class ProjectController {
 
     @Command("volume:unmount [...volumes]")
     public async volumeUnmount(
+        @Param("volumes")
+        volumes: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
-        volumes: string[]
+        name: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);
@@ -1005,13 +1014,14 @@ export class ProjectController {
 
     @Command("exec [...command]")
     public async exec(
+        @Param("command")
+        command?: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name?: string,
-        command?: string[]
+        name?: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);
@@ -1024,16 +1034,16 @@ export class ProjectController {
 
     @Command("run <script> [...args]")
     public async run(
+        @Param("script")
+        script: string,
+        @Param("args")
+        args?: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
-        @Param("script")
-        script: string,
-        @Param("args")
-        args?: string[]
+        name?: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);

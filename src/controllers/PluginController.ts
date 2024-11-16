@@ -88,7 +88,10 @@ export class PluginController {
     }
 
     @Command("plugin:remove <name>")
-    public async remove(removeName: string) {
+    public async remove(
+        @Param("name")
+        removeName: string
+    ): Promise<void> {
         const [,
             prefix = "@wocker/",
             name,

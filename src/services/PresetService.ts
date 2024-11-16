@@ -59,7 +59,7 @@ export class PresetService {
                 switch(this.source) {
                     case PRESET_SOURCE_EXTERNAL:
                         const fs = new FileSystem(this.path);
-                        await fs.writeJSON("config.json", rest);
+                        fs.writeJSON("config.json", rest);
                         break;
 
                     case PRESET_SOURCE_GITHUB: {
@@ -69,7 +69,7 @@ export class PresetService {
                             fs.mkdir("");
                         }
 
-                        await fs.writeJSON("config.json", rest);
+                        fs.writeJSON("config.json", rest);
                         break;
                     }
                 }

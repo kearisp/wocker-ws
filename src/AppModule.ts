@@ -8,6 +8,7 @@ import {
 } from "@wocker/core";
 
 import {
+    CertController,
     CompletionController,
     DebugController,
     ImageController,
@@ -19,6 +20,7 @@ import {
 import {
     AppConfigService,
     AppEventsService,
+    CertService,
     DockerService,
     LogService,
     NpmService,
@@ -38,7 +40,8 @@ import {
         PluginController,
         PresetController,
         ProjectController,
-        ProxyController
+        ProxyController,
+        CertController
     ],
     providers: [
         AppConfigService,
@@ -49,7 +52,8 @@ import {
         PluginService,
         PresetService,
         ProjectService,
-        ProxyService
+        ProxyService,
+        CertService
     ],
     exports: [
         AppConfigService,
