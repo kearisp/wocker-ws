@@ -4,7 +4,7 @@ import CliTable from "cli-table3";
 
 import {AppConfigService} from "./AppConfigService";
 import {DockerService} from "./DockerService";
-import {ProjectService} from "./ProjectService";
+import {ProxyService} from "./ProxyService";
 
 
 type CertMap = {
@@ -15,14 +15,13 @@ type CertMap = {
 export class CertService {
     public constructor(
         protected readonly appConfigService: AppConfigService,
+        protected readonly proxyService: ProxyService,
         protected readonly dockerService: DockerService
     ) {}
 
     public async list(): Promise<string> {
         const table = new CliTable({
-            head: [
-                "Name"
-            ]
+            head: ["Name"]
         });
 
         const certMap = await this.getCertsMap();
@@ -38,6 +37,8 @@ export class CertService {
         if(!certName) {
             throw new Error("Cert name missing");
         }
+
+        await this.proxyService.start();
 
         const container = await this.dockerService.getContainer("proxy.workspace");
 

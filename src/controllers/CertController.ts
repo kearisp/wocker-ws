@@ -6,19 +6,14 @@ import {
     Option
 } from "@wocker/core";
 
-import {
-    ProjectService,
-    CertService,
-    LogService
-} from "../services";
+import {ProjectService, CertService} from "../services";
 
 
 @Controller()
 export class CertController {
     public constructor(
         protected readonly projectService: ProjectService,
-        protected readonly certService: CertService,
-        protected readonly logService: LogService
+        protected readonly certService: CertService
     ) {}
 
     @Command("certs")
