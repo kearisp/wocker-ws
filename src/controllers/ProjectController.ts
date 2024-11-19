@@ -24,6 +24,7 @@ import {
     AppConfigService,
     AppEventsService,
     ProjectService,
+    LogService,
     DockerService
 } from "../services";
 
@@ -34,6 +35,7 @@ export class ProjectController {
         protected readonly appConfigService: AppConfigService,
         protected readonly appEventsService: AppEventsService,
         protected readonly projectService: ProjectService,
+        protected readonly logService: LogService,
         protected readonly dockerService: DockerService
     ) {}
 
@@ -1101,9 +1103,15 @@ export class ProjectController {
             type: "boolean",
             alias: "f"
         })
-        follow?: boolean
+        follow?: boolean,
+        @Option("clear", {alias: "c"})
+        clear?: boolean
     ): Promise<void> {
         if(global) {
+            if(clear) {
+                this.logService.clear();
+            }
+
             const logFilepath = this.appConfigService.dataPath("ws.log");
 
             const prepareLog = (str: string) => {
