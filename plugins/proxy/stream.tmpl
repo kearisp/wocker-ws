@@ -1,0 +1,57 @@
+stream {
+    log_format stream_log '$target <- ssl_server_name=$ssl_server_name SNI=$ssl_preread_server_name server_port=$server_port server_addr=$server_addr bytes_sent=$bytes_sent bytes_received=$bytes_received';
+
+    {{ $containers := whereExist $ "Env.VIRTUAL_STREAM" }}
+
+    map $ssl_server_name:$server_port $target {
+        {{ range $container := $containers }}
+        {{ $container.Env.VIRTUAL_STREAM }}:{{ $container.Env.VIRTUAL_PORT }} {{ $container.Env.VIRTUAL_STREAM }};
+        {{ end }}
+        #:3306 mariadb-default.ws;
+    }
+
+    {{ range $container := $containers }}
+        {{ $network := index $container.Networks 0 }}
+    upstream {{ $container.Env.VIRTUAL_STREAM }} {
+        server {{ $network.IP }}:{{ $container.Env.VIRTUAL_PORT }};
+    }
+    {{ end }}
+
+    {{ $ports := dict }}
+
+    {{ range $container := $containers }}
+        {{ if not (index $ports $container.Env.VIRTUAL_PORT) }}
+            {{ $ports = merge (dict $container.Env.VIRTUAL_PORT 1) $ports }}
+        {{ end }}
+    {{ end }}
+
+    {{ if len $ports }}
+    server {
+        {{ range $port, $_ := $ports }}
+        listen {{ $port }} ssl;
+        {{ end }}
+        # listen 27017 ssl;
+        ssl_preread on;
+        ssl_certificate /etc/nginx/certs/default.crt;
+        ssl_certificate_key /etc/nginx/certs/default.key;
+        proxy_connect_timeout 60s;
+        proxy_socket_keepalive on;
+        proxy_pass $target;
+
+        access_log /proc/self/fd/1 stream_log;
+        error_log /proc/self/fd/2 debug;
+    }
+    {{ end }}
+
+    #server {
+    #    listen 3306;
+    #    ssl_preread on;
+    #    #ssl_certificate /etc/nginx/certs/default.crt;
+    #    #ssl_certificate_key /etc/nginx/certs/default.key;
+    #    proxy_connect_timeout 60s;
+    #    proxy_socket_keepalive on;
+    #    proxy_pass $target;
+    #    access_log /proc/self/fd/1 stream_log;
+    #    error_log /proc/self/fd/2 debug;
+    #}
+}

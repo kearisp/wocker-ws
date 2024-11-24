@@ -127,7 +127,7 @@ export class CertService {
         }
 
         for(const ext of certs[name]) {
-            this.appConfigService.fs.rm(`certs/projects/${name}${ext}`);
+            await this.appConfigService.fs.rm(`certs/projects/${name}${ext}`);
         }
 
         console.info(`Cert ${name} deleted`);

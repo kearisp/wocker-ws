@@ -121,6 +121,11 @@ export class ProxyController {
         await this.proxyService.stop();
     }
 
+    @Command("proxy:gen")
+    public async gen(): Promise<void> {
+        await this.proxyService.gen();
+    }
+
     @Command("proxy:logs")
     public async logs(): Promise<void> {
         await this.proxyService.logs();

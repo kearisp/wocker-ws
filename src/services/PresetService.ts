@@ -313,10 +313,16 @@ export class PresetService {
         });
     }
 
-    public async addPreset(name: string): Promise<void> {
+    public async addPreset(name: string, version?: string): Promise<void> {
         let preset = await this.searchOne({
             name
         });
+
+        // const r = await Http.get("https://api.github.com")
+        //     .withHeader("User-Agent", "Wocker")
+        //     .send(`/repos/kearisp/wocker-${name}-preset/tags`);
+        //
+        // console.log(r);
 
         if(!preset) {
             console.info("Loading...");

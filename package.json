@@ -24,7 +24,7 @@
         "watch": "tsc -w"
     },
     "dependencies": {
-        "@wocker/core": "1.0.20",
+        "@wocker/core": "1.0.21",
         "@wocker/utils": "^1.0.7",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",
@@ -43,7 +43,6 @@
     "devDependencies": {
         "@types/dockerode": "3.3.23",
         "@types/jest": "^29.5.12",
-        "@types/lodash": "^4.14.161",
         "@types/md5": "^2.3.2",
         "@types/mute-stream": "^0.0.1",
         "@types/node": "^20.11.16",
