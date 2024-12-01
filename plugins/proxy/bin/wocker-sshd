@@ -1,7 +1,0 @@
-#!/bin/bash
-
-if [ -n $SSH_PASSWORD ]; then
-    /usr/sbin/sshd -D
-else
-    echo "SSH proxy disabled"
-fi

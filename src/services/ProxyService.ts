@@ -78,8 +78,7 @@ export class ProxyService extends CoreProxyService {
                 restart: "always",
                 env: {
                     DEFAULT_HOST: "localhost",
-                    TRUST_DOWNSTREAM_PROXY: "true",
-                    SSH_PASSWORD: config.getMeta("PROXY_SSH_PASSWORD")
+                    TRUST_DOWNSTREAM_PROXY: "true"
                 },
                 ports: [
                     `${httpPort}:80`,
