@@ -1,5 +1,6 @@
 import {
     Injectable,
+    DockerService as CoreDockerService,
     DockerServiceParams as Params
 } from "@wocker/core";
 import Docker, {
@@ -14,12 +15,14 @@ import {LogService} from "./LogService";
 
 
 @Injectable("DOCKER_SERVICE")
-export class DockerService {
+export class DockerService extends CoreDockerService {
     protected docker: Docker;
 
     public constructor(
         protected readonly logService: LogService
     ) {
+        super();
+
         this.docker = new Docker({
             socketPath: "/var/run/docker.sock"
         });

@@ -150,7 +150,7 @@ export class PresetService {
 
         const version = [
             ...rawValues,
-            md5(hashValues.join(",")).substring(0, 6)
+            (md5(hashValues.join(",")) as string).substring(0, 6)
         ].filter((value) => {
             return !!value;
         }).join("-");

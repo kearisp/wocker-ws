@@ -1,2 +1,3 @@
 nginx: nginx -g "daemon off;"
 docker-gen: docker-gen -watch -config /app/docker-gen.conf
+sshd: wocker-sshd

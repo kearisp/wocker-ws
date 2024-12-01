@@ -5,7 +5,7 @@ import {
     Option,
     Project
 } from "@wocker/core";
-import {promptText} from "@wocker/utils";
+import {promptConfirm, promptText} from "@wocker/utils";
 import chalk from "chalk";
 
 import {
@@ -67,7 +67,11 @@ export class ProxyController {
             type: "number",
             description: "Https port"
         })
-        httpsPort?: number
+        httpsPort?: number,
+        @Option("ssh-password", {
+            description: "SSH password"
+        })
+        sshPassword?: string
     ): Promise<void> {
         const config = this.appConfigService.getConfig();
 
@@ -92,6 +96,20 @@ export class ProxyController {
         }
 
         config.setMeta("PROXY_HTTPS_PORT", httpsPort.toString());
+
+        if(!sshPassword) {
+            const enable = await promptConfirm({
+                message: "Enable ssh proxy?",
+                default: false
+            });
+
+            sshPassword = await promptText({
+                message: "SSH Password:",
+                type: "string"
+            });
+        }
+
+        config.setMeta("PROXY_SSH_PASSWORD", sshPassword);
 
         await config.save();
     }

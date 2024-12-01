@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ -n $SSH_PASSWORD ]; then
+    apt-get update
+    apt-get install -y openssh-server
+    mkdir -p /var/run/sshd
+    echo "root:$SSH_PASSWORD" | chpasswd
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+    /usr/sbin/sshd -D
+else
+    echo "SSH proxy disabled"
+fi
