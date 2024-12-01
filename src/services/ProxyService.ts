@@ -1,4 +1,9 @@
-import {Injectable, Project, FileSystem} from "@wocker/core";
+import {
+    Injectable,
+    Project,
+    FileSystem,
+    ProxyService as CoreProxyService
+} from "@wocker/core";
 import {promptText} from "@wocker/utils";
 import * as Path from "path";
 
@@ -8,7 +13,7 @@ import {DockerService} from "./DockerService";
 
 
 @Injectable("PROXY_SERVICE")
-export class ProxyService {
+export class ProxyService extends CoreProxyService {
     protected containerName = "proxy.workspace";
     protected imageName = "wocker-proxy:1.0.0";
     // protected oldImages = [
@@ -18,7 +23,9 @@ export class ProxyService {
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly dockerService: DockerService
-    ) {}
+    ) {
+        super();
+    }
 
     public async init(project: Project): Promise<void> {
         const appPort = await promptText({
@@ -124,10 +131,15 @@ export class ProxyService {
             return;
         }
 
+        const config = this.appConfigService.getConfig();
+
         await this.dockerService.buildImage({
             tag: this.imageName,
             context: Path.join(PLUGINS_DIR, "proxy"),
-            src: "./Dockerfile"
+            src: "./Dockerfile",
+            buildArgs: {
+                SSH_PASSWORD: config.getMeta("PROXY_SSH_PASSWORD")
+            }
         });
     }
 
