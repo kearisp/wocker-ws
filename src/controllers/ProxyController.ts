@@ -68,6 +68,11 @@ export class ProxyController {
             description: "Https port"
         })
         httpsPort?: number,
+        @Option("ssh-port", {
+            type: "number",
+            description: "SSH port"
+        })
+        sshPort?: number,
         @Option("ssh-password", {
             description: "SSH password"
         })
@@ -97,19 +102,39 @@ export class ProxyController {
 
         config.setMeta("PROXY_HTTPS_PORT", httpsPort.toString());
 
-        if(!sshPassword) {
-            const enable = await promptConfirm({
+        let enableSsh = false;
+
+        if(!sshPassword && !sshPort) {
+            enableSsh = await promptConfirm({
                 message: "Enable ssh proxy?",
                 default: false
             });
+        }
 
+        if(enableSsh && !sshPassword) {
             sshPassword = await promptText({
                 message: "SSH Password:",
-                type: "string"
+                type: "string",
+                default: config.getMeta("PROXY_SSH_PASSWORD")
             });
         }
 
-        config.setMeta("PROXY_SSH_PASSWORD", sshPassword);
+        if(enableSsh && !sshPort) {
+            sshPort = await promptText({
+                message: "SSH port:",
+                type: "number",
+                default: config.getMeta("PROXY_SSH_PORT", "22")
+            });
+        }
+
+        if(enableSsh) {
+            config.setMeta("PROXY_SSH_PASSWORD", sshPassword);
+            config.setMeta("PROXY_SSH_PORT", sshPort.toString());
+        }
+        else {
+            config.unsetMeta("PROXY_SSH_PASSWORD");
+            config.unsetMeta("PROXY_SSH_PORT");
+        }
 
         await config.save();
     }

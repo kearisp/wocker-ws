@@ -69,6 +69,7 @@ export class ProxyService extends CoreProxyService {
 
             const httpPort = config.getMeta("PROXY_HTTP_PORT", "80");
             const httpsPort = config.getMeta("PROXY_HTTPS_PORT", "443");
+            const sshPort = config.getMeta("PROXY_SSH_PORT", "22");
 
             const fs = new FileSystem(Path.join(__dirname, "../../"));
 
@@ -84,7 +85,7 @@ export class ProxyService extends CoreProxyService {
                     `${httpPort}:80`,
                     `${httpsPort}:443`,
                     ...config.getMeta("PROXY_SSH_PASSWORD") ? [
-                        "22:22"
+                        `${sshPort}:22`
                     ] : [],
                     // "3306:3306",
                     // "27017:27017"
