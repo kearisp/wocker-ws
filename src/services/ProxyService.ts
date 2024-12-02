@@ -1,22 +1,31 @@
-import {Injectable, Project} from "@wocker/core";
+import {
+    Injectable,
+    Project,
+    FileSystem,
+    ProxyService as CoreProxyService
+} from "@wocker/core";
 import {promptText} from "@wocker/utils";
 import * as Path from "path";
 
 import {PLUGINS_DIR} from "../env";
-import {FS} from "../makes";
 import {AppConfigService} from "./AppConfigService";
 import {DockerService} from "./DockerService";
 
 
 @Injectable("PROXY_SERVICE")
-export class ProxyService {
+export class ProxyService extends CoreProxyService {
     protected containerName = "proxy.workspace";
     protected imageName = "wocker-proxy:1.0.0";
+    // protected oldImages = [
+    //     "wocker-proxy:1.0.0"
+    // ];
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly dockerService: DockerService
-    ) {}
+    ) {
+        super();
+    }
 
     public async init(project: Project): Promise<void> {
         const appPort = await promptText({
@@ -42,8 +51,6 @@ export class ProxyService {
 
             await this.build(rebuild);
 
-            const certsDir = this.appConfigService.dataPath("certs");
-
             if(!this.appConfigService.fs.exists("certs/ca")) {
                 this.appConfigService.fs.mkdir("certs/ca", {
                     recursive: true,
@@ -58,17 +65,13 @@ export class ProxyService {
                 });
             }
 
-            if(!FS.existsSync(certsDir)) {
-                FS.mkdirSync(certsDir, {
-                    recursive: true,
-                    mode: 0o700
-                });
-            }
-
             const config = this.appConfigService.getConfig();
 
             const httpPort = config.getMeta("PROXY_HTTP_PORT", "80");
             const httpsPort = config.getMeta("PROXY_HTTPS_PORT", "443");
+            const sshPort = config.getMeta("PROXY_SSH_PORT", "22");
+
+            const fs = new FileSystem(Path.join(__dirname, "../../"));
 
             container = await this.dockerService.createContainer({
                 name: this.containerName,
@@ -80,13 +83,21 @@ export class ProxyService {
                 },
                 ports: [
                     `${httpPort}:80`,
-                    `${httpsPort}:443`
+                    `${httpsPort}:443`,
+                    ...config.getMeta("PROXY_SSH_PASSWORD") ? [
+                        `${sshPort}:22`
+                    ] : [],
+                    // "3306:3306",
+                    // "27017:27017"
                 ],
                 volumes: [
                     "/var/run/docker.sock:/tmp/docker.sock:ro",
                     `${this.appConfigService.fs.path("certs/projects")}:/etc/nginx/certs`,
-                    `${this.appConfigService.fs.path("certs/ca")}:/etc/nginx/ca-certs`
-                ]
+                    `${this.appConfigService.fs.path("certs/ca")}:/etc/nginx/ca-certs`,
+                    // `${fs.path("plugins/proxy/stream.tmpl")}:/app/stream.tmpl`,
+                    // `${fs.path("plugins/proxy/toplevel.conf.d")}:/etc/nginx/toplevel.conf.d`
+                ],
+                network: "workspace"
             });
         }
 
@@ -120,14 +131,30 @@ export class ProxyService {
             return;
         }
 
+        const config = this.appConfigService.getConfig();
+
         await this.dockerService.buildImage({
             tag: this.imageName,
             context: Path.join(PLUGINS_DIR, "proxy"),
-            src: "./Dockerfile"
+            src: "./Dockerfile",
+            buildArgs: {
+                SSH_PASSWORD: config.getMeta("PROXY_SSH_PASSWORD")
+            }
         });
     }
 
     public async logs(): Promise<void> {
         await this.dockerService.logs(this.containerName);
+    }
+
+    public async gen(): Promise<void> {
+        await this.dockerService.exec(this.containerName, {
+            tty: true,
+            cmd: [
+                "bash",
+                "-c",
+                "docker-gen -notify \"nginx -s reload\" /app/stream.tmpl /etc/nginx/toplevel.conf.d/stream.conf"
+            ]
+        });
     }
 }

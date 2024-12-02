@@ -189,11 +189,14 @@ export class PresetController {
     }
 
     @Command("preset:add <preset>")
+    @Command("preset:add <preset>@<version>")
     public async add(
         @Param("preset")
-        name: string
+        name: string,
+        @Param("version")
+        version?: string
     ): Promise<void> {
-        await this.presetService.addPreset(name);
+        await this.presetService.addPreset(name, version);
     }
 
     @Command("preset:ls")

@@ -1,4 +1,4 @@
-name: Publish dev
+name: Publish beta
 
 on:
     pull_request:
@@ -29,22 +29,22 @@ jobs:
           - name: Setup core version
             run: |
                 CORE_VERSION=$(npm pkg get dependencies.@wocker/core | sed -e 's/^"//' -e 's/"$//')
-                CORE_DEV_VERSION=$(npm view @wocker/core@dev version 2> /dev/null || echo "")
-                if [[ "$CORE_DEV_VERSION" == "$CORE_VERSION"* ]]; then
-                    npm pkg set "dependencies.@wocker/core=$CORE_DEV_VERSION"
+                CORE_BETA_VERSION=$(npm view @wocker/core@beta version 2> /dev/null || echo "")
+                if [[ "$CORE_BETA_VERSION" == "$CORE_VERSION"* ]]; then
+                    npm pkg set "dependencies.@wocker/core=$CORE_BETA_VERSION"
                 fi
 
           - name: Setup version
             run: |
                 PACKAGE_NAME=$(npm pkg get name | sed -e 's/^"//' -e 's/"$//')
                 PACKAGE_VERSION=$(npm pkg get version | sed -e 's/^"//' -e 's/"$//')
-                PUBLISHED_VERSION=$(npm view $PACKAGE_NAME@dev version 2>/dev/null || echo "")
+                PUBLISHED_VERSION=$(npm view $PACKAGE_NAME@beta version 2>/dev/null || echo "")
                 if [[ "$PUBLISHED_VERSION" == "$PACKAGE_VERSION"* ]]; then
-                    INDEX=$(echo $PUBLISHED_VERSION | sed -r -e 's/^[0-9]+\.[0-9]+\.[0-9]+-dev\.//' | awk '{print $0+1}')
+                    INDEX=$(echo $PUBLISHED_VERSION | sed -r -e 's/^[0-9]+\.[0-9]+\.[0-9]+-beta\.//' | awk '{print $0+1}')
                 else
                     INDEX=0
                 fi
-                npm pkg set version=$PACKAGE_VERSION-dev.$INDEX
+                npm pkg set version=$PACKAGE_VERSION-beta.$INDEX
 
           - name: Cache dependencies
             uses: actions/cache@v4
@@ -57,8 +57,8 @@ jobs:
           - name: Install dependencies
             run: npm install
 
-    publish-dev:
-        name: Publish dev version
+    publish-beta:
+        name: Publish beta version
         if: github.repository_owner == 'kearisp'
         runs-on: ubuntu-latest
         environment: publish
@@ -79,22 +79,22 @@ jobs:
           - name: Setup core version
             run: |
                 CORE_VERSION=$(npm pkg get dependencies.@wocker/core | sed -e 's/^"//' -e 's/"$//')
-                CORE_DEV_VERSION=$(npm view @wocker/core@dev version 2> /dev/null || echo "")
-                if [[ "$CORE_DEV_VERSION" == "$CORE_VERSION"* ]]; then
-                    npm pkg set "dependencies.@wocker/core=$CORE_DEV_VERSION"
+                CORE_BETA_VERSION=$(npm view @wocker/core@beta version 2> /dev/null || echo "")
+                if [[ "$CORE_BETA_VERSION" == "$CORE_VERSION"* ]]; then
+                    npm pkg set "dependencies.@wocker/core=$CORE_BETA_VERSION"
                 fi
 
           - name: Setup version
             run: |
                 PACKAGE_NAME=$(npm pkg get name | sed -e 's/^"//' -e 's/"$//')
                 PACKAGE_VERSION=$(npm pkg get version | sed -e 's/^"//' -e 's/"$//')
-                PUBLISHED_VERSION=$(npm view $PACKAGE_NAME@dev version 2>/dev/null || echo "")
+                PUBLISHED_VERSION=$(npm view $PACKAGE_NAME@beta version 2>/dev/null || echo "")
                 if [[ "$PUBLISHED_VERSION" == "$PACKAGE_VERSION"* ]]; then
-                    INDEX=$(echo $PUBLISHED_VERSION | sed -r -e 's/^[0-9]+\.[0-9]+\.[0-9]+-dev\.//' | awk '{print $0+1}')
+                    INDEX=$(echo $PUBLISHED_VERSION | sed -r -e 's/^[0-9]+\.[0-9]+\.[0-9]+-beta\.//' | awk '{print $0+1}')
                 else
                     INDEX=0
                 fi
-                npm pkg set version=$PACKAGE_VERSION-dev.$INDEX
+                npm pkg set version=$PACKAGE_VERSION-beta.$INDEX
 
           - name: Cache dependencies
             uses: actions/cache@v4
@@ -107,8 +107,8 @@ jobs:
           - name: Install dependencies
             run: npm install
 
-          - name: Publish dev to NPM
+          - name: Publish beta to NPM
             env:
                 NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
             run: |
-                npm publish --provenance --tag dev
+                npm publish --provenance --tag beta
