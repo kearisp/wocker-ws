@@ -94,8 +94,8 @@ export class ProxyService extends CoreProxyService {
                     "/var/run/docker.sock:/tmp/docker.sock:ro",
                     `${this.appConfigService.fs.path("certs/projects")}:/etc/nginx/certs`,
                     `${this.appConfigService.fs.path("certs/ca")}:/etc/nginx/ca-certs`,
-                    `${fs.path("plugins/proxy/stream.tmpl")}:/app/stream.tmpl`,
-                    `${fs.path("plugins/proxy/toplevel.conf.d")}:/etc/nginx/toplevel.conf.d`
+                    // `${fs.path("plugins/proxy/stream.tmpl")}:/app/stream.tmpl`,
+                    // `${fs.path("plugins/proxy/toplevel.conf.d")}:/etc/nginx/toplevel.conf.d`
                 ],
                 network: "workspace"
             });
