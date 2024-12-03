@@ -4,7 +4,7 @@ import {
     Param,
     Option,
     Project,
-    FSManager,
+    FileSystemManager,
     PROJECT_TYPE_PRESET
 } from "@wocker/core";
 import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
@@ -274,14 +274,14 @@ export class PresetController {
             return;
         }
 
-        const copier = new FSManager(
+        const copier = new FileSystemManager(
             this.appConfigService.presetPath(preset.name),
             this.appConfigService.pwd()
         );
 
         if(preset.dockerfile) {
             if(!copier.destination.exists(preset.dockerfile)) {
-                await copier.copy(preset.dockerfile);
+                copier.copy(preset.dockerfile);
             }
 
             project.type = "dockerfile";

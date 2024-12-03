@@ -1,7 +1,6 @@
 import {
     Injectable,
     Project,
-    FileSystem,
     ProxyService as CoreProxyService
 } from "@wocker/core";
 import {promptText} from "@wocker/utils";
@@ -15,10 +14,10 @@ import {DockerService} from "./DockerService";
 @Injectable("PROXY_SERVICE")
 export class ProxyService extends CoreProxyService {
     protected containerName = "proxy.workspace";
-    protected imageName = "wocker-proxy:1.0.0";
-    // protected oldImages = [
-    //     "wocker-proxy:1.0.0"
-    // ];
+    protected imageName = "wocker-proxy:1.0.1";
+    protected oldImages = [
+        "wocker-proxy:1.0.0"
+    ];
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
@@ -71,8 +70,6 @@ export class ProxyService extends CoreProxyService {
             const httpsPort = config.getMeta("PROXY_HTTPS_PORT", "443");
             const sshPort = config.getMeta("PROXY_SSH_PORT", "22");
 
-            const fs = new FileSystem(Path.join(__dirname, "../../"));
-
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: this.imageName,
@@ -86,16 +83,12 @@ export class ProxyService extends CoreProxyService {
                     `${httpsPort}:443`,
                     ...config.getMeta("PROXY_SSH_PASSWORD") ? [
                         `${sshPort}:22`
-                    ] : [],
-                    // "3306:3306",
-                    // "27017:27017"
+                    ] : []
                 ],
                 volumes: [
                     "/var/run/docker.sock:/tmp/docker.sock:ro",
                     `${this.appConfigService.fs.path("certs/projects")}:/etc/nginx/certs`,
-                    `${this.appConfigService.fs.path("certs/ca")}:/etc/nginx/ca-certs`,
-                    // `${fs.path("plugins/proxy/stream.tmpl")}:/app/stream.tmpl`,
-                    // `${fs.path("plugins/proxy/toplevel.conf.d")}:/etc/nginx/toplevel.conf.d`
+                    `${this.appConfigService.fs.path("certs/ca")}:/etc/nginx/ca-certs`
                 ],
                 network: "workspace"
             });
@@ -129,6 +122,10 @@ export class ProxyService extends CoreProxyService {
 
         if(exists) {
             return;
+        }
+
+        for(const oldImage of this.oldImages) {
+            await this.dockerService.imageRm(oldImage);
         }
 
         const config = this.appConfigService.getConfig();

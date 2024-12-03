@@ -67,6 +67,8 @@ export class DockerService extends CoreDockerService {
             image,
             projectId,
             restart,
+            memory,
+            memorySwap,
             ulimits,
             extraHosts,
             networkMode = "bridge",
@@ -126,6 +128,8 @@ export class DockerService extends CoreDockerService {
                 return res;
             }, {}),
             HostConfig: {
+                Memory: memory,
+                MemorySwap: memorySwap,
                 NetworkMode: networkMode,
                 ExtraHosts: extraHosts,
                 Ulimits: ulimits ? Object.keys(ulimits).reduce((res, name) => {

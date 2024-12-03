@@ -6,6 +6,12 @@
     "license": "MIT",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
+    "keywords": [
+        "wocker",
+        "workspace",
+        "docker",
+        "devops"
+    ],
     "bin": {
         "ws": "./bin/ws.js"
     },
