@@ -1,11 +1,17 @@
 {
     "name": "@wocker/ws",
-    "version": "1.0.20",
+    "version": "1.0.21",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Docker workspace for web projects",
     "license": "MIT",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
+    "keywords": [
+        "wocker",
+        "workspace",
+        "docker",
+        "devops"
+    ],
     "bin": {
         "ws": "./bin/ws.js"
     },
@@ -24,11 +30,11 @@
         "watch": "tsc -w"
     },
     "dependencies": {
-        "@wocker/core": "1.0.20",
+        "@wocker/core": "1.0.21",
         "@wocker/utils": "^1.0.7",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",
-        "chalk": "^2.4.2",
+        "chalk": "^4.1.2",
         "child_process": "^1.0.2",
         "cli-table3": "^0.6.2",
         "date-fns": "^2.29.3",
@@ -41,9 +47,8 @@
         "unzipper": "^0.12.3"
     },
     "devDependencies": {
-        "@types/dockerode": "3.3.23",
+        "@types/dockerode": "^3.3.23",
         "@types/jest": "^29.5.12",
-        "@types/lodash": "^4.14.161",
         "@types/md5": "^2.3.2",
         "@types/mute-stream": "^0.0.1",
         "@types/node": "^20.11.16",

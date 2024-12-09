@@ -1,3 +1,3 @@
-export * from "./ElasticSearchPlugin";
+export * from "./elastic-search";
+export * from "./proxmox";
 export * from "./MongodbPlugin";
-export * from "./ProxmoxPlugin";

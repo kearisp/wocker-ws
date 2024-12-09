@@ -29,6 +29,10 @@ import {
     ProjectService,
     ProxyService
 } from "./services";
+import {
+    ElasticSearchPlugin,
+    ProxmoxPlugin
+} from "./plugins";
 
 
 @Global()
@@ -62,6 +66,10 @@ import {
         LogService,
         ProjectService,
         ProxyService
+    ],
+    imports: [
+        ElasticSearchPlugin,
+        // ProxmoxPlugin
     ]
 })
 export class AppModule {
