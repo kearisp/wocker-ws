@@ -1,5 +1,4 @@
 import {FS as CoreFS} from "@wocker/core";
-
 import * as fs from "fs";
 import {
     Stats,
@@ -18,6 +17,9 @@ type ReaddirFilesOptions = {
     recursive?: boolean;
 };
 
+/**
+ * @deprecated
+ */
 export class FS extends CoreFS {
     public static async access(path: PathLike): Promise<any> {
         return new Promise((resolve, reject) => {
@@ -37,7 +39,7 @@ export class FS extends CoreFS {
     }
 
     public static async mkdir(dirPath: string, options: MakeDirectoryOptions = {}): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             fs.mkdir(dirPath, options, (err) => {
                 if(!err) {
                     resolve();
@@ -86,7 +88,7 @@ export class FS extends CoreFS {
             return res;
         }
 
-        return new Promise((resolve, reject) => {
+        return new Promise<string[]>((resolve, reject) => {
             fs.readdir(path, {
                 withFileTypes: true
             } as any, (err, files: Dirent[]) => {
@@ -106,14 +108,14 @@ export class FS extends CoreFS {
         });
     }
 
-    public static async appendFile(path: PathOrFileDescriptor, data: any, options?: WriteFileOptions) {
-        return new Promise((resolve, reject) => {
-            fs.appendFile(path, data, options, (error: any, data: void | undefined) => {
+    public static async appendFile(path: PathOrFileDescriptor, data: any, options?: WriteFileOptions): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            fs.appendFile(path, data, options, (error: any) => {
                 if(error) {
                     reject(error);
                 }
                 else {
-                    resolve(data);
+                    resolve(undefined);
                 }
             });
         });

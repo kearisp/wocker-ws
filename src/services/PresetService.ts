@@ -150,7 +150,7 @@ export class PresetService {
 
         const version = [
             ...rawValues,
-            md5(hashValues.join(",")).substring(0, 6)
+            (md5(hashValues.join(",")) as string).substring(0, 6)
         ].filter((value) => {
             return !!value;
         }).join("-");
@@ -313,10 +313,16 @@ export class PresetService {
         });
     }
 
-    public async addPreset(name: string): Promise<void> {
+    public async addPreset(name: string, version?: string): Promise<void> {
         let preset = await this.searchOne({
             name
         });
+
+        // const r = await Http.get("https://api.github.com")
+        //     .withHeader("User-Agent", "Wocker")
+        //     .send(`/repos/kearisp/wocker-${name}-preset/tags`);
+        //
+        // console.log(r);
 
         if(!preset) {
             console.info("Loading...");

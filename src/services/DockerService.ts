@@ -1,5 +1,6 @@
 import {
     Injectable,
+    DockerService as CoreDockerService,
     DockerServiceParams as Params
 } from "@wocker/core";
 import Docker, {
@@ -14,12 +15,14 @@ import {LogService} from "./LogService";
 
 
 @Injectable("DOCKER_SERVICE")
-export class DockerService {
+export class DockerService extends CoreDockerService {
     protected docker: Docker;
 
     public constructor(
         protected readonly logService: LogService
     ) {
+        super();
+
         this.docker = new Docker({
             socketPath: "/var/run/docker.sock"
         });
@@ -64,17 +67,21 @@ export class DockerService {
             image,
             projectId,
             restart,
+            memory,
+            memorySwap,
             ulimits,
             extraHosts,
             networkMode = "bridge",
             links = [],
-            env = {},
+            env = {} as any,
             volumes = [],
             ports = [],
-            cmd = []
+            cmd = [],
+            network: networkName = "workspace",
+            aliases
         } = params;
 
-        const network = this.docker.getNetwork("workspace");
+        const network = this.docker.getNetwork(networkName);
 
         try {
             await network.inspect();
@@ -82,7 +89,7 @@ export class DockerService {
         catch(err) {
             if(err.statusCode === 404) {
                 await this.docker.createNetwork({
-                    Name: "workspace"
+                    Name: networkName
                 });
             }
         }
@@ -121,6 +128,8 @@ export class DockerService {
                 return res;
             }, {}),
             HostConfig: {
+                Memory: memory,
+                MemorySwap: memorySwap,
                 NetworkMode: networkMode,
                 ExtraHosts: extraHosts,
                 Ulimits: ulimits ? Object.keys(ulimits).reduce((res, name) => {
@@ -158,7 +167,7 @@ export class DockerService {
                 EndpointsConfig: networkMode === "host" ? {} : {
                     workspace: {
                         Links: links,
-                        Aliases: env.VIRTUAL_HOST ? env.VIRTUAL_HOST.split(",") : undefined
+                        Aliases: aliases || (env.VIRTUAL_HOST ? env.VIRTUAL_HOST.split(",") : undefined)
                     }
                 }
             }

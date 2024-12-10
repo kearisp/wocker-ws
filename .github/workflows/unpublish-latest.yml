@@ -27,4 +27,4 @@ jobs:
             run: |
                 PACKAGE_NAME=$(npm pkg get name | sed -e 's/^"//' -e 's/"$//')
                 PACKAGE_VERSION=$(npm pkg get version | sed -e 's/^"//' -e 's/"$//')
-                npm unpublish $PACKAGE_NAME@$PACKAGE_VERSION --force 2>/dev/null || npm deprecate $PACKAGE_NAME@$PACKAGE_VERSION "This is the dev version. Why can't it be deleted?"
+                npm unpublish $PACKAGE_NAME@$PACKAGE_VERSION --force 2>/dev/null || npm deprecate $PACKAGE_NAME@$PACKAGE_VERSION "This is deprecated version. Why can't it be deleted?"

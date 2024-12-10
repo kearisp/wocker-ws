@@ -38,6 +38,12 @@ export class LogService extends CoreLogService {
         this._log("error", ...data);
     }
 
+    public clear(): void {
+        const logPath = this.appConfigService.dataPath("ws.log");
+
+        FS.writeFileSync(logPath, "");
+    }
+
     protected _log(type: string, ...data: any[]): void {
         const config = this.appConfigService.getConfig();
 

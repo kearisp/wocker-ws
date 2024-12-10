@@ -1,48 +1,38 @@
-import {Controller, FSManager} from "@wocker/core";
-
 import {
-    AppConfigService,
-    DockerService
-} from "../services";
+    Controller,
+    Description,
+    Command,
+    Option,
+    FileSystemManager,
+    DockerService,
+    AppConfigService
+} from "@wocker/core";
 
-
-type StartOptions = {
-    restart?: boolean;
-};
 
 @Controller()
-export class ElasticSearchPlugin {
+export class ElasticSearchController {
     protected containerName = "elastic-search.workspace";
-    protected fs: FSManager;
+    protected fs: FileSystemManager;
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
-        protected readonly dockerService: DockerService,
+        protected readonly dockerService: DockerService
     ) {
-        this.fs = new FSManager(
+        this.fs = new FileSystemManager(
             this.appConfigService.pluginsPath("elastic-search"),
             this.appConfigService.dataPath("plugins/elastic-search")
         );
     }
 
-    // public install(cli: Cli) {
-    //     cli.command("elastica:start")
-    //         .option("restart", {
-    //             type: "boolean",
-    //             alias: "r",
-    //             description: "Restart service"
-    //         })
-    //         .action((options) => this.start(options));
-    //
-    //     cli.command("elastica:stop")
-    //         .action(() => this.stop());
-    // }
-
-    public async start(options: StartOptions) {
-        const {
-            restart
-        } = options;
-
+    @Command("elastica:start")
+    @Description("Start Elastic Search")
+    public async start(
+        @Option("restart", {
+            alias: "r",
+            description: "Restarting elastic search"
+        })
+        restart?: boolean
+    ): Promise<void> {
         await this.dockerService.pullImage("docker.elastic.co/elasticsearch/elasticsearch:7.5.2");
 
         let container = await this.dockerService.getContainer(this.containerName);
@@ -54,7 +44,7 @@ export class ElasticSearchPlugin {
         }
 
         if(!container) {
-            await this.fs.mkdir("data", {
+            this.fs.mkdir("data", {
                 recursive: true
             });
 
@@ -75,7 +65,7 @@ export class ElasticSearchPlugin {
                     ES_JAVA_OPTS: "-Xms512m -Xmx512m"
                 },
                 volumes: [
-                    `${this.fs.path("data")}:/usr/share/elasticsearch/data`
+                    `${this.fs.destination.path("data")}:/usr/share/elasticsearch/data`
                 ],
                 ports: [
                     "9200:9200"
@@ -94,7 +84,9 @@ export class ElasticSearchPlugin {
         }
     }
 
-    async stop() {
+    @Command("elastica:stop")
+    @Description("Stop Elastic Search")
+    public async stop(): Promise<void> {
         await this.dockerService.removeContainer(this.containerName);
     }
 }
