@@ -143,15 +143,4 @@ export class ProxyService extends CoreProxyService {
     public async logs(): Promise<void> {
         await this.dockerService.logs(this.containerName);
     }
-
-    public async gen(): Promise<void> {
-        await this.dockerService.exec(this.containerName, {
-            tty: true,
-            cmd: [
-                "bash",
-                "-c",
-                "docker-gen -notify \"nginx -s reload\" /app/stream.tmpl /etc/nginx/toplevel.conf.d/stream.conf"
-            ]
-        });
-    }
 }
