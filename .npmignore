@@ -11,6 +11,7 @@
 
 # Builds
 /lib/tsconfig.tsbuildinfo
+/coverage
 
 # Build configs
 /.env

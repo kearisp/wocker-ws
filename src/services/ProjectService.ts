@@ -3,8 +3,9 @@ import {
     Project,
     ProjectProperties,
     PROJECT_TYPE_DOCKERFILE
-} from "@wocker/core"
+} from "@wocker/core";
 
+import {KeystoreService} from "../keystore";
 import {AppConfigService} from "./AppConfigService";
 import {AppEventsService} from "./AppEventsService";
 import {DockerService} from "./DockerService";
@@ -20,6 +21,7 @@ class ProjectService {
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly appEventsService: AppEventsService,
+        protected readonly keystoreService: KeystoreService,
         protected readonly dockerService: DockerService
     ) {}
 
@@ -31,8 +33,16 @@ class ProjectService {
                 super(data);
             }
 
-            public async save(): Promise<void> {
-                await _this.save(this);
+            public async getSecret(key: string, defaultValue?: string) {
+                return _this.keystoreService.get(`p:${this.name}:${key}`, defaultValue);
+            }
+
+            public async setSecret(key: string, value: string) {
+                return _this.keystoreService.set(`p:${this.name}:${key}`, value);
+            }
+
+            public save(): void {
+                _this.save(this);
             }
         }(data as ProjectProperties);
     }
@@ -168,7 +178,7 @@ class ProjectService {
         await this.dockerService.removeContainer(project.containerName);
     }
 
-    public async save(project: Project): Promise<void> {
+    public save(project: Project): void {
         if(!project.name) {
             throw new Error("Project should has a name");
         }
@@ -181,10 +191,10 @@ class ProjectService {
             project.id = project.name;
         }
 
-        const config = this.appConfigService.getConfig();
-
         if(!this.appConfigService.fs.exists(`projects/${project.id}`)) {
-            this.appConfigService.fs.mkdir(`projects/${project.id}`, {recursive: true});
+            this.appConfigService.fs.mkdir(`projects/${project.id}`, {
+                recursive: true
+            });
         }
 
         const {
@@ -192,20 +202,17 @@ class ProjectService {
             ...rest
         } = project.toJSON();
 
-        config.addProject(project.id, project.name, path);
-
+        this.appConfigService.addProject(project.id, project.name, path);
         this.appConfigService.fs.writeJSON(`projects/${project.id}/config.json`, rest);
-        await config.save();
+        this.appConfigService.save();
     }
 
     public search(params: Partial<SearchParams> = {}): Project[] {
         const {name, path} = params;
 
-        const config = this.appConfigService.getConfig();
-
         const projects: Project[] = [];
 
-        for(const projectConfig of config.projects || []) {
+        for(const projectConfig of this.appConfigService.projects || []) {
             if(name && projectConfig.name !== name) {
                 continue;
             }
@@ -230,6 +237,29 @@ class ProjectService {
         const [project] = this.search(params);
 
         return project || null;
+    }
+
+    public async logs(detach?: boolean) {
+        const project = this.get();
+
+        const container = await this.dockerService.getContainer(project.containerName);
+
+        if(!container) {
+            throw new Error("Project not started");
+        }
+
+        if(!detach) {
+            await this.dockerService.logs(container);
+        }
+        else {
+            const data = await container.logs({
+                stdout: true,
+                stderr: true,
+                follow: false
+            });
+
+            process.stdout.write(data);
+        }
     }
 }
 

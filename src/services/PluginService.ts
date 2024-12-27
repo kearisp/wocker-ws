@@ -1,12 +1,14 @@
 import {
     Cli,
-    Injectable,
-    PLUGIN_NAME_METADATA
+    Injectable
 } from "@wocker/core";
+import CliTable from "cli-table3";
+import colors from "yoctocolors-cjs";
 
 import {AppConfigService} from "./AppConfigService";
 import {LogService} from "./LogService";
-import {Http} from "../makes";
+import {NpmService} from "./NpmService";
+import {Http, Plugin} from "../makes";
 import {exec, spawn} from "../utils";
 
 
@@ -14,48 +16,123 @@ import {exec, spawn} from "../utils";
 export class PluginService {
     public constructor(
         protected readonly appConfigService: AppConfigService,
+        protected readonly npmService: NpmService,
         protected readonly logService: LogService,
         protected readonly cli: Cli
     ) {}
 
+    public getPluginsTable(): string {
+        const config = this.appConfigService.config;
+        const table = new CliTable({
+            head: ["Name", "Env"],
+            colWidths: [30]
+        });
+
+        if(config.plugins.length === 0) {
+            return colors.gray("No plugins installed");
+        }
+
+        for(const plugin of config.plugins) {
+            table.push([plugin.name, plugin.env]);
+        }
+
+        return table.toString();
+    }
+
     public async checkPlugin(pluginName: string): Promise<boolean> {
         try {
-            const {default: Plugin} = await import(pluginName);
-
-            const name = Reflect.getMetadata(PLUGIN_NAME_METADATA, Plugin);
-
-            if(!name) {
-                console.error("No name");
-            }
-
-            return !!name;
+            await this.import(pluginName);
+            return true;
         }
         catch(err) {
-            this.logService.error(err.message);
+            this.logService.error(err.message, {
+                pluginName
+            });
         }
 
         return false;
     }
 
-    public async import() {
-        //
+    public async install(pluginName: string, beta?: boolean): Promise<void> {
+        const [,
+            prefix = "@wocker/",
+            name,
+            suffix = "-plugin"
+        ] = /^(@wocker\/)?(\w+)(-plugin)?$/.exec(pluginName) || [];
+
+        const fullName = `${prefix}${name}${suffix}`;
+        const config = this.appConfigService.config;
+
+        try {
+            if(await this.checkPlugin(fullName)) {
+                config.addPlugin(fullName);
+
+                await config.save();
+
+                console.info(`Plugin ${fullName} activated`);
+
+                return;
+            }
+
+            const packageInfo = await this.npmService.getPackageInfo(fullName);
+
+            const env = packageInfo["dist-tags"].beta && beta ? "beta" : "latest";
+            await this.npmService.install(fullName, env);
+
+            if(await this.checkPlugin(fullName)) {
+                config.addPlugin(fullName, env);
+
+                await config.save();
+
+                console.info(`Plugin ${fullName}@${env} activated`);
+
+                return;
+            }
+        }
+        catch(err) {
+            this.logService.error(err.message);
+        }
     }
 
-    public async update() {
-        const config = this.appConfigService.getConfig();
+    public async uninstall(pluginName: string): Promise<void> {
+        const [,
+            prefix = "@wocker/",
+            name,
+            suffix = "-plugin"
+        ] = /^(@wocker\/)?(\w+)(-plugin)?$/.exec(pluginName) || [];
+
+        const fullName = `${prefix}${name}${suffix}`;
+
+        const config = this.appConfigService.config;
+
+        config.removePlugin(fullName);
+
+        await config.save();
+
+        console.info(`Plugin ${fullName} deactivated`);
+    }
+
+    public async import(name: string): Promise<Plugin> {
+        const {default: type} = await import(name);
+
+        return new Plugin(type);
+    }
+
+    public async update(): Promise<void> {
+        const config = this.appConfigService.config;
 
         if(!config.plugins) {
             return;
         }
 
-        for(const name of new Set(config.plugins).values()) {
-            console.info(`Checking ${name}...`);
+        for(const plugin of config.plugins) {
+            console.info(`Checking ${plugin.name}...`);
 
             try {
-                const current = await this.getCurrentVersion(name);
+                const current = await this.getCurrentVersion(plugin.name);
 
                 const res = await Http.get("https://registry.npmjs.org")
-                    .send(name);
+                    .send(plugin.name);
 
                 if(res.status !== 200) {
                     continue;
@@ -67,12 +144,12 @@ export class PluginService {
                     }
                 } = res.data;
 
-                this.logService.info(name, current, latest);
+                this.logService.info(plugin.name, current, latest);
 
                 if(!current || current < latest) {
-                    console.log(`Updating ${name}...`);
+                    console.log(`Updating ${plugin.name}...`);
 
-                    await spawn("npm", ["i", "-g", name]);
+                    await spawn("npm", ["i", "-g", plugin.name]);
                 }
             }
             catch(err) {

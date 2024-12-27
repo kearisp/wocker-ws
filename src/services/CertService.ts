@@ -66,7 +66,7 @@ export class CertService {
     }
 
     public async getCertsMap(): Promise<CertMap> {
-        const files = await this.appConfigService.fs.readdir("certs/projects");
+        const files = this.appConfigService.fs.readdir("certs/projects");
 
         return files.reduce((res, file) => {
             const ext = Path.extname(file);
@@ -127,7 +127,7 @@ export class CertService {
         }
 
         for(const ext of certs[name]) {
-            await this.appConfigService.fs.rm(`certs/projects/${name}${ext}`);
+            this.appConfigService.fs.rm(`certs/projects/${name}${ext}`);
         }
 
         console.info(`Cert ${name} deleted`);

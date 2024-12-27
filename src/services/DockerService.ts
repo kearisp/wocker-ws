@@ -243,9 +243,13 @@ export class DockerService extends CoreDockerService {
             t: tag,
             labels,
             buildargs: Object.keys(buildArgs).reduce((res, key) => {
-                res[key] = typeof buildArgs[key] !== "string"
-                    ? (buildArgs[key] as any).toString()
-                    : buildArgs[key];
+                const value = buildArgs[key];
+
+                if(typeof value !== "undefined") {
+                    res[key] = typeof buildArgs[key] !== "string"
+                        ? (buildArgs[key] as any).toString()
+                        : buildArgs[key];
+                }
 
                 return res;
             }, {}),

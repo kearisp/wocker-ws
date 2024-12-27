@@ -1,6 +1,5 @@
-import {Factory} from "@wocker/core";
-import chalk from "chalk";
-
+import {Factory, CommandNotFoundError} from "@wocker/core";
+import colors from "yoctocolors-cjs";
 import {AppModule} from "./AppModule";
 import {AppConfigService, LogService} from "./services";
 
@@ -8,7 +7,7 @@ import {AppConfigService, LogService} from "./services";
 export const app = {
     async run(args: string[]): Promise<void> {
         const app = await Factory.create(AppModule);
-        const config = app.get(AppConfigService);
+        const configService = app.get(AppConfigService);
         const logger = app.get(LogService);
 
         try {
@@ -20,11 +19,17 @@ export const app = {
             }
         }
         catch(err) {
-            console.error(chalk.red(err.message));
+            if(typeof err.name === "string" && ["ExitPromptError", "CancelPromptError", "AbortPromptError"].includes(err.name)) {
+                return;
+            }
 
-            const {debug} = config.getConfig();
+            console.error(colors.red(err.message));
 
-            if(debug) {
+            if(err instanceof CommandNotFoundError) {
+                return;
+            }
+
+            if(configService.config.debug) {
                 logger.error(err.stack || err.toString());
             }
         }

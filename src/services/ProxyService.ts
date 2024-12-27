@@ -3,7 +3,7 @@ import {
     Project,
     ProxyService as CoreProxyService
 } from "@wocker/core";
-import {promptText} from "@wocker/utils";
+import {promptInput} from "@wocker/utils";
 import * as Path from "path";
 
 import {PLUGINS_DIR} from "../env";
@@ -27,13 +27,13 @@ export class ProxyService extends CoreProxyService {
     }
 
     public async init(project: Project): Promise<void> {
-        const appPort = await promptText({
-            message: "App port:",
+        const appPort = await promptInput({
+            message: "App port",
             type: "number",
-            default: project.getEnv("VIRTUAL_PORT", "80")
+            default: parseInt(project.getEnv("VIRTUAL_PORT", "80"))
         });
 
-        project.setEnv("VIRTUAL_PORT", appPort);
+        project.setEnv("VIRTUAL_PORT", appPort.toString());
 
         await project.save();
     }
@@ -64,7 +64,7 @@ export class ProxyService extends CoreProxyService {
                 });
             }
 
-            const config = this.appConfigService.getConfig();
+            const config = this.appConfigService.config;
 
             const httpPort = config.getMeta("PROXY_HTTP_PORT", "80");
             const httpsPort = config.getMeta("PROXY_HTTPS_PORT", "443");
@@ -128,7 +128,7 @@ export class ProxyService extends CoreProxyService {
             await this.dockerService.imageRm(oldImage);
         }
 
-        const config = this.appConfigService.getConfig();
+        const config = this.appConfigService.config;
 
         await this.dockerService.buildImage({
             tag: this.imageName,

@@ -1,4 +1,4 @@
-name: Publish latest
+name: Latest
 
 on:
     release:
@@ -8,7 +8,6 @@ on:
 jobs:
     publish:
         name: Publish latest version
-        if: ${{ github.repository_owner == 'kearisp' }}
         runs-on: ubuntu-latest
         environment: publish
         permissions:
@@ -18,10 +17,10 @@ jobs:
           - name: Checkout code
             uses: actions/checkout@v4
 
-          - name: Set up Node.js
+          - name: Setup Node.js
             uses: actions/setup-node@v4
             with:
-                node-version: 20
+                node-version: 22
                 registry-url: 'https://registry.npmjs.org'
 
           - name: Cache dependencies
@@ -33,12 +32,19 @@ jobs:
                   ${{ runner.os }}-npm-
 
           - name: Install dependencies
+            shell: bash
             run: npm install
 
-          - name: Build
-            run: npm run build
+          - name: Test
+            uses: ./.github/actions/test
+            with:
+                version: "latest"
+                gist_token: ${{ secrets.GIST_TOKEN }}
+                gist_id: ${{ secrets.GIST_ID }}
 
           - name: Publish to NPM
+            if: ${{ github.repository_owner == 'kearisp' }}
+            shell: bash
             env:
                 NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
             run: npm publish --provenance
@@ -56,7 +62,7 @@ jobs:
           - name: Set up Node.js
             uses: actions/setup-node@v4
             with:
-                node-version: 20
+                node-version: 22
                 registry-url: 'https://registry.npmjs.org'
 
           - name: Unpublish previous beta versions

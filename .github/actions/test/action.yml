@@ -1,0 +1,39 @@
+name: Test
+description: "Run tests, generate coverage reports, and upload coverage badge to GitHub Gist"
+
+inputs:
+    version:
+        required: false
+        description: "Package version (latest or beta)"
+    gist_id:
+        required: false
+        description: 'The ID of the GitHub Gist where the coverage badge will be uploaded'
+    gist_token:
+        required: false
+        description: 'GitHub personal access token with Gist permissions for authentication'
+
+runs:
+    using: "composite"
+    steps:
+      - name: Run tests with coverage
+        shell: bash
+        run: |
+            npm run test -- --coverage --coverageReporters lcovonly json-summary
+
+      - name: Generate coverage badge
+        if: ${{ inputs.gist_id && inputs.gist_token }}
+        shell: bash
+        run: |
+            npm run make-coverage-badge
+            echo "REPO_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+
+      - name: Upload coverage badge to GitHub Gist
+        if: ${{ (inputs.version == 'latest' || inputs.version == 'beta') && inputs.gist_id && inputs.gist_token }}
+        uses: exuanbo/actions-deploy-gist@v1
+        continue-on-error: true
+        with:
+            token: ${{ inputs.gist_token }}
+            gist_id: ${{ inputs.gist_id }}
+            gist_file_name: "coverage-${{ env.REPO_NAME }}-${{ inputs.version }}.svg"
+            file_path: "./coverage/badge.svg"
+            file_type: "text"

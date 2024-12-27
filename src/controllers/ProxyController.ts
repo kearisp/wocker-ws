@@ -2,12 +2,12 @@ import {
     Command,
     Completion,
     Controller,
+    Description,
     Option,
     Project
 } from "@wocker/core";
-import {promptConfirm, promptText} from "@wocker/utils";
-import chalk from "chalk";
-
+import {promptConfirm, promptInput} from "@wocker/utils";
+import colors from "yoctocolors-cjs";
 import {
     AppConfigService,
     AppEventsService,
@@ -17,6 +17,7 @@ import {
 
 
 @Controller()
+@Description("Proxy commands")
 export class ProxyController {
     protected containerName = "proxy.workspace";
 
@@ -36,10 +37,10 @@ export class ProxyController {
             return;
         }
 
-        console.info(chalk.green("Don't forget to add these lines into hosts file:"));
+        console.info(colors.green("Don't forget to add these lines into hosts file:"));
 
         for(const domain of project.domains) {
-            console.info(chalk.gray(`127.0.0.1 ${domain}`));
+            console.info(colors.gray(`127.0.0.1 ${domain}`));
         }
 
         await this.start();
@@ -57,6 +58,7 @@ export class ProxyController {
     }
 
     @Command("proxy:init")
+    @Description("Initializes proxy configurations")
     public async init(
         @Option("http-port", {
             type: "number",
@@ -74,60 +76,60 @@ export class ProxyController {
         })
         sshPort?: number,
         @Option("ssh-password", {
+            type: "string",
             description: "SSH password"
         })
         sshPassword?: string
     ): Promise<void> {
-        const config = this.appConfigService.getConfig();
+        const config = this.appConfigService.config;
 
         if(httpPort === null || typeof httpPort === "undefined" || isNaN(httpPort)) {
-            httpPort = await promptText({
+            httpPort = await promptInput({
                 required: true,
-                message: "Http port:",
+                message: "Http port",
                 type: "number",
-                default: config.getMeta("PROXY_HTTP_PORT", "80")
+                default: parseInt(config.getMeta("PROXY_HTTP_PORT", "80"))
             });
         }
 
         config.setMeta("PROXY_HTTP_PORT", httpPort.toString());
 
         if(httpsPort === null || typeof httpsPort === "undefined" || isNaN(httpsPort)) {
-            httpsPort = await promptText({
+            httpsPort = await promptInput({
                 required: true,
-                message: "Https port:",
+                message: "Https port",
                 type: "number",
-                default: config.getMeta("PROXY_HTTPS_PORT", "443")
+                default: parseInt(config.getMeta("PROXY_HTTPS_PORT", "443"))
             });
         }
 
         config.setMeta("PROXY_HTTPS_PORT", httpsPort.toString());
 
-        let enableSsh = false;
-
-        if(!sshPassword && !sshPort) {
-            enableSsh = await promptConfirm({
+        let enableSsh = !sshPassword && !sshPort
+            ? await promptConfirm({
                 message: "Enable ssh proxy?",
                 default: false
-            });
-        }
-
-        if(enableSsh && !sshPassword) {
-            sshPassword = await promptText({
-                message: "SSH Password:",
-                type: "string",
-                default: config.getMeta("PROXY_SSH_PASSWORD")
-            });
-        }
-
-        if(enableSsh && !sshPort) {
-            sshPort = await promptText({
-                message: "SSH port:",
-                type: "number",
-                default: config.getMeta("PROXY_SSH_PORT", "22")
-            });
-        }
+            })
+            : true;
 
         if(enableSsh) {
+            if(!sshPassword) {
+                sshPassword = await promptInput({
+                    message: "SSH Password",
+                    type: "password",
+                    required: true,
+                    default: config.getMeta("PROXY_SSH_PASSWORD")
+                });
+            }
+
+            if(!sshPort) {
+                sshPort = await promptInput({
+                    message: "SSH port",
+                    type: "number",
+                    default: parseInt(config.getMeta("PROXY_SSH_PORT", "22"))
+                });
+            }
+
             config.setMeta("PROXY_SSH_PASSWORD", sshPassword);
             config.setMeta("PROXY_SSH_PORT", sshPort.toString());
         }
@@ -140,17 +142,18 @@ export class ProxyController {
     }
 
     @Command("proxy:start")
+    @Description("This command starts the proxy for the project. Options are available to restart or rebuild the proxy if needed.")
     public async start(
         @Option("restart", {
             type: "boolean",
             alias: "r",
-            description: "Restart"
+            description: "Restarts the proxy before starting it"
         })
         restart?: boolean,
         @Option("rebuild", {
             type: "boolean",
             alias: "b",
-            description: "Rebuild"
+            description: "Rebuilds the proxy before starting it"
         })
         rebuild?: boolean
     ): Promise<void> {
@@ -158,6 +161,7 @@ export class ProxyController {
     }
 
     @Command("proxy:stop")
+    @Description("This command stops the currently running proxy for the project. It ensures that all proxy-related services are properly halted.")
     public async stop(): Promise<void> {
         console.info("Proxy stopping...");
 
@@ -165,6 +169,7 @@ export class ProxyController {
     }
 
     @Command("proxy:logs")
+    @Description("Displays the proxy logs")
     public async logs(): Promise<void> {
         await this.proxyService.logs();
     }

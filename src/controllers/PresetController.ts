@@ -1,19 +1,22 @@
 import {
     Controller,
     Command,
+    Description,
     Param,
     Option,
     Project,
     FileSystemManager,
-    PROJECT_TYPE_PRESET
+    PROJECT_TYPE_PRESET, PRESET_SOURCE_EXTERNAL
 } from "@wocker/core";
-import {promptSelect, promptGroup, promptText, promptConfig} from "@wocker/utils";
-import {promptConfirm} from "@wocker/utils";
+import {promptSelect, promptInput} from "@wocker/utils";
+import {promptConfirm, volumeFormat, volumeParse} from "@wocker/utils";
 import * as Path from "path";
 import CliTable from "cli-table3";
-
 import {PRESETS_DIR} from "../env";
-import {injectVariables, volumeParse, volumeFormat} from "../utils";
+import {injectVariables} from "../utils";
+import {
+    PresetRepository
+} from "../repositories";
 import {
     AppConfigService,
     AppEventsService,
@@ -24,12 +27,14 @@ import {
 
 
 @Controller()
+@Description("Preset commands")
 export class PresetController {
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly appEventsService: AppEventsService,
         protected readonly projectService: ProjectService,
         protected readonly presetService: PresetService,
+        protected readonly presetRepository: PresetRepository,
         protected readonly dockerService: DockerService
     ) {
         this.appEventsService.on("project:init", (project) => this.onInit(project));
@@ -38,7 +43,7 @@ export class PresetController {
     }
 
     public async presets(): Promise<string[]> {
-        const presets = await this.presetService.search();
+        const presets = this.presetRepository.search();
 
         return presets.map((preset) => {
             return preset.name;
@@ -50,14 +55,14 @@ export class PresetController {
             return;
         }
 
-        const presets = await this.presetService.search();
+        const presets = this.presetRepository.search();
 
         if(presets.length === 0) {
             throw new Error("No presets");
         }
 
         project.preset = await promptSelect({
-            message: "Choose preset:",
+            message: "Choose preset",
             options: presets.map((preset) => {
                 return {
                     label: preset.name,
@@ -68,7 +73,7 @@ export class PresetController {
         });
 
         project.presetMode = await promptSelect({
-            message: "Preset mode:",
+            message: "Preset mode",
             options: [
                 {
                     label: "For project only",
@@ -82,18 +87,18 @@ export class PresetController {
             default: project.presetMode
         });
 
-        const preset = await this.presetService.get(project.preset);
+        const preset = this.presetService.get(project.preset);
 
         if(!preset) {
             throw new Error("Preset not found");
         }
 
         if(preset.buildArgsOptions) {
-            project.buildArgs = await promptConfig(preset.buildArgsOptions, project.buildArgs);
+            project.buildArgs = await this.presetService.prompt(preset.buildArgsOptions, project.buildArgs);
         }
 
         if(preset.envOptions) {
-            project.env = await promptConfig(preset.envOptions, project.env);
+            project.env = await this.presetService.prompt(preset.envOptions, project.env);
         }
 
         if(preset.volumeOptions) {
@@ -111,8 +116,8 @@ export class PresetController {
 
                 let projectVolume = project.getVolumeByDestination(destination);
 
-                const newSource = await promptText({
-                    message: "Volume:",
+                const newSource = await promptInput({
+                    message: "Volume",
                     required: true,
                     suffix: `:${destination}`,
                     default: projectVolume ? volumeParse(projectVolume).source : source
@@ -138,7 +143,7 @@ export class PresetController {
             return;
         }
 
-        const preset = await this.presetService.get(project.preset);
+        const preset = this.presetService.get(project.preset);
 
         if(!preset) {
             throw new Error(`Preset ${project.preset} not found`);
@@ -159,7 +164,7 @@ export class PresetController {
             return;
         }
 
-        const preset = await this.presetService.get(project.preset);
+        const preset = this.presetService.get(project.preset);
 
         if(preset.dockerfile) {
             project.imageName = this.presetService.getImageNameForProject(project, preset);
@@ -179,17 +184,19 @@ export class PresetController {
     }
 
     @Command("preset:init")
+    @Description("Creates preset config for current dir")
     public async init(): Promise<void> {
         await this.presetService.init();
     }
 
-    @Command("preset:deinit")
-    public async deinit(): Promise<void> {
+    @Command("preset:destroy")
+    public async destroy(): Promise<void> {
         await this.presetService.deinit();
     }
 
-    @Command("preset:add <preset>")
-    @Command("preset:add <preset>@<version>")
+    @Command("preset:install <preset>")
+    @Command("preset:install <preset>@<version>")
+    @Description("Adding preset from github repository")
     public async add(
         @Param("preset")
         name: string,
@@ -200,18 +207,24 @@ export class PresetController {
     }
 
     @Command("preset:ls")
+    @Description("List of all available presets")
     public async list(): Promise<string> {
-        const presets = await this.presetService.search();
+        const presets = this.presetRepository.search();
 
         const table = new CliTable({
             head: [
                 "Name",
-                "Source"
+                "Source",
+                "Path"
             ]
         });
 
         for(const preset of presets) {
-            table.push([preset.name, preset.source]);
+            table.push([
+                preset.name,
+                preset.source,
+                preset.source === PRESET_SOURCE_EXTERNAL ? preset.path : ""
+            ]);
         }
 
         return table.toString();
@@ -221,13 +234,11 @@ export class PresetController {
     public async delete(
         @Param("preset")
         name: string,
-        @Option("yes", {
-            alias: "y",
-            description: "Confirm deletion"
-        })
+        @Option("yes", "y")
+        @Description("Confirm deletion")
         confirm?: boolean
     ): Promise<void> {
-        const preset = await this.presetService.get(name);
+        const preset = this.presetService.get(name);
 
         if(typeof confirm === "undefined" || confirm === null) {
             confirm = await promptConfirm({
@@ -242,16 +253,14 @@ export class PresetController {
 
         console.info("Deleting...");
 
-        await preset.delete();
+        preset.delete();
     }
 
     @Command("preset:eject")
+    @Description("Eject preset files into the project")
     public async eject(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "Project name"
-        })
+        @Option("name", "n")
+        @Description("The name of the project")
         name?: string
     ): Promise<void> {
         if(name) {
@@ -259,7 +268,7 @@ export class PresetController {
         }
 
         const project = this.projectService.get();
-        const preset = await this.presetService.get(project.preset);
+        const preset = this.presetService.get(project.preset);
 
         if(!preset) {
             throw new Error("Preset not found");
@@ -314,32 +323,30 @@ export class PresetController {
                 } as any);
             }
 
-            await copier.copy(path);
+            copier.copy(path);
         }
 
         delete project.preset;
         delete project.imageName;
 
-        await project.save();
+        project.save();
     }
 
     @Command("preset:build <preset>")
+    @Description("Build docker image form a preset")
     public async build(
         @Param("preset")
         presetName: string,
-        @Option("rebuild", {
-            type: "boolean",
-            alias: "r",
-            description: "Rebuild image"
-        })
+        @Option("rebuild", "r")
+        @Description("Rebuild image")
         rebuild?: boolean
     ): Promise<void> {
-        const preset = await this.presetService.get(presetName);
+        const preset = this.presetService.get(presetName);
 
         let buildArgs: Project["buildArgs"] = {};
 
         if(preset.buildArgsOptions) {
-            buildArgs = await promptGroup(preset.buildArgsOptions);
+            buildArgs = await this.presetService.prompt(preset.buildArgsOptions);
         }
 
         const imageName = this.presetService.getImageName(preset, buildArgs);
