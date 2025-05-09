@@ -9,7 +9,6 @@ import {
     PROJECT_TYPE_IMAGE
 } from "@wocker/core";
 import * as Path from "path";
-
 import {WOCKER_VERSION, DATA_DIR, PLUGINS_DIR, PRESETS_DIR} from "../env";
 
 
@@ -21,6 +20,7 @@ type TypeMap = {
 export class AppConfigService extends CoreAppConfigService {
     protected _pwd: string;
     protected _fs?: FileSystem;
+    protected _config?: AppConfig;
 
     protected readonly mapTypes: TypeMap = {
         [PROJECT_TYPE_IMAGE]: "Image",
@@ -34,11 +34,91 @@ export class AppConfigService extends CoreAppConfigService {
         this._pwd = (process.cwd() || process.env.PWD) as string;
     }
 
-    get version(): string {
+    public get version(): string {
         return WOCKER_VERSION;
     }
 
-    get fs(): FileSystem {
+    public get config(): AppConfig {
+        if(!this._config) {
+            const fs = this.fs;
+
+            let data: AppConfigProperties = {};
+
+            if(fs.exists("wocker.config.js")) {
+                try {
+                    const {config} = require(fs.path("wocker.config.js"));
+
+                    data = config;
+                }
+                catch(err) {
+                    // TODO: Log somehow
+
+                    if(fs.exists("wocker.config.json")) {
+                        let json = fs.readJSON("wocker.config.json");
+
+                        if(typeof json === "string") {
+                            json = JSON.parse(json);
+                        }
+
+                        data = json;
+                    }
+                }
+            }
+            else if(fs.exists("wocker.config.json")) {
+                data = fs.readJSON("wocker.config.json");
+            }
+            else if(fs.exists("wocker.json")) {
+                let json = fs.readJSON("wocker.json");
+
+                if(typeof json === "string") {
+                    json = JSON.parse(json);
+                }
+
+                data = json;
+            }
+            else if(fs.exists("data.json")) {
+                data = fs.readJSON("data.json");
+            }
+            else if(!fs.exists()) {
+                fs.mkdir("", {
+                    recursive: true
+                });
+            }
+
+            this._config = new class extends AppConfig {
+                public constructor(data: AppConfigProperties) {
+                    super(data);
+                }
+
+                public async save(): Promise<void> {
+                    if(!fs.exists()) {
+                        fs.mkdir("", {
+                            recursive: true
+                        });
+                    }
+
+                    fs.writeFile("wocker.config.js", this.toJsString());
+                    fs.writeFile("wocker.config.json", this.toString()); // Backup file
+
+                    if(fs.exists("data.json")) {
+                        fs.rm("data.json");
+                    }
+
+                    if(fs.exists("wocker.json")) {
+                        fs.rm("wocker.json");
+                    }
+                }
+            }(data);
+        }
+
+        return this._config;
+    }
+
+    public get projects() {
+        return this.config.projects;
+    }
+
+    public get fs(): FileSystem {
         if(!this._fs) {
             this._fs = new FileSystem(DATA_DIR);
         }
@@ -70,77 +150,15 @@ export class AppConfigService extends CoreAppConfigService {
         return this.mapTypes;
     }
 
-    // noinspection JSUnusedGlobalSymbols
-    protected loadConfig(): AppConfig {
-        const fs = this.fs;
+    public addProject(id: string, name: string, path: string): void {
+        this.config.addProject(id, name, path);
+    }
 
-        let data: AppConfigProperties = {};
+    public removeProject(id: string) {
+        return this.config.getProject(id);
+    }
 
-        if(fs.exists("wocker.config.js")) {
-            try {
-                const {config} = require(fs.path("wocker.config.js"));
-
-                data = config;
-            }
-            catch(err) {
-                // TODO: Log somehow
-
-                if(fs.exists("wocker.config.json")) {
-                    let json = fs.readJSON("wocker.config.json");
-
-                    if(typeof json === "string") {
-                        json = JSON.parse(json);
-                    }
-
-                    data = json;
-                }
-            }
-        }
-        else if(fs.exists("wocker.config.json")) {
-            data = fs.readJSON("wocker.config.json");
-        }
-        else if(fs.exists("wocker.json")) {
-            let json = fs.readJSON("wocker.json");
-
-            if(typeof json === "string") {
-                json = JSON.parse(json);
-            }
-
-            data = json;
-        }
-        else if(fs.exists("data.json")) {
-            data = fs.readJSON("data.json");
-        }
-        else if(!fs.exists()) {
-            fs.mkdir("", {
-                recursive: true
-            });
-        }
-
-        return new class extends AppConfig {
-            public constructor(data: AppConfigProperties) {
-                super(data);
-            }
-
-            public async save(): Promise<void> {
-                if(!fs.exists()) {
-                    fs.mkdir("");
-                }
-
-                const json = JSON.stringify(this.toJson(), null, 4);
-
-                await fs.writeFile("wocker.config.js", `// Wocker config\nexports.config = ${json};`);
-                // Backup file
-                await fs.writeFile("wocker.config.json", json);
-
-                if(fs.exists("data.json")) {
-                    await fs.rm("data.json");
-                }
-
-                if(fs.exists("wocker.json")) {
-                    await fs.rm("wocker.json");
-                }
-            }
-        }(data);
+    public save(): void {
+        this.config.save();
     }
 }

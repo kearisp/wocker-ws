@@ -13,9 +13,9 @@ import {
     PROJECT_TYPE_PRESET,
     EnvConfig
 } from "@wocker/core";
-import {promptSelect, promptText} from "@wocker/utils";
+import {promptSelect, promptInput} from "@wocker/utils";
 import CliTable from "cli-table3";
-import chalk from "chalk";
+import colors from "yoctocolors-cjs";
 import * as Path from "path";
 import {Mutex} from "async-mutex";
 
@@ -30,6 +30,7 @@ import {
 
 
 @Controller()
+@Description("Project commands")
 export class ProjectController {
     public constructor(
         protected readonly appConfigService: AppConfigService,
@@ -94,11 +95,26 @@ export class ProjectController {
         }
 
         if(!name || !project.name) {
-            project.name = await promptText({
-                type: "string",
-                required: true,
-                message: "Project name:",
-                default: project.name || Path.basename(project.path)
+            project.name = await promptInput({
+                required: "Project name is required",
+                message: "Project name",
+                type: "text",
+                default: project.name || Path.basename(project.path),
+                validate: (name) => {
+                    if(typeof name !== "string") {
+                        return true;
+                    }
+
+                    const otherProject = this.projectService.searchOne({
+                        name
+                    });
+
+                    if(otherProject && otherProject.path !== project.path) {
+                        return `Project "${name}" already exists`;
+                    }
+
+                    return true;
+                }
             });
 
             project.addDomain(project.containerName);
@@ -111,11 +127,11 @@ export class ProjectController {
         const mapTypes = this.appConfigService.getProjectTypes();
 
         if(!type || !project.type || !mapTypes[project.type]) {
-            project.type = (await promptSelect({
-                message: "Project type:",
+            project.type = await promptSelect<ProjectType>({
+                message: "Project type",
                 options: mapTypes,
-                default: project.type
-            })) as ProjectType;
+                default: project.type as ProjectType
+            });
         }
 
         switch(project.type) {
@@ -135,7 +151,7 @@ export class ProjectController {
                 }
 
                 project.dockerfile = await promptSelect({
-                    message: "Dockerfile:",
+                    message: "Dockerfile",
                     options: dockerfiles.map((dockerfile) => {
                         return {
                             value: dockerfile
@@ -147,8 +163,8 @@ export class ProjectController {
             }
 
             case PROJECT_TYPE_IMAGE: {
-                project.imageName = await promptText({
-                    message: "Image name:",
+                project.imageName = await promptInput({
+                    message: "Image name",
                     required: true,
                     default: project.imageName
                 });
@@ -165,6 +181,15 @@ export class ProjectController {
         await this.appEventsService.emit("project:init", project);
 
         await project.save();
+    }
+
+    @Command("destroy [name]")
+    @Description("Permanently destroy a project")
+    public async destroy(
+        @Param("name")
+        name?: string
+    ): Promise<void> {
+        const project = this.projectService.get(name);
     }
 
     @Command("ps")
@@ -251,7 +276,7 @@ export class ProjectController {
         }
 
         if(detach) {
-            console.info(chalk.yellow("Warning: Detach option is deprecated"));
+            console.info(colors.yellow("Warning: Detach option is deprecated"));
         }
     }
 
@@ -291,7 +316,7 @@ export class ProjectController {
         const project = this.projectService.get();
 
         const table = new CliTable({
-            head: [chalk.yellow("Domain")]
+            head: [colors.yellow("Domain")]
         });
 
         for(const domain of project.domains) {
@@ -628,7 +653,7 @@ export class ProjectController {
             const [key, value] = variable.split("=");
 
             if(!value) {
-                console.info(chalk.yellow(`No value for "${key}"`));
+                console.info(colors.yellow(`No value for "${key}"`));
                 continue;
             }
 
@@ -1118,20 +1143,20 @@ export class ProjectController {
                 return str.replace(/^\[.*]\s([^:]+):\s.*$/gm, (substring, type) => {
                     switch(type) {
                         case "debug":
-                            return chalk.grey(substring);
+                            return colors.gray(substring);
 
                         case "log":
-                            return chalk.white(substring);
+                            return colors.white(substring);
 
                         case "info":
-                            return chalk.green(substring);
+                            return colors.green(substring);
 
                         case "warn":
                         case "warning":
-                            return chalk.yellow(substring);
+                            return colors.yellow(substring);
 
                         case "error":
-                            return chalk.red(substring);
+                            return colors.red(substring);
 
                         default:
                             return substring;
@@ -1184,25 +1209,6 @@ export class ProjectController {
             this.projectService.cdProject(name);
         }
 
-        const project = this.projectService.get();
-
-        const container = await this.dockerService.getContainer(project.containerName);
-
-        if(!container) {
-            throw new Error("Project not started");
-        }
-
-        if(!detach) {
-            await this.dockerService.logs(container);
-        }
-        else {
-            let data = await container.logs({
-                stdout: true,
-                stderr: true,
-                follow: false
-            });
-
-            process.stdout.write(data);
-        }
+        await this.projectService.logs(detach);
     }
 }

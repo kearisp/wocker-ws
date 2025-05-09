@@ -3,23 +3,18 @@ import {
     Injectable,
     Project,
     Preset,
-    AppConfig,
-    PresetProperties,
+    PresetVariableConfig,
     FileSystem,
-    PRESET_SOURCE_INTERNAL,
     PRESET_SOURCE_GITHUB,
     PRESET_SOURCE_EXTERNAL
 } from "@wocker/core";
-import {promptText, promptConfirm, promptSelect} from "@wocker/utils";
+import {promptInput, promptConfirm, promptSelect, normalizeOptions} from "@wocker/utils";
 import md5 from "md5";
-import axios from "axios";
-import {Parse, Entry} from "unzipper";
-import * as Path from "path";
-
 import {AppConfigService} from "./AppConfigService";
 import {LogService} from "./LogService";
-import {PRESETS_DIR} from "../env";
-import {FS, Http} from "../makes";
+// noinspection ES6PreferShortImport
+import {PresetRepository} from "../repositories/PresetRepository";
+import {GithubClient} from "../makes/GithubClient";
 
 
 type SearchOptions = Partial<{
@@ -32,93 +27,81 @@ type SearchOptions = Partial<{
 export class PresetService {
     public constructor(
         protected readonly appConfigService: AppConfigService,
+        protected readonly presetRepository: PresetRepository,
         protected readonly logService: LogService
     ) {}
 
-    protected toObject(config: PresetProperties): Preset {
-        const _this = this;
+    public async prompt(configMap: {[name: string]: PresetVariableConfig;}, values: EnvConfig = {}) {
+        for(const name in configMap) {
+            const config = configMap[name];
 
-        return new class extends Preset {
-            public constructor(data: PresetProperties) {
-                super(data);
-            }
-
-            public async save(): Promise<void> {
-                const {
-                    source,
-                    path,
-                    ...rest
-                } = this.toJSON();
-
-                const config = _this.appConfigService.getConfig();
-
-                let presetData = (config.presets || []).find((presetData): boolean => {
-                    return presetData.name === this.name;
-                });
-
-                switch(this.source) {
-                    case PRESET_SOURCE_EXTERNAL:
-                        const fs = new FileSystem(this.path);
-                        fs.writeJSON("config.json", rest);
-                        break;
-
-                    case PRESET_SOURCE_GITHUB: {
-                        const fs = new FileSystem(_this.appConfigService.dataPath("presets", this.name));
-
-                        if(!fs.exists()) {
-                            fs.mkdir("");
-                        }
-
-                        fs.writeJSON("config.json", rest);
-                        break;
-                    }
-                }
-
-                if(!presetData) {
-                    config.registerPreset(this.name, source, path);
-
-                    await config.save();
-                }
-            }
-
-            public async delete(): Promise<void> {
-                if(this.source === PRESET_SOURCE_GITHUB) {
-                    const config = _this.appConfigService.getConfig();
-
-                    await FS.rm(_this.appConfigService.dataPath("presets", this.name), {
-                        recursive: true
+            switch(config.type) {
+                case "boolean": {
+                    const value = await promptConfirm({
+                        message: config.message,
+                        required: config.required,
+                        default: typeof values[name] !== "undefined" && values[name] === "true"
+                            ? true
+                            : undefined,
                     });
 
-                    config.unregisterPreset(this.name);
+                    values[name] = value.toString();
+                    break;
+                }
 
-                    await config.save();
+                case "select": {
+                    const result = await promptSelect({
+                        required: config.required,
+                        multiple: config.multiple,
+                        message: config.message,
+                        options: config.options,
+                        default: values[name]
+                    });
+
+                    if(!config.multiple) {
+                        values[name] = result;
+                    }
+                    else {
+                        const options = normalizeOptions(config.options);
+
+                        for(const option of options) {
+                            if(result.includes(option.value)) {
+                                values[option.value] = "true";
+                            }
+                            else if(option.value in values) {
+                                delete values[option.value];
+                            }
+                        }
+                    }
+                    break;
+                }
+
+                case "int":
+                case "number": {
+                    const result = await promptInput({
+                        ...config,
+                        type: "number",
+                        default: values[name] || config.default
+                    });
+
+                    values[name] = result.toString();
+                    break;
+                }
+
+                case "string":
+                case "text":
+                case "password": {
+                    values[name] = await promptInput({
+                        ...config,
+                        type: config.type === "string" ? "text" : config.type,
+                        default: values[name] || config.default as string
+                    });
+                    break;
                 }
             }
-        }(config);
-    }
+        }
 
-    protected async getList(): Promise<AppConfig["presets"]> {
-        const dirs = await FS.readdir(PRESETS_DIR);
-        const {
-            presets = []
-        } = this.appConfigService.getConfig();
-
-        return [
-            ...dirs.map((name: string) => {
-                return {
-                    name,
-                    source: PRESET_SOURCE_INTERNAL as "internal",
-                    path: Path.join(PRESETS_DIR, name)
-                };
-            }),
-            ...presets.map((item) => {
-                if(item.source === PRESET_SOURCE_GITHUB) {
-                    item.path = this.appConfigService.dataPath("presets", item.name);
-                }
-
-                return item;
-            })
-        ];
+        return values;
     }
 
     public getImageNameForProject(project: Project, preset: Preset): string {
@@ -132,8 +115,8 @@ export class PresetService {
     }
 
     public getImageName(preset: Preset, buildArgs: EnvConfig): string {
-        const rawValues = [];
-        const hashValues = []
+        const rawValues = [],
+              hashValues = [];
 
         Object.keys(preset.buildArgsOptions || {}).forEach((key: string) => {
             const hash = (preset.buildArgsOptions[key] || {} as any).hash || true;
@@ -159,127 +142,110 @@ export class PresetService {
     }
 
     public async init(): Promise<void> {
-        let preset = await this.searchOne({
+        const fs = new FileSystem(this.appConfigService.pwd());
+        let preset = this.presetRepository.searchOne({
             path: this.appConfigService.pwd()
         });
 
-        const fs = new FileSystem(this.appConfigService.pwd());
-
-        if(!preset) {
-            if(!fs.exists("config.json")) {
-                preset = this.toObject({
-                    name: "",
-                    version: "",
-                    source: "external",
-                    path: this.appConfigService.pwd()
-                });
-            }
-            else {
-                preset = this.toObject(fs.readJSON("config.json"));
-                preset.source = "external";
-                preset.path = this.appConfigService.pwd();
-            }
+        if(preset) {
+            return;
         }
 
-        if(!preset.name) {
-            const list = await this.getList();
+        if(fs.exists("config.json")) {
+            const config = fs.readJSON("config.json");
 
-            preset.name = await promptText({
-                message: "Preset name:",
-                required: true,
-                validate: async (value?: string): Promise<boolean|string> => {
-                    if(!/^[a-z][a-z0-9-_]+$/.test(value || "")) {
-                        return "Invalid name";
-                    }
+            this.appConfigService.registerPreset(config.name, PRESET_SOURCE_EXTERNAL, fs.path());
+            return;
+        }
 
-                    const presetData = list.find((presetData) => {
-                        return presetData.name === value;
-                    });
+        let config: any = {};
 
-                    if(presetData) {
-                        return "Preset name is already taken";
-                    }
-
+        config.name = await promptInput({
+            message: "Preset name",
+            required: true,
+            validate: (name) => {
+                if(!name || typeof name !== "string") {
                     return true;
-                },
-                default: preset.name
-            });
-        }
-
-        if(!preset.version) {
-            preset.version = await promptText({
-                message: "Preset version:",
-                validate: (version?: string): string|boolean => {
-                    if(!/^[0-9]+\.[0.9]+\.[0-9]+$/.test(version)) {
-                        return "Invalid version";
-                    }
-
-                    return true;
-                },
-                default: preset.version
-            });
-        }
-
-        if(!preset.type) {
-            preset.type = await promptSelect({
-                message: "Preset type:",
-                options: ["dockerfile", "image"]
-            });
-        }
-
-        switch(preset.type) {
-            case "dockerfile":
-                if(!preset.dockerfile) {
-                    const files = await fs.readdirFiles();
-                    const dockerfiles = files.filter((fileName: string): boolean => {
-                        if(new RegExp("^(.*)\\.dockerfile$").test(fileName)) {
-                            return true;
-                        }
-
-                        return new RegExp("^Dockerfile(\\..*)?").test(fileName);
-                    });
-
-                    if(dockerfiles.length === 0) {
-                        throw new Error("No dockerfiles found");
-                    }
-
-                    preset.dockerfile = await promptSelect({
-                        message: "Preset dockerfile:",
-                        options: dockerfiles
-                    });
                 }
+
+                if(this.presetRepository.searchOne({name})) {
+                    return "Preset name already taken";
+                }
+
+                return true;
+            }
+        });
+
+        config.version = await promptInput({
+            message: "Preset version",
+            validate: (version?: string): string|boolean => {
+                if(!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version)) {
+                    return "Invalid version";
+                }
+
+                return true;
+            }
+        });
+
+        config.type = await promptSelect({
+            message: "Preset type",
+            options: ["dockerfile", "image"]
+        });
+
+        switch(config.type) {
+            case "dockerfile":
+                const files = await fs.readdirFiles();
+                const dockerfiles = files.filter((fileName: string): boolean => {
+                    if(new RegExp("^(.*)\\.dockerfile$").test(fileName)) {
+                        return true;
+                    }
+
+                    return new RegExp("^Dockerfile(\\..*)?").test(fileName);
+                });
+
+                if(dockerfiles.length === 0) {
+                    throw new Error("No dockerfiles found");
+                }
+
+                config.dockerfile = await promptSelect({
+                    message: "Preset dockerfile",
+                    options: dockerfiles
+                });
                 break;
 
             case "image":
-                if(preset.image) {
-                    preset.image = await promptText({
-                        message: "Preset image:",
-                        required: true,
-                        validate(value?: string): boolean | string {
-                            if(!/^[a-z0-9]+(?:[._-][a-z0-9]+)*(?::[a-z0-9]+(?:[._-][a-z0-9]+)*)?$/.test(value)) {
-                                return "Invalid image name";
-                            }
-
-                            return true;
+                config.image = await promptInput({
+                    message: "Preset image",
+                    required: true,
+                    validate(value?: string): boolean | string {
+                        if(!/^[a-z0-9]+(?:[._-][a-z0-9]+)*(?::[a-z0-9]+(?:[._-][a-z0-9]+)*)?$/.test(value)) {
+                            return "Invalid image name";
                         }
-                    });
-                }
+
+                        return true;
+                    }
+                });
                 break;
         }
 
-        console.info(JSON.stringify(preset.toJSON(), null, 4));
+        console.info(JSON.stringify(config, null, 4));
 
         const confirm = await promptConfirm({
-            message: "Correct?"
+            message: "Correct",
+            default: true
         });
 
-        if(confirm) {
-            await preset.save();
+        if(!confirm) {
+            return;
         }
+
+        fs.writeJSON("config.json", config);
+
+        this.appConfigService.registerPreset(config.name, PRESET_SOURCE_EXTERNAL, fs.path());
     }
 
     public async deinit(): Promise<void> {
-        const preset = await this.searchOne({
+        const preset = this.presetRepository.searchOne({
             path: this.appConfigService.pwd()
         });
 
@@ -290,137 +256,47 @@ export class PresetService {
         const config = this.appConfigService.getConfig();
 
         config.unregisterPreset(preset.name);
-
-        await config.save();
+        config.save();
     }
 
-    public async get(name: string): Promise<Preset> {
-        const list = await this.getList();
+    public get(name?: string): Preset {
+        const preset = name
+            ? this.presetRepository.searchOne({name})
+            : this.presetRepository.searchOne({path: this.appConfigService.pwd()});
 
-        const item = list.find((item) => {
-            return item.name === name;
-        });
-
-        if(!item) {
-            throw new Error(`Preset ${name} not found`);
+        if(!preset) {
+            throw new Error(name ? `Preset "${name}" not found` : "Preset not found");
         }
 
-        const config = await FS.readJSON(item.path, "config.json");
-
-        return this.toObject({
-            ...item,
-            ...config
-        });
+        return preset;
     }
 
-    public async addPreset(name: string, version?: string): Promise<void> {
-        let preset = await this.searchOne({
+    public async addPreset(name: string, repository?: string, version?: string): Promise<void> {
+        let preset = this.presetRepository.searchOne({
             name
         });
-
-        // const r = await Http.get("https://api.github.com")
-        //     .withHeader("User-Agent", "Wocker")
-        //     .send(`/repos/kearisp/wocker-${name}-preset/tags`);
-        //
-        // console.log(r);
 
         if(!preset) {
             console.info("Loading...");
 
-            const res = await Http.get("https://raw.githubusercontent.com")
-                .withHeader("User-Agent", "Wocker")
-                .send(`/kearisp/wocker-${name}-preset/master/config.json`);
+            if(!repository) {
+                repository = `kearisp/wocker-${name}-preset`;
+            }
 
-            preset = this.toObject(res.data);
+            const [owner, repo] = repository.split("/");
 
-            preset.source = PRESET_SOURCE_GITHUB;
-            preset.path = this.appConfigService.dataPath("presets", preset.name);
+            const github = new GithubClient(owner, repo);
 
-            const zipRes = await axios.create({
-                baseURL: "https://github.com",
-                headers: {
-                    "User-Agent": "Wocker"
-                }
-            }).get(`/kearisp/wocker-${preset.name}-preset/archive/refs/heads/master.zip`, {
-                responseType: "stream"
-            });
+            const info = await github.getInfo();
 
-            FS.mkdirSync(preset.path, {
-                recursive: true
-            });
+            const config = await github.getFile(info.default_branch, "config.json");
 
-            zipRes.data.pipe(Parse()).on("entry", (entry: Entry): void => {
-                const path = entry.path.replace(/^[^\/]+\//, "");
+            console.log(config);
 
-                if(path === "config.json") {
-                    return;
-                }
+            await github.download(info.default_branch, this.appConfigService.fs.path(`presets/${name}`));
 
-                const fullPath = this.appConfigService.dataPath("presets", preset.name, path);
-
-                if(entry.type === "File") {
-                    entry.pipe(
-                        FS.createWriteStream(fullPath)
-                    );
-                }
-                else if(entry.type === "Directory") {
-                    FS.mkdirSync(fullPath, {
-                        recursive: true
-                    });
-                }
-            });
-
-            await preset.save();
+            this.appConfigService.registerPreset(name, PRESET_SOURCE_GITHUB);
         }
-
-        console.log(preset.version);
-    }
-
-    public async search(options: SearchOptions = {}): Promise<Preset[]> {
-        const {
-            name,
-            source,
-            path
-        } = options;
-
-        const presets: Preset[] = [];
-        const presetConfigs = await this.getList();
-
-        for(const presetConfig of presetConfigs) {
-            if(name && name !== presetConfig.name) {
-                continue;
-            }
-
-            if(source && source !== presetConfig.source) {
-                continue;
-            }
-
-            if(path && path !== presetConfig.path) {
-                continue;
-            }
-
-            try {
-                const fullConfig = await FS.readJSON(presetConfig.path, "config.json");
-
-                const preset = this.toObject({
-                    ...presetConfig,
-                    ...fullConfig
-                });
-
-                presets.push(preset);
-            }
-            catch(err) {
-                this.logService.error("PresetService.search(", options, ") ->", err.message);
-            }
-        }
-
-        return presets;
-    }
-
-    public async searchOne(options: SearchOptions = {}): Promise<Preset|null> {
-        const [preset] = await this.search(options);
-
-        return preset || null;
     }
 }
 

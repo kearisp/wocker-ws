@@ -7,34 +7,37 @@ import {
 
 @Injectable("APP_EVENTS_SERVICE")
 export class AppEventsService extends CoreAppEventsService {
-    protected handles: ({
-        [event: string]: AppEventHandle[];
-    }) = {};
+    protected handles: {
+        [event: string]: Set<AppEventHandle>;
+    } = {};
 
-    public on(event: string, handle: AppEventHandle) {
-        this.handles[event] = [
-            ...this.handles[event] || [],
-            handle
-        ];
+    public on(event: string, handle: AppEventHandle): (() => void) {
+        if(!this.handles[event]) {
+            this.handles[event] = new Set();
+        }
 
-        return () => {
-            this.handles[event] = this.handles[event].filter((filterHandle) => {
-                return filterHandle !== handle;
-            });
+        this.handles[event].add(handle);
+
+        return (): void => {
+            this.off(event, handle);
         };
     }
 
-    public off(event: string, handle: AppEventHandle) {
-        //
+    public off(event: string, handle: AppEventHandle): void {
+        if(!this.handles[event]) {
+            return;
+        }
+
+        this.handles[event].delete(handle);
     }
 
     public async emit(event: string, ...args: any[]) {
-        const handles = this.handles[event] || [];
+        if(!this.handles[event]) {
+            return;
+        }
 
-        for(const i in handles) {
-            await handles[i](...args);
+        for(const handle of this.handles[event].values()) {
+            await handle(...args);
         }
     }
-
-
 }

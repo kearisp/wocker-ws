@@ -3,7 +3,6 @@ import {
     Global,
     Container,
     MODULE_METADATA,
-    PLUGIN_NAME_METADATA,
     PLUGIN_DIR_KEY
 } from "@wocker/core";
 
@@ -11,12 +10,15 @@ import {
     CertController,
     CompletionController,
     DebugController,
-    ImageController,
+    KeystoreController,
     PluginController,
     PresetController,
     ProjectController,
     ProxyController
 } from "./controllers";
+import {
+    PresetRepository
+} from "./repositories";
 import {
     AppConfigService,
     AppEventsService,
@@ -29,10 +31,7 @@ import {
     ProjectService,
     ProxyService
 } from "./services";
-import {
-    ElasticSearchPlugin,
-    ProxmoxPlugin
-} from "./plugins";
+import {KeystoreService} from "./keystore";
 
 
 @Global()
@@ -40,7 +39,7 @@ import {
     controllers: [
         CompletionController,
         DebugController,
-        ImageController,
+        KeystoreController,
         PluginController,
         PresetController,
         ProjectController,
@@ -57,7 +56,9 @@ import {
         PresetService,
         ProjectService,
         ProxyService,
-        CertService
+        CertService,
+        KeystoreService,
+        PresetRepository
     ],
     exports: [
         AppConfigService,
@@ -65,48 +66,37 @@ import {
         DockerService,
         LogService,
         ProjectService,
-        ProxyService
-    ],
-    imports: [
-        ElasticSearchPlugin,
-        // ProxmoxPlugin
+        ProxyService,
+        KeystoreService
     ]
 })
 export class AppModule {
     public async load(container: Container) {
         const appConfigService = container.getModule(AppModule).get<AppConfigService>(AppConfigService);
         const logService = container.getModule(AppModule).get<LogService>(LogService);
-        // const pluginService = container.getModule(AppModule).get<PluginService>(PluginService);
-        const config = appConfigService.getConfig();
+        const pluginService = container.getModule(AppModule).get<PluginService>(PluginService);
 
         const imports: any[] = [];
 
-        for(const plugin of config.plugins || []) {
+        for(const pluginData of appConfigService.config.plugins || []) {
             try {
-                const {default: Plugin} = await import(plugin);
-
-                if(!Plugin) {
-                    continue;
-                }
-
-                const name = Reflect.getMetadata(PLUGIN_NAME_METADATA, Plugin);
+                const plugin = await pluginService.import(pluginData.name);
 
                 Reflect.defineMetadata(MODULE_METADATA.PROVIDERS, [
-                    ...Reflect.getMetadata(MODULE_METADATA.PROVIDERS, Plugin) || [],
+                    ...Reflect.getMetadata(MODULE_METADATA.PROVIDERS, plugin.type) || [],
                     {
                         provide: PLUGIN_DIR_KEY,
-                        useValue: name ? appConfigService.dataPath("plugins", name) : undefined
+                        useValue: appConfigService.dataPath("plugins", plugin.name)
                     }
-                ], Plugin);
+                ], plugin.type);
 
-                imports.push(Plugin);
+                imports.push(plugin.type);
             }
             catch(err) {
                 logService.error(err.message);
 
-                config.removePlugin(plugin);
-
-                await config.save();
+                appConfigService.config.removePlugin(pluginData.name);
+                appConfigService.save();
 
                 throw err;
             }
