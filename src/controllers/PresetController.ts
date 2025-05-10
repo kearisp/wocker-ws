@@ -12,7 +12,6 @@ import {promptSelect, promptInput} from "@wocker/utils";
 import {promptConfirm, volumeFormat, volumeParse} from "@wocker/utils";
 import * as Path from "path";
 import CliTable from "cli-table3";
-import {PRESETS_DIR} from "../env";
 import {injectVariables} from "../utils";
 import {
     PresetRepository
@@ -21,9 +20,9 @@ import {
     AppConfigService,
     AppEventsService,
     ProjectService,
-    PresetService,
-    DockerService
+    PresetService
 } from "../services";
+import {DockerService} from "../modules";
 
 
 @Controller()
@@ -361,7 +360,7 @@ export class PresetController {
                 presetName: preset.name
             },
             buildArgs: buildArgs,
-            context: Path.join(PRESETS_DIR, preset.name),
+            context: preset.path,
             src: preset.dockerfile
         });
     }

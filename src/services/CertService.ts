@@ -3,7 +3,7 @@ import * as Path from "path";
 import CliTable from "cli-table3";
 
 import {AppConfigService} from "./AppConfigService";
-import {DockerService} from "./DockerService";
+import {DockerService} from "../modules";
 import {ProxyService} from "./ProxyService";
 
 

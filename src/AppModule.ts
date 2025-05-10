@@ -23,7 +23,6 @@ import {
     AppConfigService,
     AppEventsService,
     CertService,
-    DockerService,
     LogService,
     NpmService,
     PluginService,
@@ -32,6 +31,11 @@ import {
     ProxyService
 } from "./services";
 import {KeystoreService} from "./keystore";
+import {
+    DockerService,
+    ContainerService,
+    ModemService
+} from "./modules";
 
 
 @Global()
@@ -49,6 +53,8 @@ import {KeystoreService} from "./keystore";
     providers: [
         AppConfigService,
         AppEventsService,
+        ContainerService,
+        ModemService,
         DockerService,
         LogService,
         NpmService,

@@ -5,10 +5,13 @@ import {PROJECT_TYPE_IMAGE, PROJECT_TYPE_DOCKERFILE} from "@wocker/core";
 import {
     AppConfigService,
     AppEventsService,
-    DockerService,
     LogService,
     ProjectService
 } from "./";
+import {
+    DockerService,
+    ModemService
+} from "../modules";
 import {KeystoreService} from "../keystore";
 import {DATA_DIR} from "../env";
 
@@ -82,6 +85,7 @@ describe("ProjectService", () => {
                 ProjectService,
                 KeystoreService,
                 DockerService,
+                ModemService,
                 LogService
             ]
         });

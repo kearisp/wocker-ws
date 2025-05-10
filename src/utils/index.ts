@@ -1,6 +1,6 @@
 export * from "./escapeRegExp";
 export * from "./exec";
-export * from "./followProgress";
+export * from "./followProgress2";
 export * from "./format-size-units";
 export * from "./get-cursor-position";
 export * from "./injectVariables";

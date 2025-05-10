@@ -45,9 +45,12 @@ describe("PresetController", () => {
             AppEventsService,
             ProjectService,
             LogService,
-            DockerService,
             PresetService
         } = await import("../services");
+        const {
+            ModemService,
+            DockerService
+        } = await import("../modules");
         const {
             PresetController
         } = await import("./PresetController");
@@ -64,7 +67,8 @@ describe("PresetController", () => {
                 PresetService,
                 LogService,
                 KeystoreService,
-                DockerService
+                DockerService,
+                ModemService
             ]
         });
 

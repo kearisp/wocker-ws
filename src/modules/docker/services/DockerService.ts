@@ -1,34 +1,43 @@
 import {
     Injectable,
     DockerService as CoreDockerService,
-    DockerServiceParams as Params
+    DockerServiceParams as Params,
+    FileSystem,
+    LogService,
+    Logger
 } from "@wocker/core";
 import Docker, {
     Container,
     Volume,
     VolumeCreateResponse
 } from "dockerode";
-
-import {followProgress} from "../utils";
-import {FS, Logger} from "../makes";
-import {LogService} from "./LogService";
+import {ModemService} from "./ModemService";
+import {formatSizeUnits} from "../../../utils";
 
 
 @Injectable("DOCKER_SERVICE")
 export class DockerService extends CoreDockerService {
-    protected docker: Docker;
+    protected _docker: Docker;
 
     public constructor(
+        protected readonly modemService: ModemService,
         protected readonly logService: LogService
     ) {
         super();
-
-        this.docker = new Docker({
-            socketPath: "/var/run/docker.sock"
-        });
     }
 
-    public async createVolume(name: string): Promise<VolumeCreateResponse> {
+    public get docker(): Docker {
+        if(!this._docker) {
+            this._docker = new Docker({
+                // @ts-ignore
+                modem: this.modemService.modem
+            });
+        }
+
+        return this._docker;
+    }
+
+     public async createVolume(name: string): Promise<VolumeCreateResponse> {
         return await this.docker.createVolume({
             Name: name,
             Driver: "local"
@@ -232,7 +241,9 @@ export class DockerService extends CoreDockerService {
             src
         } = params;
 
-        const files = await FS.readdirFiles(context, {
+        const fs = new FileSystem(context);
+
+        const files = await fs.readdirFiles("", {
             recursive: true
         });
 
@@ -241,6 +252,7 @@ export class DockerService extends CoreDockerService {
             src: files
         }, {
             t: tag,
+            // version: "2",
             labels,
             buildargs: Object.keys(buildArgs).reduce((res, key) => {
                 const value = buildArgs[key];
@@ -256,7 +268,7 @@ export class DockerService extends CoreDockerService {
             dockerfile: src
         });
 
-        await followProgress(stream);
+        await this.followProgress(stream);
     }
 
     public async imageExists(tag: string): Promise<boolean> {
@@ -331,7 +343,7 @@ export class DockerService extends CoreDockerService {
 
         const stream = await this.docker.pull(tag);
 
-        await followProgress(stream);
+        await this.followProgress(stream);
     }
 
     public async attach(containerOrName: string|Container): Promise<NodeJS.ReadWriteStream> {
@@ -431,42 +443,17 @@ export class DockerService extends CoreDockerService {
         const stream = await exec.start({
             hijack: true,
             stdin: tty,
-            Tty: tty
+            Tty: tty,
+            // @ts-ignore
+            // ConsoleSize: [
+            //     process.stdout.columns,
+            //     process.stdout.rows
+            // ]
         });
 
         if(tty) {
             await this.attachStream(stream);
-            // stream.setEncoding("utf-8");
-            //
-            // process.stdin.resume();
-            //
-            // if(process.stdin.setRawMode) {
-            //     process.stdin.setRawMode(true);
-            // }
-            //
-            // process.stdin.setEncoding("utf-8");
-            // process.stdin.pipe(stream);
-            //
-            // stream.pipe(process.stdout);
-            //
-            // stream.on("error", (err) => {
-            //     Logger.error(err.message);
-            // });
-            //
-            // stream.on("end", async () => {
-            //     process.stdin.setRawMode(false);
-            // });
-            //
-            // stream.on("end", async () => {
-            //     process.exit();
-            // });
         }
-
-        // setTimeout(() => {
-        //     Logger.info("Exit");
-        //
-        //     process.exit();
-        // }, 4000);
 
         return stream;
     }
@@ -496,5 +483,107 @@ export class DockerService extends CoreDockerService {
         });
 
         return stream;
+    }
+
+    public async followProgress(stream: NodeJS.ReadableStream): Promise<void> {
+        let isEnded = false,
+            line = 0;
+
+        const mapLines: ({
+            [id: string]: number;
+        }) = {};
+
+        return new Promise<void>((resolve, reject) => {
+            const handleEnd = () => {
+                if(!isEnded) {
+                    resolve();
+                }
+
+                isEnded = true;
+            };
+
+            stream.on("data", (chunk: Buffer) => {
+                const text = chunk.toString().replace(/}\s*\{/g, '},{'),
+                      items: any[] = JSON.parse(`[${text}]`);
+
+                for(const item of items) {
+                    if(item.id === "moby.buildkit.trace") {
+                        // TODO
+                    }
+                    if(item.stream) {
+                        process.stdout.write(`${item.stream}`);
+                        line += item.stream.split("\n").length -1;
+                    }
+                    else if(item.id) {
+                        const {
+                            id,
+                            status,
+                            processDetail: {
+                                current,
+                                total,
+                            } = {},
+                        } = item;
+
+                        if(typeof mapLines[id] === "undefined") {
+                            mapLines[id] = line;
+                        }
+
+                        const targetLine = typeof mapLines[id] !== "undefined"
+                            ? mapLines[id]
+                            : line;
+                        const dy = line - targetLine;
+
+                        if(dy > 0) {
+                            process.stdout.write("\x1b[s");
+                            process.stdout.write(`\x1b[${dy}A`);
+                        }
+
+                        process.stdout.write("\x1b[2K");
+
+                        let str = `${id}: ${status}\n`;
+
+                        if(status === "Downloading") {
+                            const width = process.stdout.columns;
+
+                            const sizeWidth = 19,
+                                totalWidth = width - id.length - status.length - sizeWidth - 7,
+                                currentWidth = Math.floor(totalWidth * (current / total)),
+                                formatSize = `${formatSizeUnits(current)}/${formatSizeUnits(total)}`;
+
+                            str = `${id}: ${status} [${"█".repeat(currentWidth)}${"░".repeat(totalWidth - currentWidth)}] ${formatSize}\n`;
+                        }
+
+                        process.stdout.write(str);
+
+                        if(dy > 0) {
+                            process.stdout.write("\x1b[u");
+                        }
+                        else {
+                            line++;
+                        }
+                    }
+                    else if(typeof item.aux === "object") {
+                        const str = `auxID: ${item.aux.ID}`;
+
+                        process.stdout.write(`${str}\n`);
+
+                        line += Math.ceil(str.length / process.stdout.columns);
+                    }
+                    else if(item.status) {
+                        process.stdout.write(`${item.status}\n`);
+
+                        line += Math.ceil(item.status.length / process.stdout.columns);
+                    }
+                    else {
+                        console.info("Unexpected data", item);
+                    }
+                }
+            });
+            stream.on("end", handleEnd);
+            stream.on("close", handleEnd);
+            stream.on("error", (err: Error) => {
+                reject(err);
+            });
+        });
     }
 }
