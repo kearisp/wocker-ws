@@ -5,7 +5,7 @@ import * as dateFns from "date-fns";
 
 import {DATA_DIR} from "../env";
 import {Logger, FS} from "../makes";
-import {DockerService} from "../services";
+import {DockerService} from "../modules";
 
 
 @Controller()

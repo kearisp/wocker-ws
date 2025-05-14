@@ -1,7 +1,6 @@
 export * from "./AppConfigService";
 export * from "./AppEventsService";
 export * from "./CertService";
-export * from "./DockerService";
 export * from "./LogService";
 export * from "./NpmService";
 export * from "./PluginService";

@@ -8,7 +8,7 @@ import {
 import {KeystoreService} from "../keystore";
 import {AppConfigService} from "./AppConfigService";
 import {AppEventsService} from "./AppEventsService";
-import {DockerService} from "./DockerService";
+import {DockerService} from "../modules";
 
 
 type SearchParams = Partial<{

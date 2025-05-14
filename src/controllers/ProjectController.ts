@@ -24,9 +24,9 @@ import {
     AppConfigService,
     AppEventsService,
     ProjectService,
-    LogService,
-    DockerService
+    LogService
 } from "../services";
+import {DockerService} from "../modules";
 
 
 @Controller()
@@ -77,18 +77,18 @@ export class ProjectController {
         })
         type: ProjectType
     ): Promise<void> {
-        let project = this.projectService.searchOne({
-            path: this.appConfigService.pwd()
-        });
         const fs = new FileSystem(this.appConfigService.pwd());
+        let project = this.projectService.searchOne({
+            path: fs.path()
+        });
 
         if(!project) {
             project = this.projectService.fromObject({
-                path: this.appConfigService.pwd()
+                path: fs.path()
             });
         }
 
-        project.path = this.appConfigService.pwd();
+        project.path = fs.path();
 
         if(name) {
             project.name = name;
@@ -129,6 +129,7 @@ export class ProjectController {
         if(!type || !project.type || !mapTypes[project.type]) {
             project.type = await promptSelect<ProjectType>({
                 message: "Project type",
+                required: true,
                 options: mapTypes,
                 default: project.type as ProjectType
             });
@@ -152,6 +153,7 @@ export class ProjectController {
 
                 project.dockerfile = await promptSelect({
                     message: "Dockerfile",
+                    required: true,
                     options: dockerfiles.map((dockerfile) => {
                         return {
                             value: dockerfile
@@ -180,7 +182,7 @@ export class ProjectController {
 
         await this.appEventsService.emit("project:init", project);
 
-        await project.save();
+        project.save();
     }
 
     @Command("destroy [name]")
@@ -190,6 +192,14 @@ export class ProjectController {
         name?: string
     ): Promise<void> {
         const project = this.projectService.get(name);
+
+        await this.projectService.stop(project);
+
+        this.appConfigService.removeProject(project.id);
+        this.appConfigService.save();
+        this.appConfigService.fs.rm(`projects/${project.id}`, {
+            recursive: true
+        });
     }
 
     @Command("ps")
@@ -348,7 +358,7 @@ export class ProjectController {
             project.addDomain(domain);
         }
 
-        await project.save();
+        project.save();
 
         // const container = await this.dockerService.getContainer(`${project.name}.workspace`);
         //
@@ -382,7 +392,7 @@ export class ProjectController {
             project.addDomain(domain);
         }
 
-        await project.save();
+        project.save();
 
         // const container = await this.dockerService.getContainer(`${project.name}.workspace`);
         //
@@ -414,7 +424,7 @@ export class ProjectController {
             project.removeDomain(domain);
         }
 
-        await project.save();
+        project.save();
     }
 
     @Command("domain:clear")
@@ -435,7 +445,7 @@ export class ProjectController {
 
         project.clearDomains();
 
-        await project.save();
+        project.save();
 
         // const container = await this.dockerService.getContainer(`${project.name}.workspace`);
         //
@@ -492,7 +502,7 @@ export class ProjectController {
 
         project.linkPort(parseInt(hostPort), parseInt(containerPort));
 
-        await project.save();
+        project.save();
     }
 
     @Command("port:remove <host-port>:<container-port>")
@@ -516,7 +526,7 @@ export class ProjectController {
 
         project.unlinkPort(parseInt(hostPort), parseInt(containerPort));
 
-        await project.save();
+        project.save();
     }
 
     @Command("port:clear")
@@ -537,7 +547,7 @@ export class ProjectController {
         if(project.ports) {
             delete project.ports;
 
-            await project.save();
+            project.save();
         }
     }
 
@@ -567,7 +577,7 @@ export class ProjectController {
             env = project.env || {};
         }
         else {
-            const config = this.appConfigService.getConfig();
+            const config = this.appConfigService.config;
 
             env = config.env || {};
         }
@@ -604,7 +614,7 @@ export class ProjectController {
         }
 
         let config = global
-            ? this.appConfigService.getConfig()
+            ? this.appConfigService.config
             : this.projectService.get();
 
         const table = new CliTable({
@@ -646,7 +656,7 @@ export class ProjectController {
         }
 
         const config = global
-            ? this.appConfigService.getConfig()
+            ? this.appConfigService.config
             : this.projectService.get();
 
         for(const variable of variables) {
@@ -660,7 +670,7 @@ export class ProjectController {
             config.setEnv(key.trim(), value.trim());
         }
 
-        await config.save();
+        config.save();
 
         if(!global) {
             const project = this.projectService.get();
@@ -710,7 +720,7 @@ export class ProjectController {
             project.unsetEnv(i);
         }
 
-        await project.save();
+        project.save();
 
         if(!global) {
             const project = this.projectService.get();
@@ -784,13 +794,14 @@ export class ProjectController {
 
     @Command("build-args:set [...buildArgs]")
     public async buildArgsSet(
+        @Param("buildArgs")
+        args: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
-        args: string[]
+        name: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);
@@ -819,7 +830,7 @@ export class ProjectController {
             project.buildArgs[key] = buildArgs[key];
         }
 
-        await project.save();
+        project.save();
     }
 
     @Command("build-args:unset [...buildArgs]")
@@ -860,7 +871,7 @@ export class ProjectController {
             }
         }
 
-        await project.save();
+        project.save();
     }
 
     @Command("volumes")
@@ -911,7 +922,7 @@ export class ProjectController {
         if(Array.isArray(volumes) && volumes.length > 0) {
             project.volumeMount(...volumes)
 
-            await project.save();
+            project.save();
         }
     }
 
@@ -935,7 +946,7 @@ export class ProjectController {
         if(Array.isArray(volumes) && volumes.length > 0) {
             project.volumeUnmount(...volumes);
 
-            await project.save();
+            project.save();
         }
     }
 
@@ -994,7 +1005,7 @@ export class ProjectController {
 
         project.addExtraHost(extraHost, extraDomain);
 
-        await project.save();
+        project.save();
     }
 
     @Command("extra-host:remove <extraHost>")
@@ -1017,7 +1028,7 @@ export class ProjectController {
 
         project.removeExtraHost(extraHost);
 
-        await project.save();
+        project.save();
     }
 
     @Command("attach")

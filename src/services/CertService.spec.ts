@@ -1,28 +1,34 @@
-import {describe, it, expect} from "@jest/globals";
+import {describe, it, expect, beforeEach} from "@jest/globals";
+import {ApplicationContext} from "@wocker/core";
 import {Test} from "@wocker/testing";
 import {vol} from "memfs";
 import {
     AppConfigService,
     ProxyService,
-    DockerService,
     CertService,
     LogService
 } from "./";
+import {DockerService, ModemService} from "../modules";
 import {DATA_DIR} from "../env";
 
 
 describe("CertService", () => {
-    it("should return map of certificates with their extensions", async () => {
-        const context = await Test.createTestingModule({
+    let context: ApplicationContext;
+
+    beforeEach(async () => {
+        context = await Test.createTestingModule({
             providers: [
                 AppConfigService,
                 CertService,
                 ProxyService,
                 DockerService,
+                ModemService,
                 LogService
             ]
         });
+    });
 
+    it("should return map of certificates with their extensions", async () => {
         vol.fromJSON({
             "certs/projects/test.crt": "",
             "certs/projects/test.key": "",
@@ -41,16 +47,6 @@ describe("CertService", () => {
     });
 
     it("should display formatted table with certificate names", async () => {
-        const context = await Test.createTestingModule({
-            providers: [
-                AppConfigService,
-                CertService,
-                ProxyService,
-                DockerService,
-                LogService
-            ]
-        });
-
         vol.fromJSON({
             "certs/projects/test.crt": "",
             "certs/projects/test.key": "",
@@ -64,17 +60,4 @@ describe("CertService", () => {
 
         expect(list).toMatchInlineSnapshot(`\n"[90m┌───────┐[39m\n[90m│[39m[31m Name  [39m[90m│[39m\n[90m├───────┤[39m\n[90m│[39m test  [90m│[39m\n[90m├───────┤[39m\n[90m│[39m test2 [90m│[39m\n[90m└───────┘[39m"\n`);
     });
-
-    // it("should ...", async () => {
-    //     const context = await Test.createTestingModule({
-    //         providers: [
-    //             AppConfigService,
-    //             CertService,
-    //             ProxyService,
-    //             DockerService,
-    //             LogService
-    //         ]
-    //     });
-    //
-    // });
 });

@@ -8,7 +8,7 @@ import * as Path from "path";
 
 import {PLUGINS_DIR} from "../env";
 import {AppConfigService} from "./AppConfigService";
-import {DockerService} from "./DockerService";
+import {DockerService} from "../modules";
 
 
 @Injectable("PROXY_SERVICE")
@@ -34,8 +34,7 @@ export class ProxyService extends CoreProxyService {
         });
 
         project.setEnv("VIRTUAL_PORT", appPort.toString());
-
-        await project.save();
+        project.save();
     }
 
     public async start(restart?: boolean, rebuild?: boolean): Promise<void> {
@@ -50,6 +49,8 @@ export class ProxyService extends CoreProxyService {
 
             await this.build(rebuild);
 
+            const fs = this.appConfigService.fs;
+
             if(!this.appConfigService.fs.exists("certs/ca")) {
                 this.appConfigService.fs.mkdir("certs/ca", {
                     recursive: true,
@@ -59,6 +60,13 @@ export class ProxyService extends CoreProxyService {
 
             if(!this.appConfigService.fs.exists("certs/projects")) {
                 this.appConfigService.fs.mkdir("certs/projects", {
+                    recursive: true,
+                    mode: 0o700
+                });
+            }
+
+            if(!fs.exists("nginx/vhost.d")) {
+                fs.mkdir("nginx/vhost.d", {
                     recursive: true,
                     mode: 0o700
                 });
@@ -87,8 +95,9 @@ export class ProxyService extends CoreProxyService {
                 ],
                 volumes: [
                     "/var/run/docker.sock:/tmp/docker.sock:ro",
-                    `${this.appConfigService.fs.path("certs/projects")}:/etc/nginx/certs`,
-                    `${this.appConfigService.fs.path("certs/ca")}:/etc/nginx/ca-certs`
+                    `${fs.path("certs/projects")}:/etc/nginx/certs`,
+                    `${fs.path("certs/ca")}:/etc/nginx/ca-certs`,
+                    `${fs.path("nginx/vhost.d")}:/etc/nginx/vhost.d`
                 ],
                 network: "workspace"
             });
