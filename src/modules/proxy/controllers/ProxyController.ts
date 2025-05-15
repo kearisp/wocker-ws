@@ -8,12 +8,10 @@ import {
 } from "@wocker/core";
 import {promptConfirm, promptInput} from "@wocker/utils";
 import colors from "yoctocolors-cjs";
-import {
-    AppConfigService,
-    AppEventsService,
-    ProjectService,
-    ProxyService
-} from "../services";
+import {AppConfigService} from "../../../services/AppConfigService";
+import {AppEventsService} from "../../../services/AppEventsService";
+import {ProjectService} from "../../../services/ProjectService";
+import {ProxyService} from "../services/ProxyService";
 
 
 @Controller()
@@ -43,7 +41,7 @@ export class ProxyController {
             console.info(colors.gray(`127.0.0.1 ${domain}`));
         }
 
-        await this.start();
+        // await this.start();
     }
 
     public async onProjectStop(project: Project): Promise<void> {

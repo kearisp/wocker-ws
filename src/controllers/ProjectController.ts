@@ -18,15 +18,12 @@ import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
 import * as Path from "path";
 import {Mutex} from "async-mutex";
-
-import {FS} from "../makes";
-import {
-    AppConfigService,
-    AppEventsService,
-    ProjectService,
-    LogService
-} from "../services";
+import {AppConfigService} from "../services/AppConfigService";
+import {AppEventsService} from "../services/AppEventsService";
+import {ProjectService} from "../services/ProjectService";
+import {LogService} from "../services/LogService";
 import {DockerService} from "../modules";
+import * as process from "node:process";
 
 
 @Controller()
@@ -1148,8 +1145,6 @@ export class ProjectController {
                 this.logService.clear();
             }
 
-            const logFilepath = this.appConfigService.dataPath("ws.log");
-
             const prepareLog = (str: string) => {
                 return str.replace(/^\[.*]\s([^:]+):\s.*$/gm, (substring, type) => {
                     switch(type) {
@@ -1175,35 +1170,40 @@ export class ProjectController {
                 });
             };
 
-            const stream = FS.createReadLinesStream(logFilepath, follow ? -10 : undefined);
+            const file = this.appConfigService.fs.open("ws.log", "r");
 
-            stream.on("data", (data) => {
-                process.stdout.write(prepareLog(data.toString()));
+            const stream = file.createReadlineStream({
+                start: -10
+            });
+
+            stream.on("data", (line: string): void => {
+                process.stdout.write(prepareLog(line));
                 process.stdout.write("\n");
             });
 
             if(follow) {
-                const stats = await FS.stat(logFilepath);
-                const watcher = FS.watch(logFilepath);
+                const stats = file.stat();
+
+                const watcher = this.appConfigService.fs.watch("ws.log");
                 const mutex = new Mutex();
 
-                let position = BigInt(stats.size);
+                let position = stats.size;
 
                 watcher.on("change", async () => {
                     await mutex.acquire();
 
                     try {
-                        const stats = await FS.stat(logFilepath);
+                        const stats = file.stat();
 
-                        if(BigInt(stats.size) < position) {
+                        if(stats.size < position) {
                             console.info("file truncated");
 
-                            position = 0n;
+                            position = 0;
                         }
 
-                        const buffer = await FS.readBytes(logFilepath, position);
+                        const buffer = file.readBytes(position);
 
-                        position += BigInt(buffer.length);
+                        position += buffer.length;
 
                         process.stdout.write(prepareLog(buffer.toString("utf-8")));
                     }

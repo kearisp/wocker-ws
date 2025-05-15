@@ -5,8 +5,8 @@ import {
     Param,
     Option
 } from "@wocker/core";
-
-import {ProjectService, CertService} from "../services";
+import {CertService} from "../services/CertService";
+import {ProjectService} from "../../../services/ProjectService";
 
 
 @Controller()

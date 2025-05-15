@@ -2,14 +2,12 @@ import {describe, it, expect, beforeEach} from "@jest/globals";
 import {ApplicationContext} from "@wocker/core";
 import {Test} from "@wocker/testing";
 import {vol} from "memfs";
-import {
-    AppConfigService,
-    ProxyService,
-    CertService,
-    LogService
-} from "./";
-import {DockerService, ModemService} from "../modules";
-import {DATA_DIR} from "../env";
+import {AppConfigService} from "../../../services/AppConfigService";
+import {LogService} from "../../../services/LogService";
+import {CertService} from "./CertService";
+import {ProxyService} from "./ProxyService";
+import {DockerService, ModemService} from "../../docker";
+import {DATA_DIR} from "../../../env";
 
 
 describe("CertService", () => {

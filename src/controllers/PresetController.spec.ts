@@ -3,10 +3,8 @@ import {SpiedFunction} from "jest-mock";
 import {PRESET_SOURCE_EXTERNAL} from "@wocker/core";
 import {Test} from "@wocker/testing";
 import {vol} from "memfs";
-import {
-    PresetRepository
-} from "../repositories";
-import {KeystoreService} from "../keystore";
+import {PresetRepository} from "../repositories";
+import {KeystoreService} from "../modules";
 
 
 describe("PresetController", () => {
@@ -15,7 +13,7 @@ describe("PresetController", () => {
 
     beforeEach(() => {
         cwdMock = jest.spyOn(process, "cwd");
-        cwdMock.mockReturnValue("/home/user/preset");
+        cwdMock.mockReturnValue("/home/wocker-test/preset");
 
         const prompt = ({message}) => {
             return promptMap[message];
@@ -40,13 +38,11 @@ describe("PresetController", () => {
     });
 
     it("preset:init", async () => {
-        const {
-            AppConfigService,
-            AppEventsService,
-            ProjectService,
-            LogService,
-            PresetService
-        } = await import("../services");
+        const {AppConfigService} = await import("../services/AppConfigService");
+        const {AppEventsService} = await import("../services/AppEventsService");
+        const {ProjectService} = await import("../services/ProjectService");
+        const {LogService} = await import("../services/LogService");
+        const {PresetService} = await import("../services/PresetService");
         const {
             ModemService,
             DockerService
@@ -74,7 +70,7 @@ describe("PresetController", () => {
 
         vol.fromJSON({
             "Dockerfile": "FROM node:latest\n"
-        }, "/home/user/preset");
+        }, "/home/wocker-test/preset");
 
         promptMap = {
             "Preset name": "test",
@@ -88,7 +84,7 @@ describe("PresetController", () => {
 
         await context.run(["node", "ws", "preset:init"]);
 
-        const config = JSON.parse(vol.readFileSync("/home/user/preset/config.json").toString());
+        const config = JSON.parse(vol.readFileSync("/home/wocker-test/preset/config.json").toString());
 
         expect(config).toEqual({
             name: "test",
@@ -100,7 +96,7 @@ describe("PresetController", () => {
             {
                 name: "test",
                 source: PRESET_SOURCE_EXTERNAL,
-                path: "/home/user/preset"
+                path: "/home/wocker-test/preset"
             }
         ]);
     });

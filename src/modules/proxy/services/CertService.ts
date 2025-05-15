@@ -1,9 +1,8 @@
 import {Injectable, Project} from "@wocker/core";
 import * as Path from "path";
 import CliTable from "cli-table3";
-
-import {AppConfigService} from "./AppConfigService";
-import {DockerService} from "../modules";
+import {DockerService} from "../../docker";
+import {AppConfigService} from "../../../services/AppConfigService";
 import {ProxyService} from "./ProxyService";
 
 

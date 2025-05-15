@@ -1,6 +1,6 @@
 import {Injectable, KeystoreProvider} from "@wocker/core";
 import {Keytar} from "../types/Keytar";
-import {KEYTAR_SERVICE} from "../../env";
+import {KEYTAR_SERVICE} from "../../../env";
 
 
 @Injectable()

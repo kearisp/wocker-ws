@@ -1,4 +1,3 @@
-import "reflect-metadata";
 import {PLUGIN_NAME_METADATA} from "@wocker/core";
 
 

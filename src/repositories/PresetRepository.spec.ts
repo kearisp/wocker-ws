@@ -7,20 +7,21 @@ import {
 } from "@wocker/core";
 import {Test} from "@wocker/testing";
 import {vol} from "memfs";
-import {AppConfigService, LogService} from "../services";
+import {AppConfigService} from "../services/AppConfigService";
+import {LogService} from "../services/LogService";
 import {PresetRepository} from "./";
 import {DATA_DIR, PRESETS_DIR} from "../env";
 
 
-describe("PresetRepository", () => {
-    beforeEach(async () => {
+describe("PresetRepository", (): void => {
+    beforeEach((): void => {
         vol.reset();
     });
 
     const INTERNAL_1_NAME = "foo-1",
           INTERNAL_2_NAME = "foo-2",
           EXTERNAL_1_NAME = "ext-1",
-          EXTERNAL_1_PATH = `/home/wocker/presets/${EXTERNAL_1_NAME}`,
+          EXTERNAL_1_PATH = `/home/wocker-test/presets/${EXTERNAL_1_NAME}`,
           GITHUB_1_NAME = "github-1";
 
     const getContext = async () => {
@@ -135,7 +136,7 @@ describe("PresetRepository", () => {
         expect(presetBySource).toBeNull();
 
         const presetByPath = presetRepository.searchOne({
-            path: "/home/not-found"
+            path: "/home/wocker-test/presets/not-found"
         });
 
         expect(presetByPath).toBeNull();

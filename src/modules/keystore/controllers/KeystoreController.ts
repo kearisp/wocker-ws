@@ -6,8 +6,8 @@ import {
     Option
 } from "@wocker/core";
 import {promptInput, promptSelect} from "@wocker/utils";
-import {AppConfigService} from "../services";
-import {KeystoreService} from "../keystore";
+import {AppConfigService} from "../../../services/AppConfigService";
+import {KeystoreService} from "../services/KeystoreService";
 
 
 @Controller()
@@ -39,7 +39,7 @@ export class KeystoreController {
         }
 
         this.appConfigService.config.keystore = provider;
-        this.appConfigService.config.save();
+        this.appConfigService.save();
     }
 
     @Command("secret:create [name]")

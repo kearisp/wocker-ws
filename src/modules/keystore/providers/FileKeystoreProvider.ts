@@ -1,7 +1,7 @@
 import {Injectable, KeystoreProvider} from "@wocker/core";
 import {promptInput} from "@wocker/utils";
 // noinspection ES6PreferShortImport
-import {AppConfigService} from "../../services/AppConfigService";
+import {AppConfigService} from "../../../services/AppConfigService";
 import {FileKeystore} from "../types/FileKeystore";
 import {encrypt, decrypt, verifyPasswordHash, createPasswordHash, createEncryptionKey} from "../utils";
 

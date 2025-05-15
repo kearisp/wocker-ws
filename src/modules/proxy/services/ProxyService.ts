@@ -5,10 +5,9 @@ import {
 } from "@wocker/core";
 import {promptInput} from "@wocker/utils";
 import * as Path from "path";
-
-import {PLUGINS_DIR} from "../env";
-import {AppConfigService} from "./AppConfigService";
-import {DockerService} from "../modules";
+import {PLUGINS_DIR} from "../../../env";
+import {AppConfigService} from "../../../services/AppConfigService";
+import {DockerService} from "../../docker";
 
 
 @Injectable("PROXY_SERVICE")

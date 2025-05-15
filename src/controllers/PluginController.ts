@@ -6,7 +6,8 @@ import {
     Completion,
     Description
 } from "@wocker/core";
-import {AppConfigService, PluginService} from "../services";
+import {AppConfigService} from "../services/AppConfigService";
+import {PluginService} from "../services/PluginService";
 
 
 @Controller()

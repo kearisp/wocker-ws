@@ -4,7 +4,6 @@ import {
     LogService as CoreLogService
 } from "@wocker/core";
 import dateFormat from "date-fns/format";
-
 import {Logger} from "../makes";
 import {AppConfigService} from "./AppConfigService";
 

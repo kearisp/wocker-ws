@@ -5,8 +5,8 @@ import {
     Completion,
     Controller
 } from "@wocker/core";
-
-import {AppConfigService, LogService} from "../services";
+import {AppConfigService} from "../services/AppConfigService";
+import {LogService} from "../services/LogService";
 
 
 @Controller()

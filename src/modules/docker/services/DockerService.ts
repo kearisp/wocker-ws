@@ -6,18 +6,15 @@ import {
     LogService,
     Logger
 } from "@wocker/core";
-import Docker, {
-    Container,
-    Volume,
-    VolumeCreateResponse
-} from "dockerode";
+import type Docker from "dockerode";
+import type {Container, Volume, VolumeCreateResponse} from "dockerode";
 import {ModemService} from "./ModemService";
 import {formatSizeUnits} from "../../../utils";
 
 
 @Injectable("DOCKER_SERVICE")
 export class DockerService extends CoreDockerService {
-    protected _docker: Docker;
+    protected _docker?: Docker;
 
     public constructor(
         protected readonly modemService: ModemService,
@@ -28,16 +25,17 @@ export class DockerService extends CoreDockerService {
 
     public get docker(): Docker {
         if(!this._docker) {
+            const Docker = require("dockerode");
+
             this._docker = new Docker({
-                // @ts-ignore
                 modem: this.modemService.modem
             });
         }
 
-        return this._docker;
+        return this._docker!;
     }
 
-     public async createVolume(name: string): Promise<VolumeCreateResponse> {
+    public async createVolume(name: string): Promise<VolumeCreateResponse> {
         return await this.docker.createVolume({
             Name: name,
             Driver: "local"
@@ -503,7 +501,7 @@ export class DockerService extends CoreDockerService {
             };
 
             stream.on("data", (chunk: Buffer) => {
-                const text = chunk.toString().replace(/}\s*\{/g, '},{'),
+                const text = chunk.toString().replace(/}\s*\{/g, "},{"),
                       items: any[] = JSON.parse(`[${text}]`);
 
                 for(const item of items) {

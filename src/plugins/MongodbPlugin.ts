@@ -1,260 +1,23 @@
-import {Controller} from "@wocker/core";
-import {demuxOutput, promptConfirm, promptSelect} from "@wocker/utils";
-import * as Path from "path";
-import * as dateFns from "date-fns";
-
+import {Controller, FileSystem} from "@wocker/core";
+import {promptConfirm, promptSelect} from "@wocker/utils";
 import {DATA_DIR} from "../env";
-import {Logger, FS} from "../makes";
 import {DockerService} from "../modules";
 
 
 @Controller()
 export class MongodbPlugin {
     protected container = "mongodb.workspace";
-    protected adminContainer = "dbadmin-mongodb.workspace";
-    protected dataDir: string;
 
     public constructor(
         protected readonly dockerService: DockerService
-    ) {
-        this.dataDir = Path.join(DATA_DIR, "db/mongodb");
+    ) {}
+
+    public get fs(): FileSystem {
+        return (new FileSystem(DATA_DIR)).cd("db/mongodb");
     }
 
-    protected dataPath(...parts: string[]) {
-        return Path.join(this.dataDir, ...parts);
-    }
-
-    // public install(cli: Cli) {
-    //     cli.command("mongodb:start").action(() => {
-    //         return this.start();
-    //     });
-    //
-    //     cli.command("mongodb:stop").action(() => {
-    //         return this.stop();
-    //     });
-    //
-    //     cli.command("mongodb:restart").action(() => {
-    //         return this.restart();
-    //     });
-    //
-    //     cli.command("mongodb:backup [database]")
-    //         .completion("database", () => {
-    //             return this.getDatabases();
-    //         })
-    //         .action((options, database?: string) => {
-    //             return this.backup(database);
-    //         });
-    //
-    //     cli.command("mongodb:restore [database] [filename]")
-    //         .completion("database", () => {
-    //             const dumpPath = this.dataPath("dump");
-    //
-    //             return FS.readdir(dumpPath);
-    //         })
-    //         .completion("filename", (options, database: string) => {
-    //             if(!database) {
-    //                 return [];
-    //             }
-    //
-    //             const dirPath = this.dataPath("dump", database);
-    //
-    //             if(!FS.existsSync(dirPath)) {
-    //                 return [];
-    //             }
-    //
-    //             return FS.readdir(dirPath);
-    //         })
-    //         .action((options, database?: string, filename?: string) => {
-    //             return this.restore(database, filename);
-    //         });
-    //
-    //     cli.command("mongodb:delete-backup [database] [filename]")
-    //         .option("yes", {
-    //             type: "boolean",
-    //             alias: "y"
-    //         })
-    //         .completion("database", () => {
-    //             return this.getDatabasesDumps();
-    //         })
-    //         .completion("filename", (options, database?: string) => {
-    //             if(!database) {
-    //                 return [];
-    //             }
-    //
-    //             const dumpPath = this.dataPath("dump", database);
-    //
-    //             if(!FS.existsSync(dumpPath)) {
-    //                 return [];
-    //             }
-    //
-    //             return FS.readdirFiles(dumpPath);
-    //         })
-    //         .action((options, database?: string, filename?: string) => {
-    //             return this.deleteBackup(database, filename, options.yes)
-    //         });
-    // }
-
-    async getDatabases() {
-        const stream = await this.dockerService.exec(
-            this.container,
-            [
-                "mongosh",
-                "--username", "root",
-                "--password", "toor",
-                "--quiet",
-                "--eval", "db.getMongo().getDBNames().forEach(function(i){print(i)})"
-            ],
-            false
-        );
-
-        let res = "";
-
-        stream.on("data", (data) => {
-            res += demuxOutput(data).toString();
-        });
-
-        await new Promise((resolve, reject) => {
-            stream.on("end", resolve);
-            stream.on("error", reject);
-        });
-
-        return res.split(/\r?\n/).filter((database: string) => {
-            return !!database;
-        });
-    }
-
-    async getDatabasesDumps() {
-        const dumpDir = this.dataPath("dump");
-
-        return FS.readdir(dumpDir);
-    }
-
-    async start() {
-        console.log("Mongidb starting...");
-
-        await this.dockerService.pullImage("mongo:latest");
-
-        const container = await this.dockerService.createContainer({
-            name: this.container,
-            restart: "always",
-            image: "mongo:latest",
-            volumes: [
-                `${this.dataPath()}:/data/db`
-            ],
-            ports: ["27017:27017"],
-            env: {
-                MONGO_INITDB_ROOT_USERNAME: "root",
-                MONGO_INITDB_ROOT_PASSWORD: "toor",
-                MONGO_ROOT_USER: "root",
-                MONGO_ROOT_PASSWORD: "toor"
-            }
-        });
-
-        await container.start();
-
-        await this.startAdmin();
-    }
-
-    async startAdmin() {
-        console.log("Mongodb Admin starting...");
-
-        await this.dockerService.pullImage("mongo-express:latest");
-
-        const container = await this.dockerService.createContainer({
-            name: this.adminContainer,
-            restart: "always",
-            env: {
-                ME_CONFIG_MONGODB_SERVER: this.container,
-                ME_CONFIG_MONGODB_PORT: "27017",
-                MONGO_ROOT_USER: "root",
-                MONGO_ROOT_PASSWORD: "toor",
-                ME_CONFIG_MONGODB_ADMINUSERNAME: "root",
-                ME_CONFIG_MONGODB_ADMINPASSWORD: "toor",
-                ME_CONFIG_MONGODB_ENABLE_ADMIN: "true",
-                ME_CONFIG_MONGODB_AUTH_DATABASE: "admin",
-                ME_CONFIG_MONGODB_AUTH_USERNAME: "root",
-                ME_CONFIG_MONGODB_AUTH_PASSWORD: "toor",
-                VIRTUAL_HOST: this.adminContainer,
-                VIRTUAL_PORT: "8081"
-            },
-            image: "mongo-express:latest"
-        });
-
-        await container.start();
-    }
-
-    async stop() {
-        await this.stopDB();
-        await this.stopAdmin();
-    }
-
-    public async stopDB() {
-        console.log("Mongodb stopping...");
-
-        const container = await this.dockerService.getContainer(this.container);
-
-        if(container) {
-            try {
-                await container.stop();
-                await container.remove();
-            }
-            catch(err) {
-                Logger.error(err.message);
-            }
-        }
-    }
-
-    async stopAdmin() {
-        console.log("Mongodb Admin stopping...");
-
-        await this.dockerService.removeContainer(this.adminContainer);
-    }
-
-    async restart() {
-        await this.stop();
-
-        await this.start();
-    }
-
-    async backup(database?: string) {
-        if(!database) {
-            database = await promptSelect({
-                message: "Database",
-                options: await this.getDatabases()
-            });
-        }
-
-        const date = dateFns.format(new Date(), "yyyy-MM-dd HH-mm");
-        const dirPath = this.dataPath("dump", database);
-        const filePath = this.dataPath("dump", database, `${date}.gz`);
-
-        if(!FS.existsSync(dirPath)) {
-            FS.mkdirSync(dirPath, {
-                recursive: true
-            });
-        }
-
-        const stream = await this.dockerService.exec(this.container, [
-            "mongodump",
-            "--authenticationDatabase", "admin",
-            "--host", `${this.container}:27017`,
-            "--username", "root",
-            "--password", "toor",
-            "--db", database,
-            "--archive",
-            "--gzip"
-        ], false);
-
-        const file = FS.createWriteStream(filePath);
-
-        stream.on("data", (data) => {
-            file.write(demuxOutput(data));
-        });
-
-        await new Promise((resolve, reject) => {
-            stream.on("end", resolve);
-            stream.on("error", reject);
-        });
+    public getDatabasesDumps(): string[] {
+        return this.fs.readdir("dump");
     }
 
     async deleteBackup(database?: string, filename?: string, yes?: boolean) {
@@ -269,14 +32,12 @@ export class MongodbPlugin {
             throw new Error("No database");
         }
 
-        const dirPath = this.dataPath("dump", database);
-
-        if(!FS.existsSync(dirPath)) {
+        if(!this.fs.exists(`dump/${database}`)) {
             throw new Error(`Backups dir for database "${database}" not found`);
         }
 
         if(!filename) {
-            const files = await FS.readdirFiles(dirPath);
+            const files = this.fs.readdir(`dump/${database}`);
 
             if(files.length === 0) {
                 throw new Error(`No backups for ${database}`);
@@ -288,9 +49,7 @@ export class MongodbPlugin {
             });
         }
 
-        const filePath = this.dataPath("dump", database, filename);
-
-        if(!FS.existsSync(filePath)) {
+        if(!this.fs.exists(`dump/${database}/${filename}`)) {
             throw new Error(`Backup "${filename}" not found`);
         }
 
@@ -305,12 +64,12 @@ export class MongodbPlugin {
             return;
         }
 
-        await FS.rm(filePath);
+        this.fs.rm(`dump/${database}/${filename}`);
 
-        const otherFiles = await FS.readdir(dirPath);
+        const otherFiles = this.fs.readdir(`dump/${database}`);
 
         if(otherFiles.length === 0) {
-            await FS.rm(dirPath, {
+            this.fs.rm(`dump/${database}`, {
                 force: true,
                 recursive: true
             });
@@ -319,7 +78,7 @@ export class MongodbPlugin {
 
     async restore(database?: string, filename?: string) {
         if(!database) {
-            const dumps = await FS.readdir(this.dataPath("dump"));
+            const dumps = this.fs.readdir("dump");
 
             if(dumps.length === 0) {
                 throw new Error("No dumps found");
@@ -336,7 +95,7 @@ export class MongodbPlugin {
         }
 
         if(!filename) {
-            const filenames = await FS.readdir(this.dataPath("dump", database));
+            const filenames = this.fs.readdir(`dump/${database}`);
 
             filename = await promptSelect({
                 message: "File",
@@ -344,8 +103,7 @@ export class MongodbPlugin {
             });
         }
 
-        const path = this.dataPath("dump", database, filename);
-        const file = FS.createReadStream(path);
+        const file = this.fs.createReadStream(`dump/${database}/${filename}`);
         const stream = await this.dockerService.exec(this.container, [
             "mongorestore",
             "--authenticationDatabase", "admin",
@@ -371,7 +129,5 @@ export class MongodbPlugin {
 
             throw err;
         });
-
-        console.log(path);
     }
 }

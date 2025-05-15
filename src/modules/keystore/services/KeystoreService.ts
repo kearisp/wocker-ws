@@ -3,10 +3,9 @@ import {
     KeystoreService as CoreKeystoreService,
     KeystoreProvider
 } from "@wocker/core";
-// noinspection ES6PreferShortImport
-import {AppConfigService} from "../services/AppConfigService";
-import {KeytarKeystoreProvider} from "./providers/KeytarKeystoreProvider";
-import {FileKeystoreProvider} from "./providers/FileKeystoreProvider";
+import {AppConfigService} from "../../../services/AppConfigService";
+import {KeytarKeystoreProvider} from "./../providers/KeytarKeystoreProvider";
+import {FileKeystoreProvider} from "./../providers/FileKeystoreProvider";
 
 
 @Injectable("KEYSTORE_SERVICE")

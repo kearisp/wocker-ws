@@ -1,5 +1,5 @@
 import {describe, it, expect} from "@jest/globals";
-import {AppConfigService} from "../../services";
+import {AppConfigService} from "../../../services/AppConfigService";
 import {FileKeystoreProvider} from "./FileKeystoreProvider";
 
 

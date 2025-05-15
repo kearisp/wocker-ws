@@ -40,7 +40,8 @@ export class AppConfigService extends CoreAppConfigService {
 
     public get config(): AppConfig {
         if(!this._config) {
-            const fs = this.fs;
+            const _this = this,
+                  fs = this.fs;
 
             let data: AppConfigProperties = {};
 
@@ -91,22 +92,7 @@ export class AppConfigService extends CoreAppConfigService {
                 }
 
                 public async save(): Promise<void> {
-                    if(!fs.exists()) {
-                        fs.mkdir("", {
-                            recursive: true
-                        });
-                    }
-
-                    fs.writeFile("wocker.config.js", this.toJsString());
-                    fs.writeFile("wocker.config.json", this.toString()); // Backup file
-
-                    if(fs.exists("data.json")) {
-                        fs.rm("data.json");
-                    }
-
-                    if(fs.exists("wocker.json")) {
-                        fs.rm("wocker.json");
-                    }
+                    _this.save();
                 }
             }(data);
         }
@@ -154,11 +140,28 @@ export class AppConfigService extends CoreAppConfigService {
         this.config.addProject(id, name, path);
     }
 
-    public removeProject(id: string) {
-        return this.config.getProject(id);
+    public removeProject(name: string) {
+        return this.config.removeProject(name);
     }
 
     public save(): void {
-        this.config.save();
+        const fs = this.fs;
+
+        if(!fs.exists()) {
+            fs.mkdir("", {
+                recursive: true
+            });
+        }
+
+        fs.writeFile("wocker.config.js", this.config.toJsString());
+        fs.writeFile("wocker.config.json", this.config.toString()); // Backup file
+
+        if(fs.exists("data.json")) {
+            fs.rm("data.json");
+        }
+
+        if(fs.exists("wocker.json")) {
+            fs.rm("wocker.json");
+        }
     }
 }

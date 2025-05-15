@@ -1,7 +1,12 @@
-import {Factory, CommandNotFoundError} from "@wocker/core";
+import {
+    Factory,
+    CommandNotFoundError,
+    UsageException
+} from "@wocker/core";
 import colors from "yoctocolors-cjs";
 import {AppModule} from "./AppModule";
-import {AppConfigService, LogService} from "./services";
+import {AppConfigService} from "./services/AppConfigService";
+import {LogService} from "./services/LogService";
 
 
 export const app = {
@@ -24,6 +29,10 @@ export const app = {
             }
 
             console.error(colors.red(err.message));
+
+            if(err instanceof UsageException || err.name === "UsageException") {
+                return;
+            }
 
             if(err instanceof CommandNotFoundError) {
                 return;

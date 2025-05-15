@@ -3,6 +3,7 @@ import crypto from "crypto";
 import {createEncryptionKey} from "./createEncryptionKey";
 import {createPasswordHash} from "./createPasswordHash";
 
+
 describe("createEncryptionKey", () => {
     it("should generate deterministic keys with the same password and password hash", () => {
         const password = "Secret password";

@@ -5,72 +5,66 @@ import {
     MODULE_METADATA,
     PLUGIN_DIR_KEY
 } from "@wocker/core";
-
 import {
-    CertController,
     CompletionController,
     DebugController,
-    KeystoreController,
+    ExperimentalController,
     PluginController,
     PresetController,
-    ProjectController,
-    ProxyController
+    ProjectController
 } from "./controllers";
+import {PresetRepository} from "./repositories";
+import {AppConfigService} from "./services/AppConfigService";
+import {AppEventsService} from "./services/AppEventsService";
+import {PluginService} from "./services/PluginService";
+import {PresetService} from "./services/PresetService";
+import {ProjectService} from "./services/ProjectService";
+import {NpmService} from "./services/NpmService";
+import {LogService} from "./services/LogService";
 import {
-    PresetRepository
-} from "./repositories";
-import {
-    AppConfigService,
-    AppEventsService,
-    CertService,
-    LogService,
-    NpmService,
-    PluginService,
-    PresetService,
-    ProjectService,
-    ProxyService
-} from "./services";
-import {KeystoreService} from "./keystore";
-import {
+    DockerModule,
     DockerService,
     ContainerService,
-    ModemService
+    ProxyModule,
+    ProxyService,
+    KeystoreModule,
+    KeystoreService,
+    CertService
 } from "./modules";
 
 
 @Global()
 @Module({
+    imports: [
+        DockerModule,
+        KeystoreModule,
+        ProxyModule
+    ],
     controllers: [
         CompletionController,
-        DebugController,
-        KeystoreController,
-        PluginController,
-        PresetController,
         ProjectController,
-        ProxyController,
-        CertController
+        PresetController,
+        PluginController,
+        ExperimentalController,
+        DebugController
     ],
     providers: [
         AppConfigService,
         AppEventsService,
-        ContainerService,
-        ModemService,
-        DockerService,
         LogService,
         NpmService,
+        ProjectService,
         PluginService,
         PresetService,
-        ProjectService,
-        ProxyService,
-        CertService,
-        KeystoreService,
         PresetRepository
     ],
     exports: [
         AppConfigService,
         AppEventsService,
-        DockerService,
         LogService,
+        DockerService,
+        CertService,
+        ContainerService,
         ProjectService,
         ProxyService,
         KeystoreService
