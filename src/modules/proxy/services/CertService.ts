@@ -23,7 +23,7 @@ export class CertService {
             head: ["Name"]
         });
 
-        const certMap = await this.getCertsMap();
+        const certMap = this.getCertsMap();
 
         for(const name in certMap) {
             table.push([name]);
@@ -64,7 +64,7 @@ export class CertService {
         });
     }
 
-    public async getCertsMap(): Promise<CertMap> {
+    public getCertsMap(): CertMap {
         const files = this.appConfigService.fs.readdir("certs/projects");
 
         return files.reduce((res, file) => {
@@ -82,7 +82,7 @@ export class CertService {
     }
 
     public async use(project: Project, name: string): Promise<void> {
-        const certs = await this.getCertsMap();
+        const certs = this.getCertsMap();
 
         if(!name) {
             name = project.domains.find((domain) => domain in certs);
@@ -103,8 +103,7 @@ export class CertService {
         }
 
         project.setEnv("CERT_NAME", name);
-
-        await project.save();
+        project.save();
     }
 
     public async remove(project: Project): Promise<void> {
@@ -113,12 +112,11 @@ export class CertService {
         }
 
         project.unsetEnv("CERT_NAME");
-
-        await project.save();
+        project.save();
     }
 
     public async delete(name: string): Promise<void> {
-        const certs = await this.getCertsMap();
+        const certs = this.getCertsMap();
 
         if(!(name in certs)) {
             console.warn(`Cert ${name} not found`);

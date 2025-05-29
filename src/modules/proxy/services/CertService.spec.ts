@@ -36,7 +36,7 @@ describe("CertService", () => {
 
         const certService = context.get(CertService);
 
-        const certsMap = await certService.getCertsMap();
+        const certsMap = certService.getCertsMap();
 
         expect(certsMap).toEqual({
             test: [".crt", ".key"],

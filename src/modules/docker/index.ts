@@ -3,6 +3,7 @@ import {ContainerService} from "./services/ContainerService";
 import {ImageService} from "./services/ImageService";
 import {DockerService} from "./services/DockerService";
 import {ModemService} from "./services/ModemService";
+import {ProtoService} from "./services/ProtoService";
 
 
 @Module({
@@ -10,13 +11,15 @@ import {ModemService} from "./services/ModemService";
         ContainerService,
         ImageService,
         DockerService,
-        ModemService
+        ModemService,
+        ProtoService
     ],
     exports: [
         ContainerService,
         ImageService,
         DockerService,
-        ModemService
+        ModemService,
+        ProtoService
     ]
 })
 export class DockerModule {}
@@ -24,5 +27,6 @@ export {
     ContainerService,
     ImageService,
     DockerService,
-    ModemService
+    ModemService,
+    ProtoService
 };
