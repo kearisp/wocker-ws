@@ -306,78 +306,11 @@ export class DockerService extends CoreDockerService {
     }
 
     public async attachStream(stream: NodeJS.ReadWriteStream): Promise<NodeJS.ReadWriteStream> {
-        if(process.stdin.isTTY) {
-            process.stdin.setRawMode(true);
-        }
-
-        process.stdin.resume();
-        process.stdin.setEncoding("utf8");
-        process.stdin.pipe(stream);
-
-        stream.setEncoding("utf8");
-        stream.pipe(process.stdout);
-
-        const onEnd = () => {
-            process.stdin.pause();
-
-            if(process.stdin.isTTY) {
-                process.stdin.setRawMode(false);
-            }
-
-            process.stdin.unpipe(stream);
-
-            stream.unpipe(process.stdout);
-        };
-
-        stream.on("end", onEnd);
-        stream.on("error", onEnd);
-
-        return stream;
+        return this.modemService.attachStream(stream);
     }
 
     public async exec(nameOrContainer: string|Container, options: Params.Exec|string[], _tty?: boolean) {
-        const container: Container = typeof nameOrContainer === "string"
-            ? await this.getContainer(nameOrContainer)
-            : nameOrContainer;
-
-        if(!container) {
-            return;
-        }
-
-        const {
-            cmd = [],
-            tty = false,
-            user
-        } = Array.isArray(options) ? {
-            cmd: options,
-            tty: _tty
-        } as Params.Exec : options;
-
-        const exec = await container.exec({
-            AttachStdin: true,
-            AttachStdout: true,
-            AttachStderr: tty,
-            Tty: tty,
-            User: user,
-            Cmd: cmd
-        });
-
-        const stream = await exec.start({
-            hijack: true,
-            stdin: tty,
-            Tty: tty,
-            // @ts-ignore
-            // ConsoleSize: [
-            //     process.stdout.columns,
-            //     process.stdout.rows
-            // ]
-        });
-
-        if(tty) {
-            await this.attachStream(stream);
-        }
-
-        return stream;
+        return await this.containerService.exec(nameOrContainer, options, _tty);
     }
 
     public async logs(containerOrName: string|Container): Promise<NodeJS.ReadableStream> {

@@ -1,5 +1,10 @@
-import {Injectable, LogService} from "@wocker/core";
+import {
+    Injectable,
+    LogService,
+    DockerServiceParams as Params
+} from "@wocker/core";
 import type Docker from "dockerode";
+import {Duplex} from "stream";
 import type {Container} from "dockerode";
 import {ModemService} from "./ModemService";
 
@@ -62,5 +67,70 @@ export class ContainerService {
         catch(err) {
             this.logService.error("DockerService.removeContainer: ", err.message);
         }
+    }
+
+    public async exec(nameOrContainer: string|Container, options: Params.Exec|string[], _tty?: boolean): Promise<Duplex> {
+        const container: Container = typeof nameOrContainer === "string"
+            ? await this.get(nameOrContainer)
+            : nameOrContainer;
+
+        if(!container) {
+            return;
+        }
+
+        const {
+            cmd = [],
+            tty = false,
+            user
+        } = Array.isArray(options) ? {
+            cmd: options,
+            tty: _tty
+        } as Params.Exec : options;
+
+        const exec = await container.exec({
+            AttachStdin: true,
+            AttachStdout: true,
+            AttachStderr: true,
+            Tty: tty,
+            User: user,
+            Cmd: cmd,
+            ConsoleSize: [
+                process.stdout.rows,
+                process.stdout.columns
+            ]
+        });
+
+        const stream = await exec.start({
+            hijack: true,
+            stdin: tty,
+            Tty: tty
+        });
+
+        if(tty) {
+            const handleResize = async (): Promise<void> => {
+                const [width, height] = process.stdout.getWindowSize();
+
+                this.logService.debug("Exec resize", {
+                    width,
+                    height
+                });
+
+                await exec.resize({
+                    w: width,
+                    h: height
+                });
+            };
+
+            process.on("SIGWINCH", handleResize);
+
+            try {
+                await this.modemService.attachStream(stream);
+            }
+            finally {
+                process.off("SIGWINCH", handleResize);
+            }
+        }
+
+        return stream;
     }
 }

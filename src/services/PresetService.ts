@@ -253,10 +253,8 @@ export class PresetService {
             return;
         }
 
-        const config = this.appConfigService.getConfig();
-
-        config.unregisterPreset(preset.name);
-        config.save();
+        this.appConfigService.config.unregisterPreset(preset.name);
+        this.appConfigService.save();
     }
 
     public get(name?: string): Preset {

@@ -134,7 +134,7 @@ export class ProjectController {
 
         switch(project.type) {
             case PROJECT_TYPE_DOCKERFILE: {
-                const files = await fs.readdirFiles();
+                const files = fs.readdir();
 
                 const dockerfiles = files.filter((fileName: string) => {
                     if(new RegExp("^(.*)\\.dockerfile$").test(fileName)) {
@@ -278,12 +278,12 @@ export class ProjectController {
 
         await this.projectService.start(project, restart, rebuild);
 
-        if(attach) {
-            await this.dockerService.attach(project.containerName);
-        }
-
         if(detach) {
             console.info(colors.yellow("Warning: Detach option is deprecated"));
+        }
+
+        if(attach) {
+            await this.dockerService.attach(project.containerName);
         }
     }
 
@@ -648,13 +648,25 @@ export class ProjectController {
         })
         global: boolean
     ): Promise<void> {
-        if(!global && name) {
+        if(global) {
+            for(const variable of variables) {
+                const [key, value] = variable.split("=");
+
+                if(!value) {
+                    console.info(colors.yellow(`No value for "${key}"`));
+                    continue;
+                }
+
+                this.appConfigService.config.setEnv(key.trim(), value.trim());
+            }
+            return;
+        }
+
+        if(name) {
             this.projectService.cdProject(name);
         }
 
-        const config = global
-            ? this.appConfigService.config
-            : this.projectService.get();
+        const project = this.projectService.get();
 
         for(const variable of variables) {
             const [key, value] = variable.split("=");
@@ -664,18 +676,15 @@ export class ProjectController {
                 continue;
             }
 
-            config.setEnv(key.trim(), value.trim());
+            project.setEnv(key, value);
         }
 
-        config.save();
+        project.save();
 
-        if(!global) {
-            const project = this.projectService.get();
-            const container = await this.dockerService.getContainer(project.containerName);
+        const container = await this.dockerService.getContainer(project.containerName);
 
-            if(container) {
-                await this.projectService.start(project, true);
-            }
+        if(container) {
+            await this.projectService.start(project, true);
         }
     }
 

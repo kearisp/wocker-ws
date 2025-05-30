@@ -9,7 +9,7 @@ import {
     PROJECT_TYPE_IMAGE
 } from "@wocker/core";
 import * as Path from "path";
-import {WOCKER_VERSION, DATA_DIR, PLUGINS_DIR, PRESETS_DIR} from "../env";
+import {WOCKER_VERSION, DATA_DIR, PRESETS_DIR} from "../env";
 
 
 type TypeMap = {
@@ -40,8 +40,7 @@ export class AppConfigService extends CoreAppConfigService {
 
     public get config(): AppConfig {
         if(!this._config) {
-            const _this = this,
-                  fs = this.fs;
+            const fs = this.fs;
 
             let data: AppConfigProperties = {};
 
@@ -86,15 +85,7 @@ export class AppConfigService extends CoreAppConfigService {
                 });
             }
 
-            this._config = new class extends AppConfig {
-                public constructor(data: AppConfigProperties) {
-                    super(data);
-                }
-
-                public async save(): Promise<void> {
-                    _this.save();
-                }
-            }(data);
+            this._config = new AppConfig(data);
         }
 
         return this._config;
@@ -122,10 +113,6 @@ export class AppConfigService extends CoreAppConfigService {
 
     public dataPath(...parts: string[]): string {
         return Path.join(DATA_DIR, ...parts);
-    }
-
-    public pluginsPath(...parts: string[]): string {
-        return Path.join(PLUGINS_DIR, ...parts);
     }
 
     public presetPath(...parts: string[]): string {

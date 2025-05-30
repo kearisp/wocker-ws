@@ -40,6 +40,39 @@ export class ModemService extends CoreModemService {
         return this._docker!;
     }
 
+    public async attachStream(stream: NodeJS.ReadWriteStream): Promise<NodeJS.ReadWriteStream> {
+        if(process.stdin.isTTY) {
+            process.stdin.setRawMode(true);
+        }
+
+        process.stdin.resume();
+        process.stdin.setEncoding("utf8");
+        process.stdin.pipe(stream);
+
+        stream.setEncoding("utf8");
+        stream.pipe(process.stdout);
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                stream.on("end", resolve);
+                stream.on("error", reject);
+            });
+        }
+        finally {
+            process.stdin.pause();
+
+            if(process.stdin.isTTY) {
+                process.stdin.setRawMode(false);
+            }
+
+            process.stdin.unpipe(stream);
+
+            stream.unpipe(process.stdout);
+        }
+
+        return stream;
+    }
+
     public async followProgress(stream: NodeJS.ReadableStream): Promise<void> {
         let isEnded = false,
             line = 0;

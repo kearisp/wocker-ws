@@ -41,7 +41,7 @@ export class ProxyController {
             console.info(colors.gray(`127.0.0.1 ${domain}`));
         }
 
-        // await this.start();
+        await this.start();
     }
 
     public async onProjectStop(project: Project): Promise<void> {
@@ -136,7 +136,7 @@ export class ProxyController {
             config.unsetMeta("PROXY_SSH_PORT");
         }
 
-        await config.save();
+        this.appConfigService.save();
     }
 
     @Command("proxy:start")
