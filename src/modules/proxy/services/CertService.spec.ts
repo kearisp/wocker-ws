@@ -6,7 +6,14 @@ import {AppConfigService} from "../../../services/AppConfigService";
 import {LogService} from "../../../services/LogService";
 import {CertService} from "./CertService";
 import {ProxyService} from "./ProxyService";
-import {DockerService, ModemService} from "../../docker";
+import {
+    DockerModule,
+    ContainerService,
+    DockerService,
+    ImageService,
+    ModemService,
+    ProtoService
+} from "../../docker";
 import {DATA_DIR} from "../../../env";
 
 
@@ -15,13 +22,19 @@ describe("CertService", () => {
 
     beforeEach(async () => {
         context = await Test.createTestingModule({
+            imports: [
+                // DockerModule
+            ],
             providers: [
                 AppConfigService,
                 CertService,
                 ProxyService,
                 DockerService,
                 ModemService,
-                LogService
+                LogService,
+                ProtoService,
+                ImageService,
+                ContainerService
             ]
         });
     });

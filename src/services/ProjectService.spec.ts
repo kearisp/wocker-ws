@@ -1,5 +1,6 @@
 import {describe, it, expect, beforeAll} from "@jest/globals";
 import {vol} from "memfs";
+// import {LogService} from "@wocker/core";
 import {Test} from "@wocker/testing";
 import {PROJECT_TYPE_IMAGE, PROJECT_TYPE_DOCKERFILE} from "@wocker/core";
 import {AppConfigService} from "./AppConfigService";
@@ -7,9 +8,10 @@ import {AppEventsService} from "./AppEventsService";
 import {LogService} from "./LogService";
 import {ProjectService} from "./ProjectService";
 import {
-    DockerService,
-    ModemService,
-    KeystoreService
+    // DockerService,
+    // ModemService,
+    KeystoreService,
+    DockerModule, DockerService, ModemService, ImageService, ContainerService, ProtoService
 } from "../modules";
 import {DATA_DIR} from "../env";
 
@@ -77,19 +79,25 @@ describe("ProjectService", () => {
 
     const getContext = async () => {
         return Test.createTestingModule({
+            imports: [
+                // DockerModule
+            ],
             providers: [
                 AppConfigService,
                 AppEventsService,
                 ProjectService,
                 KeystoreService,
+                LogService,
                 DockerService,
                 ModemService,
-                LogService
+                ImageService,
+                ContainerService,
+                ProtoService
             ]
         });
     };
 
-    it("should get project by name", async () => {
+    it("should get project by name", async (): Promise<void> => {
         const context = await getContext();
 
         const projectService = context.get(ProjectService);
