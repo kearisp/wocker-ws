@@ -1,10 +1,10 @@
-import {LogService} from "../services";
+import {LogService} from "../services/LogService";
 
 
 let logService: LogService | undefined;
 
 class Logger {
-    public static install(ls: LogService) {
+    public static install(ls: LogService): void {
         logService = ls;
     }
 

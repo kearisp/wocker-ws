@@ -9,7 +9,7 @@ import {
     PROJECT_TYPE_IMAGE
 } from "@wocker/core";
 import * as Path from "path";
-import {WOCKER_VERSION, DATA_DIR, PLUGINS_DIR, PRESETS_DIR} from "../env";
+import {WOCKER_VERSION, DATA_DIR, PRESETS_DIR} from "../env";
 
 
 type TypeMap = {
@@ -85,30 +85,7 @@ export class AppConfigService extends CoreAppConfigService {
                 });
             }
 
-            this._config = new class extends AppConfig {
-                public constructor(data: AppConfigProperties) {
-                    super(data);
-                }
-
-                public async save(): Promise<void> {
-                    if(!fs.exists()) {
-                        fs.mkdir("", {
-                            recursive: true
-                        });
-                    }
-
-                    fs.writeFile("wocker.config.js", this.toJsString());
-                    fs.writeFile("wocker.config.json", this.toString()); // Backup file
-
-                    if(fs.exists("data.json")) {
-                        fs.rm("data.json");
-                    }
-
-                    if(fs.exists("wocker.json")) {
-                        fs.rm("wocker.json");
-                    }
-                }
-            }(data);
+            this._config = new AppConfig(data);
         }
 
         return this._config;
@@ -138,10 +115,6 @@ export class AppConfigService extends CoreAppConfigService {
         return Path.join(DATA_DIR, ...parts);
     }
 
-    public pluginsPath(...parts: string[]): string {
-        return Path.join(PLUGINS_DIR, ...parts);
-    }
-
     public presetPath(...parts: string[]): string {
         return Path.join(PRESETS_DIR, ...parts);
     }
@@ -154,11 +127,28 @@ export class AppConfigService extends CoreAppConfigService {
         this.config.addProject(id, name, path);
     }
 
-    public removeProject(id: string) {
-        return this.config.getProject(id);
+    public removeProject(name: string) {
+        return this.config.removeProject(name);
     }
 
     public save(): void {
-        this.config.save();
+        const fs = this.fs;
+
+        if(!fs.exists()) {
+            fs.mkdir("", {
+                recursive: true
+            });
+        }
+
+        fs.writeFile("wocker.config.js", this.config.toJsString());
+        fs.writeFile("wocker.config.json", this.config.toString()); // Backup file
+
+        if(fs.exists("data.json")) {
+            fs.rm("data.json");
+        }
+
+        if(fs.exists("wocker.json")) {
+            fs.rm("wocker.json");
+        }
     }
 }

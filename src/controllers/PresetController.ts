@@ -6,24 +6,22 @@ import {
     Option,
     Project,
     FileSystemManager,
-    PROJECT_TYPE_PRESET, PRESET_SOURCE_EXTERNAL
+    PROJECT_TYPE_PRESET,
+    PRESET_SOURCE_EXTERNAL
 } from "@wocker/core";
 import {promptSelect, promptInput} from "@wocker/utils";
 import {promptConfirm, volumeFormat, volumeParse} from "@wocker/utils";
 import * as Path from "path";
 import CliTable from "cli-table3";
-import {PRESETS_DIR} from "../env";
 import {injectVariables} from "../utils";
 import {
     PresetRepository
 } from "../repositories";
-import {
-    AppConfigService,
-    AppEventsService,
-    ProjectService,
-    PresetService,
-    DockerService
-} from "../services";
+import {AppConfigService} from "../services/AppConfigService";
+import {AppEventsService} from "../services/AppEventsService";
+import {ProjectService} from "../services/ProjectService";
+import {PresetService} from "../services/PresetService";
+import {DockerService} from "../modules";
 
 
 @Controller()
@@ -361,7 +359,7 @@ export class PresetController {
                 presetName: preset.name
             },
             buildArgs: buildArgs,
-            context: Path.join(PRESETS_DIR, preset.name),
+            context: preset.path,
             src: preset.dockerfile
         });
     }

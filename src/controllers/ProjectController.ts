@@ -18,15 +18,12 @@ import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
 import * as Path from "path";
 import {Mutex} from "async-mutex";
-
-import {FS} from "../makes";
-import {
-    AppConfigService,
-    AppEventsService,
-    ProjectService,
-    LogService,
-    DockerService
-} from "../services";
+import {AppConfigService} from "../services/AppConfigService";
+import {AppEventsService} from "../services/AppEventsService";
+import {ProjectService} from "../services/ProjectService";
+import {LogService} from "../services/LogService";
+import {DockerService} from "../modules";
+import * as process from "node:process";
 
 
 @Controller()
@@ -77,18 +74,18 @@ export class ProjectController {
         })
         type: ProjectType
     ): Promise<void> {
-        let project = this.projectService.searchOne({
-            path: this.appConfigService.pwd()
-        });
         const fs = new FileSystem(this.appConfigService.pwd());
+        let project = this.projectService.searchOne({
+            path: fs.path()
+        });
 
         if(!project) {
             project = this.projectService.fromObject({
-                path: this.appConfigService.pwd()
+                path: fs.path()
             });
         }
 
-        project.path = this.appConfigService.pwd();
+        project.path = fs.path();
 
         if(name) {
             project.name = name;
@@ -129,6 +126,7 @@ export class ProjectController {
         if(!type || !project.type || !mapTypes[project.type]) {
             project.type = await promptSelect<ProjectType>({
                 message: "Project type",
+                required: true,
                 options: mapTypes,
                 default: project.type as ProjectType
             });
@@ -136,7 +134,7 @@ export class ProjectController {
 
         switch(project.type) {
             case PROJECT_TYPE_DOCKERFILE: {
-                const files = await fs.readdirFiles();
+                const files = fs.readdir();
 
                 const dockerfiles = files.filter((fileName: string) => {
                     if(new RegExp("^(.*)\\.dockerfile$").test(fileName)) {
@@ -152,6 +150,7 @@ export class ProjectController {
 
                 project.dockerfile = await promptSelect({
                     message: "Dockerfile",
+                    required: true,
                     options: dockerfiles.map((dockerfile) => {
                         return {
                             value: dockerfile
@@ -180,7 +179,7 @@ export class ProjectController {
 
         await this.appEventsService.emit("project:init", project);
 
-        await project.save();
+        project.save();
     }
 
     @Command("destroy [name]")
@@ -190,6 +189,14 @@ export class ProjectController {
         name?: string
     ): Promise<void> {
         const project = this.projectService.get(name);
+
+        await this.projectService.stop(project);
+
+        this.appConfigService.removeProject(project.id);
+        this.appConfigService.save();
+        this.appConfigService.fs.rm(`projects/${project.id}`, {
+            recursive: true
+        });
     }
 
     @Command("ps")
@@ -271,12 +278,12 @@ export class ProjectController {
 
         await this.projectService.start(project, restart, rebuild);
 
-        if(attach) {
-            await this.dockerService.attach(project.containerName);
-        }
-
         if(detach) {
             console.info(colors.yellow("Warning: Detach option is deprecated"));
+        }
+
+        if(attach) {
+            await this.dockerService.attach(project.containerName);
         }
     }
 
@@ -348,7 +355,7 @@ export class ProjectController {
             project.addDomain(domain);
         }
 
-        await project.save();
+        project.save();
 
         // const container = await this.dockerService.getContainer(`${project.name}.workspace`);
         //
@@ -382,7 +389,7 @@ export class ProjectController {
             project.addDomain(domain);
         }
 
-        await project.save();
+        project.save();
 
         // const container = await this.dockerService.getContainer(`${project.name}.workspace`);
         //
@@ -414,7 +421,7 @@ export class ProjectController {
             project.removeDomain(domain);
         }
 
-        await project.save();
+        project.save();
     }
 
     @Command("domain:clear")
@@ -435,7 +442,7 @@ export class ProjectController {
 
         project.clearDomains();
 
-        await project.save();
+        project.save();
 
         // const container = await this.dockerService.getContainer(`${project.name}.workspace`);
         //
@@ -492,7 +499,7 @@ export class ProjectController {
 
         project.linkPort(parseInt(hostPort), parseInt(containerPort));
 
-        await project.save();
+        project.save();
     }
 
     @Command("port:remove <host-port>:<container-port>")
@@ -516,7 +523,7 @@ export class ProjectController {
 
         project.unlinkPort(parseInt(hostPort), parseInt(containerPort));
 
-        await project.save();
+        project.save();
     }
 
     @Command("port:clear")
@@ -537,7 +544,7 @@ export class ProjectController {
         if(project.ports) {
             delete project.ports;
 
-            await project.save();
+            project.save();
         }
     }
 
@@ -567,7 +574,7 @@ export class ProjectController {
             env = project.env || {};
         }
         else {
-            const config = this.appConfigService.getConfig();
+            const config = this.appConfigService.config;
 
             env = config.env || {};
         }
@@ -604,7 +611,7 @@ export class ProjectController {
         }
 
         let config = global
-            ? this.appConfigService.getConfig()
+            ? this.appConfigService.config
             : this.projectService.get();
 
         const table = new CliTable({
@@ -641,13 +648,25 @@ export class ProjectController {
         })
         global: boolean
     ): Promise<void> {
-        if(!global && name) {
+        if(global) {
+            for(const variable of variables) {
+                const [key, value] = variable.split("=");
+
+                if(!value) {
+                    console.info(colors.yellow(`No value for "${key}"`));
+                    continue;
+                }
+
+                this.appConfigService.config.setEnv(key.trim(), value.trim());
+            }
+            return;
+        }
+
+        if(name) {
             this.projectService.cdProject(name);
         }
 
-        const config = global
-            ? this.appConfigService.getConfig()
-            : this.projectService.get();
+        const project = this.projectService.get();
 
         for(const variable of variables) {
             const [key, value] = variable.split("=");
@@ -657,18 +676,15 @@ export class ProjectController {
                 continue;
             }
 
-            config.setEnv(key.trim(), value.trim());
+            project.setEnv(key, value);
         }
 
-        await config.save();
+        project.save();
 
-        if(!global) {
-            const project = this.projectService.get();
-            const container = await this.dockerService.getContainer(project.containerName);
+        const container = await this.dockerService.getContainer(project.containerName);
 
-            if(container) {
-                await this.projectService.start(project, true);
-            }
+        if(container) {
+            await this.projectService.start(project, true);
         }
     }
 
@@ -710,7 +726,7 @@ export class ProjectController {
             project.unsetEnv(i);
         }
 
-        await project.save();
+        project.save();
 
         if(!global) {
             const project = this.projectService.get();
@@ -784,13 +800,14 @@ export class ProjectController {
 
     @Command("build-args:set [...buildArgs]")
     public async buildArgsSet(
+        @Param("buildArgs")
+        args: string[],
         @Option("name", {
             type: "string",
             alias: "n",
             description: "The name of the project"
         })
-        name: string,
-        args: string[]
+        name: string
     ): Promise<void> {
         if(name) {
             this.projectService.cdProject(name);
@@ -819,7 +836,7 @@ export class ProjectController {
             project.buildArgs[key] = buildArgs[key];
         }
 
-        await project.save();
+        project.save();
     }
 
     @Command("build-args:unset [...buildArgs]")
@@ -860,7 +877,7 @@ export class ProjectController {
             }
         }
 
-        await project.save();
+        project.save();
     }
 
     @Command("volumes")
@@ -911,7 +928,7 @@ export class ProjectController {
         if(Array.isArray(volumes) && volumes.length > 0) {
             project.volumeMount(...volumes)
 
-            await project.save();
+            project.save();
         }
     }
 
@@ -935,7 +952,7 @@ export class ProjectController {
         if(Array.isArray(volumes) && volumes.length > 0) {
             project.volumeUnmount(...volumes);
 
-            await project.save();
+            project.save();
         }
     }
 
@@ -994,7 +1011,7 @@ export class ProjectController {
 
         project.addExtraHost(extraHost, extraDomain);
 
-        await project.save();
+        project.save();
     }
 
     @Command("extra-host:remove <extraHost>")
@@ -1017,7 +1034,7 @@ export class ProjectController {
 
         project.removeExtraHost(extraHost);
 
-        await project.save();
+        project.save();
     }
 
     @Command("attach")
@@ -1137,8 +1154,6 @@ export class ProjectController {
                 this.logService.clear();
             }
 
-            const logFilepath = this.appConfigService.dataPath("ws.log");
-
             const prepareLog = (str: string) => {
                 return str.replace(/^\[.*]\s([^:]+):\s.*$/gm, (substring, type) => {
                     switch(type) {
@@ -1164,35 +1179,40 @@ export class ProjectController {
                 });
             };
 
-            const stream = FS.createReadLinesStream(logFilepath, follow ? -10 : undefined);
+            const file = this.appConfigService.fs.open("ws.log", "r");
 
-            stream.on("data", (data) => {
-                process.stdout.write(prepareLog(data.toString()));
+            const stream = file.createReadlineStream({
+                start: -10
+            });
+
+            stream.on("data", (line: string): void => {
+                process.stdout.write(prepareLog(line));
                 process.stdout.write("\n");
             });
 
             if(follow) {
-                const stats = await FS.stat(logFilepath);
-                const watcher = FS.watch(logFilepath);
+                const stats = file.stat();
+
+                const watcher = this.appConfigService.fs.watch("ws.log");
                 const mutex = new Mutex();
 
-                let position = BigInt(stats.size);
+                let position = stats.size;
 
                 watcher.on("change", async () => {
                     await mutex.acquire();
 
                     try {
-                        const stats = await FS.stat(logFilepath);
+                        const stats = file.stat();
 
-                        if(BigInt(stats.size) < position) {
+                        if(stats.size < position) {
                             console.info("file truncated");
 
-                            position = 0n;
+                            position = 0;
                         }
 
-                        const buffer = await FS.readBytes(logFilepath, position);
+                        const buffer = file.readBytes(position);
 
-                        position += BigInt(buffer.length);
+                        position += buffer.length;
 
                         process.stdout.write(prepareLog(buffer.toString("utf-8")));
                     }

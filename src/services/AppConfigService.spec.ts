@@ -1,5 +1,6 @@
 import {describe, it, expect, beforeEach} from "@jest/globals";
 import {vol} from "memfs";
+import {AppConfigProperties} from "@wocker/core";
 import {AppConfigService} from "./AppConfigService";
 import {WOCKER_VERSION, DATA_DIR} from "../env";
 
@@ -16,12 +17,12 @@ describe("AppConfigService", () => {
     });
 
     it("should successfully parse projects configuration from wocker.config.js file", () => {
-        const config = {
+        const config: AppConfigProperties = {
+            logLevel: "info",
             projects: [
                 {
-                    id: "project1",
                     name: "project1",
-                    path: "/home/user/project1"
+                    path: "/home/wocker-test/projects/project1"
                 }
             ]
         };
@@ -33,11 +34,11 @@ describe("AppConfigService", () => {
 
         const appConfigService = new AppConfigService();
 
+        expect(appConfigService.config.logLevel).toBe("info");
         expect(appConfigService.config.projects).toEqual([
             {
-                id: "project1",
                 name: "project1",
-                path: "/home/user/project1"
+                path: "/home/wocker-test/projects/project1"
             }
         ]);
     });
@@ -46,9 +47,8 @@ describe("AppConfigService", () => {
         const config = {
             projects: [
                 {
-                    id: "project1",
                     name: "test-exception-project",
-                    path: "/home/user/project1"
+                    path: "/home/wocker-test/projects/project1"
                 }
             ]
         };
@@ -63,9 +63,8 @@ describe("AppConfigService", () => {
 
         expect(appConfigService.config.projects).toEqual([
             {
-                id: "project1",
                 name: "test-exception-project",
-                path: "/home/user/project1"
+                path: "/home/wocker-test/projects/project1"
             }
         ]);
     });
@@ -77,7 +76,7 @@ describe("AppConfigService", () => {
                 projects: [
                     {
                         name: "test",
-                        path: "/home/user/project1"
+                        path: "/home/wocker-test/projects/project1"
                     }
                 ]
             })
@@ -89,7 +88,7 @@ describe("AppConfigService", () => {
         expect(appConfigService.config.projects).toEqual([
             {
                 name: "test",
-                path: "/home/user/project1"
+                path: "/home/wocker-test/projects/project1"
             }
         ]);
     });
@@ -102,7 +101,7 @@ describe("AppConfigService", () => {
                     projects: [
                         {
                             name: "test",
-                            path: "/home/user/project1"
+                            path: "/home/wocker-test/projects/project1"
                         }
                     ]
                 })
@@ -115,7 +114,7 @@ describe("AppConfigService", () => {
         expect(appConfigService.config.projects).toEqual([
             {
                 name: "test",
-                path: "/home/user/project1"
+                path: "/home/wocker-test/projects/project1"
             }
         ]);
     });
@@ -126,8 +125,8 @@ describe("AppConfigService", () => {
                 logLevel: "info",
                 projects: [
                     {
-                        name: "test",
-                        path: "/home/user/project1"
+                        id: "test",
+                        src: "/home/wocker-test/projects/project1"
                     }
                 ]
             })
@@ -139,13 +138,13 @@ describe("AppConfigService", () => {
         expect(appConfigService.config.projects).toEqual([
             {
                 name: "test",
-                path: "/home/user/project1"
+                path: "/home/wocker-test/projects/project1"
             }
         ]);
     });
 
     it("should set and return correct working directory", () => {
-        const projectDir = "/home/user/test-project";
+        const projectDir = "/home/wocker-test/projects/test-project";
 
         const appConfigService = new AppConfigService();
 
@@ -159,25 +158,23 @@ describe("AppConfigService", () => {
 
         expect(appConfigService.fs.exists("wocker.config.js")).toBeFalsy();
 
-        appConfigService.addProject("project1", "project1", "/home/user/project1");
+        appConfigService.addProject("project1", "project1", "/home/wocker-test/projects/project1");
         appConfigService.save();
 
         expect(appConfigService.fs.exists("wocker.config.js")).toBeTruthy();
 
         const jsConfig = appConfigService.fs.readFile("wocker.config.js").toString();
 
-        expect(jsConfig).toContain(`"id": "project1"`);
         expect(jsConfig).toContain(`"name": "project1"`);
-        expect(jsConfig).toContain(`"path": "/home/user/project1"`);
+        expect(jsConfig).toContain(`"path": "/home/wocker-test/projects/project1"`);
     });
 
     it("should cleanup legacy config files (wocker.json and data.json) when saving new configuration", () => {
         const config = {
             projects: [
                 {
-                    id: "project1",
                     name: "project1",
-                    path: "/home/user/project1"
+                    path: "/home/wocker-test/projects/project1"
                 }
             ]
         };
@@ -191,8 +188,8 @@ describe("AppConfigService", () => {
 
         const appConfigService = new AppConfigService();
 
-        appConfigService.config.addProject("project2", "project2", "/home/user/project2");
-        appConfigService.config.save();
+        appConfigService.config.addProject("project2", "project2", "/home/wocker-test/projects/project2");
+        appConfigService.save();
 
         expect(appConfigService.fs.exists("wocker.config.js")).toBeTruthy();
         expect(appConfigService.fs.exists("wocker.config.json")).toBeTruthy();
@@ -204,9 +201,8 @@ describe("AppConfigService", () => {
         const config = {
             projects: [
                 {
-                    id: "project1",
                     name: "project1",
-                    path: "/home/user/project1"
+                    path: "/home/wocker-test/projects/project1"
                 }
             ]
         };
@@ -220,9 +216,8 @@ describe("AppConfigService", () => {
 
         expect(appConfigService.config.projects).toEqual([
             {
-                id: "project1",
                 name: "project1",
-                path: "/home/user/project1"
+                path: "/home/wocker-test/projects/project1"
             }
         ]);
 
@@ -231,15 +226,14 @@ describe("AppConfigService", () => {
         expect(appConfigService.fs.exists("wocker.config.js")).toBeFalsy();
         expect(appConfigService.fs.exists("wocker.config.json")).toBeFalsy();
 
-        appConfigService.config.save();
+        appConfigService.save();
 
         expect(appConfigService.fs.exists("wocker.config.js")).toBeTruthy();
         expect(appConfigService.fs.exists("wocker.config.json")).toBeTruthy();
 
         const jsConfig = appConfigService.fs.readFile("wocker.config.js").toString();
 
-        expect(jsConfig).toContain(`"id": "project1"`);
         expect(jsConfig).toContain(`"name": "project1"`);
-        expect(jsConfig).toContain(`"path": "/home/user/project1"`);
+        expect(jsConfig).toContain(`"path": "/home/wocker-test/projects/project1"`);
     });
 });

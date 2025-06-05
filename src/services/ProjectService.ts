@@ -4,11 +4,10 @@ import {
     ProjectProperties,
     PROJECT_TYPE_DOCKERFILE
 } from "@wocker/core";
-
-import {KeystoreService} from "../keystore";
+import {DockerService} from "../modules/docker";
+import {KeystoreService} from "../modules/keystore";
 import {AppConfigService} from "./AppConfigService";
 import {AppEventsService} from "./AppEventsService";
-import {DockerService} from "./DockerService";
 
 
 type SearchParams = Partial<{
@@ -17,7 +16,7 @@ type SearchParams = Partial<{
 }>;
 
 @Injectable("PROJECT_SERVICE")
-class ProjectService {
+export class ProjectService {
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly appEventsService: AppEventsService,
@@ -66,13 +65,12 @@ class ProjectService {
     }
 
     public getById(id: string): Project {
-        const config = this.appConfigService.getConfig();
-        const projectData = config.getProject(id);
+        const projectData = this.appConfigService.config.getProject(id);
         const data = this.appConfigService.fs.readJSON("projects", id, "config.json");
 
         return this.fromObject({
             ...data,
-            path: projectData.path || projectData.src
+            path: projectData.path
         });
     }
 
@@ -212,16 +210,16 @@ class ProjectService {
 
         const projects: Project[] = [];
 
-        for(const projectConfig of this.appConfigService.projects || []) {
-            if(name && projectConfig.name !== name) {
+        for(const projectRef of this.appConfigService.projects || []) {
+            if(name && projectRef.name !== name) {
                 continue;
             }
 
-            if(path && (projectConfig.path || projectConfig.src) !== path) {
+            if(path && projectRef.path !== path) {
                 continue;
             }
 
-            const project = this.getById(projectConfig.id);
+            const project = this.getById(projectRef.name);
 
             if(name && project.name !== name) {
                 continue;
@@ -262,6 +260,3 @@ class ProjectService {
         }
     }
 }
-
-
-export {ProjectService};

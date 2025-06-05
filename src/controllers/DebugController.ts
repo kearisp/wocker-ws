@@ -5,8 +5,8 @@ import {
     Completion,
     Controller
 } from "@wocker/core";
-
-import {AppConfigService, LogService} from "../services";
+import {AppConfigService} from "../services/AppConfigService";
+import {LogService} from "../services/LogService";
 
 
 @Controller()
@@ -29,7 +29,7 @@ export class DebugController {
     ): Promise<void> {
         this.appConfigService.config.debug = status === "on";
 
-        await this.appConfigService.config.save();
+        this.appConfigService.save();
     }
 
     @Description("Set the log level (options: debug, log, info, warn, error)")
@@ -44,11 +44,8 @@ export class DebugController {
             throw new Error(`Invalid log level: ${level}. Valid options are ${validLevels.join(', ')}`);
         }
 
-        const config = this.appConfigService.getConfig();
-
-        config.logLevel = level as any;
-
-        await config.save();
+        this.appConfigService.config.logLevel = level as any;
+        this.appConfigService.save();
     }
 
     @Command("log:<level> [...args]")

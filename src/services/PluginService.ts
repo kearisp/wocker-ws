@@ -4,7 +4,6 @@ import {
 } from "@wocker/core";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
-
 import {AppConfigService} from "./AppConfigService";
 import {LogService} from "./LogService";
 import {NpmService} from "./NpmService";
@@ -61,13 +60,11 @@ export class PluginService {
         ] = /^(@wocker\/)?(\w+)(-plugin)?$/.exec(pluginName) || [];
 
         const fullName = `${prefix}${name}${suffix}`;
-        const config = this.appConfigService.config;
 
         try {
             if(await this.checkPlugin(fullName)) {
-                config.addPlugin(fullName);
-
-                await config.save();
+                this.appConfigService.config.addPlugin(fullName);
+                this.appConfigService.save();
 
                 console.info(`Plugin ${fullName} activated`);
 
@@ -80,9 +77,8 @@ export class PluginService {
             await this.npmService.install(fullName, env);
 
             if(await this.checkPlugin(fullName)) {
-                config.addPlugin(fullName, env);
-
-                await config.save();
+                this.appConfigService.config.addPlugin(fullName, env);
+                this.appConfigService.save();
 
                 console.info(`Plugin ${fullName}@${env} activated`);
 
@@ -103,11 +99,8 @@ export class PluginService {
 
         const fullName = `${prefix}${name}${suffix}`;
 
-        const config = this.appConfigService.config;
-
-        config.removePlugin(fullName);
-
-        await config.save();
+        this.appConfigService.config.removePlugin(fullName);
+        this.appConfigService.save();
 
         console.info(`Plugin ${fullName} deactivated`);
     }
