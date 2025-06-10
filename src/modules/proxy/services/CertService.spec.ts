@@ -1,9 +1,16 @@
 import {describe, it, expect, beforeEach} from "@jest/globals";
-import {ApplicationContext} from "@wocker/core";
+import {
+    ApplicationContext,
+    AppConfigService,
+    LogService,
+    AppService,
+    AppFileSystemService,
+    ProcessService,
+    WOCKER_VERSION_KEY,
+    WOCKER_DATA_DIR_KEY
+} from "@wocker/core";
 import {Test} from "@wocker/testing";
 import {vol} from "memfs";
-import {AppConfigService} from "../../../services/AppConfigService";
-import {LogService} from "../../../services/LogService";
 import {CertService} from "./CertService";
 import {ProxyService} from "./ProxyService";
 import {
@@ -14,10 +21,10 @@ import {
     ModemService,
     ProtoService
 } from "../../docker";
-import {DATA_DIR} from "../../../env";
+import {DATA_DIR, WOCKER_VERSION} from "../../../env";
 
 
-describe("CertService", () => {
+describe("CertService", (): void => {
     let context: ApplicationContext;
 
     beforeEach(async () => {
@@ -26,6 +33,16 @@ describe("CertService", () => {
                 // DockerModule
             ],
             providers: [
+                {
+                    provide: WOCKER_VERSION_KEY,
+                    useValue: WOCKER_VERSION
+                },
+                {
+                    provide: WOCKER_DATA_DIR_KEY,
+                    useValue: DATA_DIR
+                },
+                AppService,
+                AppFileSystemService,
                 AppConfigService,
                 CertService,
                 ProxyService,
@@ -34,9 +51,10 @@ describe("CertService", () => {
                 LogService,
                 ProtoService,
                 ImageService,
-                ContainerService
+                ContainerService,
+                ProcessService
             ]
-        });
+        }).build();
     });
 
     it("should return map of certificates with their extensions", async () => {

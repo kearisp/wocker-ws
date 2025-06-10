@@ -1,0 +1,19 @@
+name: "com"
+version: "2"
+
+services:
+    php:
+        image: php:8.3-fpm
+        volumes:
+          - ./public:/var/www/html
+        working_dir: /var/www/html
+
+    nginx:
+        image: nginx:latest
+        ports:
+          - "8080:80"
+        volumes:
+          - ./public:/var/www/html
+          - ./.wocker/etc/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
+        depends_on:
+          - php

@@ -1,28 +1,44 @@
 import {describe, beforeEach, it, expect} from "@jest/globals";
 import Modem from "docker-modem";
-import {ApplicationContext} from "@wocker/core";
+import {
+    ApplicationContext,
+    AppConfigService,
+    AppService,
+    AppFileSystemService,
+    LogService,
+    ProcessService
+} from "@wocker/core";
 import {Test} from "@wocker/testing";
+import {AppModule} from "../../app";
 import {ModemService} from "./ModemService";
 import {DockerService} from "./DockerService";
 import {ProtoService} from "./ProtoService";
 import {ContainerService} from "./ContainerService";
 
 
-describe("ModemService", () => {
+describe("ModemService", (): void => {
     let context: ApplicationContext;
 
     beforeEach(async () => {
         context = await Test.createTestingModule({
+            imports: [
+                AppModule
+            ],
             providers: [
+                AppService,
+                AppConfigService,
+                AppFileSystemService,
                 ModemService,
                 ProtoService,
                 DockerService,
-                ContainerService
+                ContainerService,
+                ProcessService,
+                LogService
             ]
-        });
+        }).build();
     });
 
-    it("should...", async () => {
+    it("should...", async (): Promise<void> => {
         const modemService = context.get(ModemService);
 
         expect(modemService.modem).toBeInstanceOf(Modem);

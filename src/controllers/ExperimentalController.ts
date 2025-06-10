@@ -4,9 +4,9 @@ import {
     Completion,
     Command,
     Param,
-    UsageException
+    UsageException,
+    AppConfigService
 } from "@wocker/core";
-import {AppConfigService} from "../services/AppConfigService";
 
 
 @Controller()

@@ -1,11 +1,11 @@
 import {
     Cli,
-    Injectable
+    Injectable,
+    AppConfigService,
+    LogService
 } from "@wocker/core";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
-import {AppConfigService} from "./AppConfigService";
-import {LogService} from "./LogService";
 import {NpmService} from "./NpmService";
 import {Http, Plugin} from "../makes";
 import {exec, spawn} from "../utils";
@@ -21,17 +21,16 @@ export class PluginService {
     ) {}
 
     public getPluginsTable(): string {
-        const config = this.appConfigService.config;
         const table = new CliTable({
             head: ["Name", "Env"],
             colWidths: [30]
         });
 
-        if(config.plugins.length === 0) {
+        if(this.appConfigService.plugins.length === 0) {
             return colors.gray("No plugins installed");
         }
 
-        for(const plugin of config.plugins) {
+        for(const plugin of this.appConfigService.plugins) {
             table.push([plugin.name, plugin.env]);
         }
 
@@ -63,7 +62,7 @@ export class PluginService {
 
         try {
             if(await this.checkPlugin(fullName)) {
-                this.appConfigService.config.addPlugin(fullName);
+                this.appConfigService.addPlugin(fullName);
                 this.appConfigService.save();
 
                 console.info(`Plugin ${fullName} activated`);
@@ -77,7 +76,7 @@ export class PluginService {
             await this.npmService.install(fullName, env);
 
             if(await this.checkPlugin(fullName)) {
-                this.appConfigService.config.addPlugin(fullName, env);
+                this.appConfigService.addPlugin(fullName, env);
                 this.appConfigService.save();
 
                 console.info(`Plugin ${fullName}@${env} activated`);
@@ -99,7 +98,7 @@ export class PluginService {
 
         const fullName = `${prefix}${name}${suffix}`;
 
-        this.appConfigService.config.removePlugin(fullName);
+        this.appConfigService.removePlugin(fullName);
         this.appConfigService.save();
 
         console.info(`Plugin ${fullName} deactivated`);
@@ -112,13 +111,11 @@ export class PluginService {
     }
 
     public async update(): Promise<void> {
-        const config = this.appConfigService.config;
-
-        if(!config.plugins) {
+        if(this.appConfigService.plugins.length === 0) {
             return;
         }
 
-        for(const plugin of config.plugins) {
+        for(const plugin of this.appConfigService.plugins) {
             console.info(`Checking ${plugin.name}...`);
 
             try {

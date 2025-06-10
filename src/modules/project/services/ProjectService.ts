@@ -1,0 +1,251 @@
+import {
+    Injectable,
+    Project,
+    AppConfigService,
+    EventService,
+    ProjectService as CoreProjectService,
+    ProjectServiceSearchParams as SearchParams,
+    FileSystem,
+    PROJECT_TYPE_IMAGE,
+    PROJECT_TYPE_DOCKERFILE,
+    PROJECT_TYPE_PRESET,
+    PROJECT_TYPE_COMPOSE
+} from "@wocker/core";
+import {ProjectRepository} from "../repositories/ProjectRepository";
+import {DockerService} from "../../docker";
+import {PresetService, PresetRepository} from "../../preset";
+
+
+@Injectable("PROJECT_SERVICE")
+export class ProjectService extends CoreProjectService {
+    public constructor(
+        protected readonly appConfigService: AppConfigService,
+        protected readonly eventService: EventService,
+        protected readonly dockerService: DockerService,
+        protected readonly projectRepository: ProjectRepository,
+        protected readonly presetService: PresetService,
+        protected readonly presetRepository: PresetRepository
+    ) {
+        super();
+    }
+
+    public get(name?: string): Project {
+        const project = name
+            ? this.projectRepository.searchOne({name})
+            : this.projectRepository.searchOne({
+                path: this.appConfigService.pwd()
+            });
+
+        if(!project) {
+            throw new Error("Project not found");
+        }
+
+        if(name) {
+            this.appConfigService.setPWD(project.path);
+        }
+
+        return project;
+    }
+
+    public search(params: SearchParams = {}): Project[] {
+        return this.projectRepository.search(params);
+    }
+
+    public searchOne(params: SearchParams = {}): Project | null {
+        return this.projectRepository.searchOne(params);
+    }
+
+    public save(project: Project): void {
+        this.projectRepository.save(project);
+    }
+
+    public async start(project: Project, restart?: boolean, rebuild?: boolean, attach?: boolean): Promise<void> {
+        if(restart || rebuild) {
+            await this.stop(project);
+        }
+
+        await this.build(project, rebuild);
+
+        await this.eventService.emit("project:beforeStart", project);
+
+        switch(project.type) {
+            case PROJECT_TYPE_IMAGE:
+            case PROJECT_TYPE_DOCKERFILE:
+            case PROJECT_TYPE_PRESET: {
+                let container = await this.dockerService.getContainer(project.containerName);
+
+                const fs = new FileSystem(project.path);
+
+                if(!container) {
+                    container = await this.dockerService.createContainer({
+                        name: project.containerName,
+                        image: project.imageName,
+                        env: {
+                            ...this.appConfigService.config.env || {},
+                            ...project.env || {}
+                        },
+                        ports: project.ports || [],
+                        volumes: (project.volumes || []).map((volume: string): string => {
+                            const regVolume = /^([^:]+):([^:]+)(?::([^:]+))?$/;
+                            const [, source, destination, options] = regVolume.exec(volume);
+
+                            if(source.startsWith("/")) {
+                                return volume;
+                            }
+
+                            return `${fs.path(source)}:${destination}` + (options ? `:${options}` : "");
+                        }),
+                        extraHosts: Object.keys(project.extraHosts || {}).map((host: string) => {
+                            return `${project.extraHosts[host]}:${host}`;
+                        })
+                    });
+                }
+
+                const {
+                    State: {
+                        Status
+                    }
+                } = await container.inspect();
+
+                if(Status === "created" || Status === "exited") {
+                    await container.start();
+                }
+                break;
+            }
+
+            case PROJECT_TYPE_COMPOSE: {
+                break;
+            }
+        }
+
+        await this.eventService.emit("project:start", project);
+        await this.eventService.emit("project:afterStart", project);
+
+        if(attach) {
+            switch(project.type) {
+                case PROJECT_TYPE_IMAGE:
+                case PROJECT_TYPE_DOCKERFILE:
+                case PROJECT_TYPE_PRESET:
+                    await this.dockerService.attach(project.containerName);
+                    break;
+            }
+        }
+    }
+
+    public async stop(project: Project): Promise<void> {
+        await this.eventService.emit("project:beforeStop", project);
+
+        switch(project.type) {
+            case PROJECT_TYPE_IMAGE:
+            case PROJECT_TYPE_DOCKERFILE:
+            case PROJECT_TYPE_PRESET:
+                await this.dockerService.removeContainer(project.containerName);
+                break;
+
+            case PROJECT_TYPE_COMPOSE:
+                break;
+        }
+
+        await this.eventService.emit("project:stop", project);
+    }
+
+    public async build(project: Project, rebuild?: boolean): Promise<void> {
+        switch(project.type) {
+            case PROJECT_TYPE_IMAGE:
+                await this.dockerService.pullImage(project.imageName);
+                break;
+
+            case PROJECT_TYPE_DOCKERFILE: {
+                project.imageName = `project-${project.name}:develop`;
+                project.save();
+
+                if(rebuild) {
+                    await this.dockerService.imageRm(project.imageName);
+                }
+
+                if(!await this.dockerService.imageExists(project.imageName)) {
+                    await this.dockerService.buildImage({
+                        tag: project.imageName,
+                        buildArgs: project.buildArgs,
+                        context: project.path,
+                        src: project.dockerfile
+                    });
+                }
+                break;
+            }
+
+            case PROJECT_TYPE_PRESET: {
+                const preset = this.presetRepository.searchOne({
+                    name: project.preset
+                });
+
+                if(preset.image) {
+                    await this.dockerService.pullImage(preset.image);
+
+                    project.imageName = preset.image;
+                    project.save();
+                }
+
+                if(preset.dockerfile) {
+                    project.imageName = this.presetService.getImageNameForProject(project, preset);
+                    project.save();
+
+                    if(rebuild) {
+                        await this.dockerService.imageRm(project.imageName);
+                    }
+
+                    if(!await this.dockerService.imageExists(project.imageName)) {
+                        await this.dockerService.buildImage({
+                            tag: project.imageName,
+                            labels: {
+                                "org.wocker.preset": preset.name
+                            },
+                            buildArgs: project.buildArgs,
+                            context: preset.path,
+                            src: preset.dockerfile
+                        });
+                    }
+                }
+                break;
+            }
+
+            case PROJECT_TYPE_COMPOSE: {
+                break;
+            }
+        }
+
+        await this.eventService.emit("project:build", project, rebuild);
+    }
+
+    public async logs(project: Project, detach?: boolean): Promise<void> {
+        switch(project.type) {
+            case PROJECT_TYPE_IMAGE:
+            case PROJECT_TYPE_DOCKERFILE:
+            case PROJECT_TYPE_PRESET: {
+                const container = await this.dockerService.getContainer(project.containerName);
+
+                if(!container) {
+                    throw new Error("Project not started");
+                }
+
+                if(!detach) {
+                    await this.dockerService.logs(container);
+                }
+                else {
+                    const data = await container.logs({
+                        stdout: true,
+                        stderr: true,
+                        follow: false
+                    });
+
+                    process.stdout.write(data);
+                }
+
+                break;
+            }
+
+            case PROJECT_TYPE_COMPOSE:
+                break;
+        }
+    }
+}

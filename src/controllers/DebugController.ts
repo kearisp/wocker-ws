@@ -3,10 +3,10 @@ import {
     Description,
     Param,
     Completion,
-    Controller
+    Controller,
+    LogService,
+    AppConfigService
 } from "@wocker/core";
-import {AppConfigService} from "../services/AppConfigService";
-import {LogService} from "../services/LogService";
 
 
 @Controller()
@@ -18,7 +18,7 @@ export class DebugController {
 
     @Command("debug")
     public async debug(): Promise<string> {
-        return this.appConfigService.config.debug ? "on" : "off";
+        return this.appConfigService.debug ? "on" : "off";
     }
 
     @Command("debug:<status>")
@@ -27,8 +27,7 @@ export class DebugController {
         @Param("status")
         status: string
     ): Promise<void> {
-        this.appConfigService.config.debug = status === "on";
-
+        this.appConfigService.debug = status === "on";
         this.appConfigService.save();
     }
 
