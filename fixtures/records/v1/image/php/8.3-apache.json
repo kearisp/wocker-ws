@@ -1,0 +1,89 @@
+{
+    "Id": "sha256:6be4ef702b2dd05352f7e5fe14667696a4ad091c9d2ad9083becbee4300dc3b1",
+    "RepoTags": [
+        "php:8.3-apache"
+    ],
+    "RepoDigests": [
+        "php@sha256:6be4ef702b2dd05352f7e5fe14667696a4ad091c9d2ad9083becbee4300dc3b1"
+    ],
+    "Parent": "",
+    "Comment": "buildkit.dockerfile.v0",
+    "Created": "2025-06-05T21:43:31Z",
+    "DockerVersion": "",
+    "Author": "",
+    "Config": {
+        "Hostname": "",
+        "Domainname": "",
+        "User": "",
+        "AttachStdin": false,
+        "AttachStdout": false,
+        "AttachStderr": false,
+        "ExposedPorts": {
+            "80/tcp": {}
+        },
+        "Tty": false,
+        "OpenStdin": false,
+        "StdinOnce": false,
+        "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "PHPIZE_DEPS=autoconf \t\tdpkg-dev \t\tfile \t\tg++ \t\tgcc \t\tlibc-dev \t\tmake \t\tpkg-config \t\tre2c",
+            "PHP_INI_DIR=/usr/local/etc/php",
+            "APACHE_CONFDIR=/etc/apache2",
+            "APACHE_ENVVARS=/etc/apache2/envvars",
+            "PHP_CFLAGS=-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64",
+            "PHP_CPPFLAGS=-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64",
+            "PHP_LDFLAGS=-Wl,-O1 -pie",
+            "GPG_KEYS=1198C0117593497A5EC5C199286AF1F9897469DC C28D937575603EB4ABB725861C0779DC5C0A9DE4 AFD8691FDAEDF03BDF6E460563F15A9B715376CA",
+            "PHP_VERSION=8.3.22",
+            "PHP_URL=https://www.php.net/distributions/php-8.3.22.tar.xz",
+            "PHP_ASC_URL=https://www.php.net/distributions/php-8.3.22.tar.xz.asc",
+            "PHP_SHA256=66c86889059bd27ccf460590ca48fcaf3261349cc9bdba2023ac6a265beabf36"
+        ],
+        "Cmd": [
+            "apache2-foreground"
+        ],
+        "Image": "",
+        "Volumes": null,
+        "WorkingDir": "/var/www/html",
+        "Entrypoint": [
+            "docker-php-entrypoint"
+        ],
+        "OnBuild": null,
+        "Labels": null,
+        "StopSignal": "SIGWINCH"
+    },
+    "Architecture": "amd64",
+    "Os": "linux",
+    "Size": 177052548,
+    "GraphDriver": {
+        "Data": null,
+        "Name": "overlayfs"
+    },
+    "RootFS": {
+        "Type": "layers",
+        "Layers": [
+            "sha256:7fb72a7d1a8e984ccd01277432de660162a547a00de77151518dc9033cfb8cb4",
+            "sha256:7cb25501fc85fcc76c1c9e7a1fe8ed6886b46be2c19c563e7f46252cc4f958ac",
+            "sha256:c8029b4986ef9bffbbf0fd0d4b327298acf2ed68a5e1c709d4f1ea231a15f65a",
+            "sha256:4b8b571eae56fb19558f829633130e272f724bd45c5f4df3e564b9bebd7c34d1",
+            "sha256:31bbfe307c07ff996197fe5eaa1a90ca1b5a77f0d4ac8ab31c394f70102c5a02",
+            "sha256:17e0ab5dec5269709ccb0b886429a69a37e762be2671060f54e7d839303a9a2b",
+            "sha256:a82771dfc35ef58211cd13c5ab33d2016073294e2da508bbf324208166c9ca21",
+            "sha256:de3ba7f73f9f9f4e641f2a3b4cb38be1e92c65d49af879c73a07d002b7fd934b",
+            "sha256:2fd8112a98c3b1eacd839c5f0554dd6dbea87a90ff58ce6d9c68a5f9d029056e",
+            "sha256:6bba384ff4a62bd2ccb95bc13d85b8b85897037337db2bcb37ed62542ee25a4b",
+            "sha256:0a5bb067e9076a8bc33f5d7d5e405e8ffa84bb2cebd522ee9ec6957a653ed325",
+            "sha256:6a03e2a3987cb9209031d41f764edf28d3f14d07709de42d78a49440c02662a8",
+            "sha256:6bd3a8a7119378ae8cec3be71f9761d3ad87f4491899039ffee7cefa91cfdc90",
+            "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+        ]
+    },
+    "Metadata": {
+        "LastTagTime": "2025-06-18T18:11:22.444700707Z"
+    },
+    "Descriptor": {
+        "mediaType": "application/vnd.oci.image.index.v1+json",
+        "digest": "sha256:6be4ef702b2dd05352f7e5fe14667696a4ad091c9d2ad9083becbee4300dc3b1",
+        "size": 10400
+    }
+}

@@ -1,11 +1,13 @@
 import {
     Injectable,
+    AppService,
+    AppConfigService,
+    AppFileSystemService,
     KeystoreService as CoreKeystoreService,
     KeystoreProvider
 } from "@wocker/core";
-import {AppConfigService} from "../../../services/AppConfigService";
-import {KeytarKeystoreProvider} from "./../providers/KeytarKeystoreProvider";
-import {FileKeystoreProvider} from "./../providers/FileKeystoreProvider";
+import {KeytarKeystoreProvider} from "../providers/KeytarKeystoreProvider";
+import {FileKeystoreProvider} from "../providers/FileKeystoreProvider";
 
 
 @Injectable("KEYSTORE_SERVICE")
@@ -13,7 +15,9 @@ export class KeystoreService extends CoreKeystoreService {
     protected providers: Map<string, KeystoreProvider>;
 
     public constructor(
-        protected readonly appConfigService: AppConfigService
+        protected readonly appService: AppService,
+        protected readonly appConfigService: AppConfigService,
+        protected readonly fs: AppFileSystemService
     ) {
         super();
 
@@ -35,7 +39,7 @@ export class KeystoreService extends CoreKeystoreService {
 
         switch(name) {
             case "file":
-                return new FileKeystoreProvider(this.appConfigService);
+                return new FileKeystoreProvider(this.fs);
 
             case "keytar":
                 return new KeytarKeystoreProvider();

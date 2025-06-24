@@ -1,8 +1,11 @@
-import {Injectable, Project} from "@wocker/core";
+import {
+    Injectable,
+    Project,
+    AppFileSystemService
+} from "@wocker/core";
 import * as Path from "path";
 import CliTable from "cli-table3";
 import {DockerService} from "../../docker";
-import {AppConfigService} from "../../../services/AppConfigService";
 import {ProxyService} from "./ProxyService";
 
 
@@ -13,7 +16,7 @@ type CertMap = {
 @Injectable()
 export class CertService {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly fs: AppFileSystemService,
         protected readonly proxyService: ProxyService,
         protected readonly dockerService: DockerService
     ) {}
@@ -65,7 +68,7 @@ export class CertService {
     }
 
     public getCertsMap(): CertMap {
-        const files = this.appConfigService.fs.readdir("certs/projects");
+        const files = this.fs.readdir("certs/projects");
 
         return files.reduce((res, file) => {
             const ext = Path.extname(file);
@@ -124,7 +127,7 @@ export class CertService {
         }
 
         for(const ext of certs[name]) {
-            this.appConfigService.fs.rm(`certs/projects/${name}${ext}`);
+            this.fs.rm(`certs/projects/${name}${ext}`);
         }
 
         console.info(`Cert ${name} deleted`);

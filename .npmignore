@@ -6,6 +6,7 @@
 
 # Source code
 /src
+/fixtures
 /test
 *.spec.js
 

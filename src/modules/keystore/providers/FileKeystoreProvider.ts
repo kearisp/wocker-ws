@@ -1,7 +1,10 @@
-import {Injectable, KeystoreProvider} from "@wocker/core";
+import {
+    Injectable,
+    AppFileSystemService,
+    KeystoreProvider
+} from "@wocker/core";
 import {promptInput} from "@wocker/utils";
 // noinspection ES6PreferShortImport
-import {AppConfigService} from "../../../services/AppConfigService";
 import {FileKeystore} from "../types/FileKeystore";
 import {encrypt, decrypt, verifyPasswordHash, createPasswordHash, createEncryptionKey} from "../utils";
 
@@ -13,14 +16,14 @@ export class FileKeystoreProvider extends KeystoreProvider {
     protected _keystore?: FileKeystore;
 
     public constructor(
-        protected readonly appConfigService: AppConfigService
+        protected readonly fs: AppFileSystemService
     ) {
         super();
     }
 
     protected get keystore(): FileKeystore {
         if(!this._keystore) {
-            const fs = this.appConfigService.fs;
+            const fs = this.fs;
 
             let data: any = {
                 secrets: {}

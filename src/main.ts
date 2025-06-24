@@ -1,22 +1,23 @@
 import {
     Factory,
+    AppConfigService,
     CommandNotFoundError,
-    UsageException
+    UsageException,
+    LogService
 } from "@wocker/core";
 import colors from "yoctocolors-cjs";
-import {AppModule} from "./AppModule";
-import {AppConfigService} from "./services/AppConfigService";
-import {LogService} from "./services/LogService";
+import {RootModule} from "./RootModule";
 
 
+// noinspection JSUnusedGlobalSymbols
 export const app = {
     async run(args: string[]): Promise<void> {
-        const app = await Factory.create(AppModule);
-        const configService = app.get(AppConfigService);
-        const logger = app.get(LogService);
+        const context = await Factory.create(RootModule),
+              appConfigService = context.get(AppConfigService),
+              logService = context.get(LogService);
 
         try {
-            const res = await app.run(args);
+            const res = await context.run(args);
 
             if(res) {
                 process.stdout.write(res);
@@ -38,8 +39,8 @@ export const app = {
                 return;
             }
 
-            if(configService.config.debug) {
-                logger.error(err.stack || err.toString());
+            if(appConfigService.debug) {
+                logService.error(err.stack || err.toString());
             }
         }
     }

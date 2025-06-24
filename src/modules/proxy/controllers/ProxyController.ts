@@ -4,13 +4,13 @@ import {
     Controller,
     Description,
     Option,
-    Project
+    Project,
+    AppConfigService,
+    EventService
 } from "@wocker/core";
 import {promptConfirm, promptInput} from "@wocker/utils";
 import colors from "yoctocolors-cjs";
-import {AppConfigService} from "../../../services/AppConfigService";
-import {AppEventsService} from "../../../services/AppEventsService";
-import {ProjectService} from "../../../services/ProjectService";
+import {ProjectService} from "../../project";
 import {ProxyService} from "../services/ProxyService";
 
 
@@ -21,13 +21,13 @@ export class ProxyController {
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
-        protected readonly appEventsService: AppEventsService,
+        protected readonly eventService: EventService,
         protected readonly projectService: ProjectService,
         protected readonly proxyService: ProxyService
     ) {
-        this.appEventsService.on("project:init", (project: Project): Promise<void> => this.proxyService.init(project));
-        this.appEventsService.on("project:start", (project: Project): Promise<void> => this.onProjectStart(project));
-        this.appEventsService.on("project:stop", (project: Project): Promise<void> => this.onProjectStop(project));
+        this.eventService.on("project:init", (project: Project): Promise<void> => this.proxyService.init(project));
+        this.eventService.on("project:start", (project: Project): Promise<void> => this.onProjectStart(project));
+        this.eventService.on("project:stop", (project: Project): Promise<void> => this.onProjectStop(project));
     }
 
     public async onProjectStart(project: Project): Promise<void> {

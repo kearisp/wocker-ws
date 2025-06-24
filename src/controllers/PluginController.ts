@@ -4,9 +4,9 @@ import {
     Option,
     Param,
     Completion,
-    Description
+    Description,
+    AppConfigService
 } from "@wocker/core";
-import {AppConfigService} from "../services/AppConfigService";
 import {PluginService} from "../services/PluginService";
 
 

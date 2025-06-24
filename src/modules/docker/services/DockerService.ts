@@ -15,10 +15,10 @@ import {ImageService} from "./ImageService";
 @Injectable("DOCKER_SERVICE")
 export class DockerService extends CoreDockerService {
     public constructor(
-        protected readonly logService: LogService,
         protected readonly modemService: ModemService,
         protected readonly containerService: ContainerService,
-        protected readonly imageService: ImageService
+        protected readonly imageService: ImageService,
+        protected readonly logService: LogService
     ) {
         super();
     }

@@ -3,10 +3,10 @@ import {
     Command,
     Description,
     Param,
-    Option
+    Option,
+    AppConfigService
 } from "@wocker/core";
 import {promptInput, promptSelect} from "@wocker/utils";
-import {AppConfigService} from "../../../services/AppConfigService";
 import {KeystoreService} from "../services/KeystoreService";
 
 

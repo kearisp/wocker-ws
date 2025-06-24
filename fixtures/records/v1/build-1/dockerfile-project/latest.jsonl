@@ -1,0 +1,6 @@
+{"stream":"Step 1/1 : FROM php:8.3-apache"}
+{"stream":"\n"}
+{"stream":" ---\u003e 21d7cc2cd70c\n"}
+{"aux":{"ID":"sha256:21d7cc2cd70c79ae043b01448f6952f9681b18784472ec5a29769f83c1305831"}}
+{"stream":"Successfully built 21d7cc2cd70c\n"}
+{"stream":"Successfully tagged dockerfile-project:latest\n"}

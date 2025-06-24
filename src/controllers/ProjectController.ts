@@ -11,19 +11,22 @@ import {
     PROJECT_TYPE_DOCKERFILE,
     PROJECT_TYPE_IMAGE,
     PROJECT_TYPE_PRESET,
-    EnvConfig
+    PROJECT_TYPE_COMPOSE,
+    EnvConfig,
+    AppConfigService,
+    EventService,
+    LogService,
+    ProcessService
 } from "@wocker/core";
 import {promptSelect, promptInput} from "@wocker/utils";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
 import * as Path from "path";
 import {Mutex} from "async-mutex";
-import {AppConfigService} from "../services/AppConfigService";
-import {AppEventsService} from "../services/AppEventsService";
-import {ProjectService} from "../services/ProjectService";
-import {LogService} from "../services/LogService";
-import {DockerService} from "../modules";
-import * as process from "node:process";
+// noinspection ES6PreferShortImport
+import {DockerService} from "../modules/docker";
+// noinspection ES6PreferShortImport
+import {ProjectService, ProjectRepository} from "../modules/project";
 
 
 @Controller()
@@ -31,15 +34,17 @@ import * as process from "node:process";
 export class ProjectController {
     public constructor(
         protected readonly appConfigService: AppConfigService,
-        protected readonly appEventsService: AppEventsService,
+        protected readonly processService: ProcessService,
+        protected readonly eventService: EventService,
         protected readonly projectService: ProjectService,
+        protected readonly projectRepository: ProjectRepository,
         protected readonly logService: LogService,
         protected readonly dockerService: DockerService
     ) {}
 
     @Completion("name")
     protected async getProjectNames(): Promise<string[]> {
-        const projects = this.projectService.search();
+        const projects = this.projectRepository.search();
 
         return projects.map((project) => {
             return project.name;
@@ -74,13 +79,13 @@ export class ProjectController {
         })
         type: ProjectType
     ): Promise<void> {
-        const fs = new FileSystem(this.appConfigService.pwd());
-        let project = this.projectService.searchOne({
+        const fs = new FileSystem(this.processService.pwd());
+        let project = this.projectRepository.searchOne({
             path: fs.path()
         });
 
         if(!project) {
-            project = this.projectService.fromObject({
+            project = this.projectRepository.fromObject({
                 path: fs.path()
             });
         }
@@ -102,7 +107,7 @@ export class ProjectController {
                         return true;
                     }
 
-                    const otherProject = this.projectService.searchOne({
+                    const otherProject = this.projectRepository.searchOne({
                         name
                     });
 
@@ -170,6 +175,24 @@ export class ProjectController {
                 break;
             }
 
+            case PROJECT_TYPE_COMPOSE: {
+                const composeFiles = fs.readdir().filter((file: string) => {
+                    return /docker-compose\./.test(file);
+                });
+
+                if(composeFiles.length === 0) {
+                    throw new Error("docker-compose files not found")
+                }
+
+                project.composefile = await promptSelect({
+                    message: "Docker compose",
+                    required: true,
+                    options: composeFiles,
+                    default: project.composefile
+                });
+                break;
+            }
+
             case PROJECT_TYPE_PRESET:
                 break;
 
@@ -177,7 +200,7 @@ export class ProjectController {
                 throw new Error("Invalid project type");
         }
 
-        await this.appEventsService.emit("project:init", project);
+        await this.eventService.emit("project:init", project);
 
         project.save();
     }
@@ -214,7 +237,7 @@ export class ProjectController {
             colAligns: ["left", "center", "center"]
         });
 
-        const projects = this.projectService.search({});
+        const projects = this.projectRepository.search();
 
         for(const project of projects) {
             const container = await this.dockerService.getContainer(project.containerName);
@@ -239,73 +262,6 @@ export class ProjectController {
         return table.toString();
     }
 
-    @Command("start")
-    @Description("Starting project")
-    public async start(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "The name of the project",
-            help: true
-        })
-        name?: string,
-        @Option("detach", {
-            type: "boolean",
-            description: "Detach",
-            alias: "d"
-        })
-        detach?: boolean,
-        @Option("attach", {
-            type: "boolean",
-            description: "Attach",
-            alias: "a"
-        })
-        attach?: boolean,
-        @Option("build", {
-            type: "boolean",
-            description: "Build",
-            alias: "b"
-        })
-        rebuild?: boolean,
-        @Option("restart", {
-            type: "boolean",
-            alias: "r",
-            description: "Restart"
-        })
-        restart?: boolean
-    ): Promise<void> {
-        const project = this.projectService.get(name);
-
-        await this.projectService.start(project, restart, rebuild);
-
-        if(detach) {
-            console.info(colors.yellow("Warning: Detach option is deprecated"));
-        }
-
-        if(attach) {
-            await this.dockerService.attach(project.containerName);
-        }
-    }
-
-    @Command("stop")
-    @Description("Stopping project")
-    public async stop(
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "The name of the project"
-        })
-        name: string,
-    ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
-
-        await this.projectService.stop(project);
-    }
-
     @Command("domains")
     @Description("Project domain list")
     public async domains(
@@ -316,11 +272,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<string> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         const table = new CliTable({
             head: [colors.yellow("Domain")]
@@ -345,11 +297,7 @@ export class ProjectController {
         })
         name: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         for(const domain of addDomains) {
             project.addDomain(domain);
@@ -377,11 +325,7 @@ export class ProjectController {
         })
         name: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         project.clearDomains();
 
@@ -411,11 +355,7 @@ export class ProjectController {
         })
         name: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         for(const domain of removeDomains) {
             project.removeDomain(domain);
@@ -434,11 +374,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         project.clearDomains();
 
@@ -461,11 +397,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<string> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         const table = new CliTable({
             head: ["Ports"]
@@ -491,11 +423,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         project.linkPort(parseInt(hostPort), parseInt(containerPort));
 
@@ -515,11 +443,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         project.unlinkPort(parseInt(hostPort), parseInt(containerPort));
 
@@ -535,11 +459,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         if(project.ports) {
             delete project.ports;
@@ -562,14 +482,10 @@ export class ProjectController {
         })
         global?: boolean
     ): Promise<string> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
         let env: EnvConfig;
 
         if(!global) {
-            const project = this.projectService.get();
+            const project = this.projectService.get(name);
 
             env = project.env || {};
         }
@@ -606,13 +522,9 @@ export class ProjectController {
         })
         global: boolean
     ): Promise<string> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
         let config = global
             ? this.appConfigService.config
-            : this.projectService.get();
+            : this.projectService.get(name);
 
         const table = new CliTable({
             head: ["KEY", "VALUE"]
@@ -662,11 +574,7 @@ export class ProjectController {
             return;
         }
 
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         for(const variable of variables) {
             const [key, value] = variable.split("=");
@@ -680,12 +588,6 @@ export class ProjectController {
         }
 
         project.save();
-
-        const container = await this.dockerService.getContainer(project.containerName);
-
-        if(container) {
-            await this.projectService.start(project, true);
-        }
     }
 
     @Command("config:unset [...configs]")
@@ -716,26 +618,13 @@ export class ProjectController {
             return;
         }
 
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         for(const i in env) {
             project.unsetEnv(i);
         }
 
         project.save();
-
-        if(!global) {
-            const project = this.projectService.get();
-            const container = await this.dockerService.getContainer(project.containerName);
-
-            if(container) {
-                await this.projectService.start(project, true);
-            }
-        }
     }
 
     @Command("build-args")
@@ -747,11 +636,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<string> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         const table = new CliTable({
             head: ["KEY", "VALUE"]
@@ -777,11 +662,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<string> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         const table = new CliTable({
             head: ["KEY", "VALUE"]
@@ -809,11 +690,7 @@ export class ProjectController {
         })
         name: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         const buildArgs: Project["buildArgs"] = args.reduce((env, config) => {
             let [, key = "", value = ""] = config.split(/^([^=]+)=(.*)$/);
@@ -850,11 +727,7 @@ export class ProjectController {
         })
         name: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         const buildArgs: Project["buildArgs"] = args.reduce((env, config) => {
             let [, key = "", value = ""] = config.split(/^([^=]+)(?:=(.*))?$/);
@@ -889,11 +762,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<string> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         const table = new CliTable({
             head: ["Volume"]
@@ -919,11 +788,7 @@ export class ProjectController {
         })
         name: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         if(Array.isArray(volumes) && volumes.length > 0) {
             project.volumeMount(...volumes)
@@ -943,11 +808,7 @@ export class ProjectController {
         })
         name: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         if(Array.isArray(volumes) && volumes.length > 0) {
             project.volumeUnmount(...volumes);
@@ -966,11 +827,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<string> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         if(!project.extraHosts) {
             return "No extra hosts found";
@@ -1003,11 +860,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         project.addExtraHost(extraHost, extraDomain);
 
@@ -1026,11 +879,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         project.removeExtraHost(extraHost);
 
@@ -1047,11 +896,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         await this.dockerService.attach(project.containerName);
     }
@@ -1067,15 +912,12 @@ export class ProjectController {
         })
         name?: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         await this.dockerService.exec(project.containerName, command, true);
     }
 
+    // noinspection BadExpressionStatementJS
     @Command("run <script> [...args]")
     public async run(
         @Param("script")
@@ -1089,11 +931,7 @@ export class ProjectController {
         })
         name?: string
     ): Promise<void> {
-        if(name) {
-            this.projectService.cdProject(name);
-        }
-
-        const project = this.projectService.get();
+        const project = this.projectService.get(name);
 
         if(!project.scripts || !project.scripts[script]) {
             throw new Error(`Script ${script} not found`);
@@ -1146,7 +984,7 @@ export class ProjectController {
             alias: "f"
         })
         follow?: boolean,
-        @Option("clear", {alias: "c"})
+        @Option("clear", "c")
         clear?: boolean
     ): Promise<void> {
         if(global) {
@@ -1221,14 +1059,11 @@ export class ProjectController {
                     }
                 });
             }
-
             return;
         }
 
-        if(name) {
-            this.projectService.cdProject(name);
-        }
+        const project = this.projectService.get(name);
 
-        await this.projectService.logs(detach);
+        await this.projectService.logs(project, detach);
     }
 }

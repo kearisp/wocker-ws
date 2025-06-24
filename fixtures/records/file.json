@@ -1,0 +1,126 @@
+[
+    {
+        "Id": "42c80b8ed91af212c7f4295260fac6c2e92f8dfa425c1cc3429947c86b02f607",
+        "Names": [
+            "/proxy.workspace"
+        ],
+        "Image": "wocker-proxy:1.0.1",
+        "ImageID": "sha256:4d772ca72c7444bd1065bb0b54bcd2304be1dde58bf894575d2ae6d306a95bce",
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:4d772ca72c7444bd1065bb0b54bcd2304be1dde58bf894575d2ae6d306a95bce",
+            "size": 4643,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        },
+        "Command": "/app/docker-entrypoint.sh forego start -r",
+        "Created": 1749941081,
+        "Ports": [
+            {
+                "IP": "0.0.0.0",
+                "PrivatePort": 22,
+                "PublicPort": 22,
+                "Type": "tcp"
+            },
+            {
+                "IP": "0.0.0.0",
+                "PrivatePort": 443,
+                "PublicPort": 443,
+                "Type": "tcp"
+            },
+            {
+                "IP": "0.0.0.0",
+                "PrivatePort": 80,
+                "PublicPort": 80,
+                "Type": "tcp"
+            }
+        ],
+        "Labels": {
+            "desktop.docker.io/binds/0/Source": "/var/run/docker.sock",
+            "desktop.docker.io/binds/0/SourceKind": "dockerSocketProxied",
+            "desktop.docker.io/binds/0/Target": "/tmp/docker.sock",
+            "desktop.docker.io/binds/1/Source": "/home/kris/.workspace/certs/projects",
+            "desktop.docker.io/binds/1/SourceKind": "wsl2DistroFile",
+            "desktop.docker.io/binds/1/Target": "/etc/nginx/certs",
+            "desktop.docker.io/binds/2/Source": "/home/kris/.workspace/certs/ca",
+            "desktop.docker.io/binds/2/SourceKind": "wsl2DistroFile",
+            "desktop.docker.io/binds/2/Target": "/etc/nginx/ca-certs",
+            "desktop.docker.io/binds/3/Source": "/home/kris/.workspace/nginx/vhost.d",
+            "desktop.docker.io/binds/3/SourceKind": "wsl2DistroFile",
+            "desktop.docker.io/binds/3/Target": "/etc/nginx/vhost.d",
+            "desktop.docker.io/wsl-distro": "Ubuntu",
+            "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>",
+            "org.opencontainers.image.authors": "Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder",
+            "org.opencontainers.image.created": "2024-11-24T21:29:47.542Z",
+            "org.opencontainers.image.description": "Automated nginx proxy for Docker containers using docker-gen",
+            "org.opencontainers.image.licenses": "MIT",
+            "org.opencontainers.image.revision": "d7acd931a3f14a14368ea08c9b55492217e5749f",
+            "org.opencontainers.image.source": "https://github.com/nginx-proxy/nginx-proxy",
+            "org.opencontainers.image.title": "nginx-proxy",
+            "org.opencontainers.image.url": "https://github.com/nginx-proxy/nginx-proxy",
+            "org.opencontainers.image.version": "1.6.4"
+        },
+        "State": "running",
+        "Status": "Up 30 minutes",
+        "HostConfig": {
+            "NetworkMode": "bridge"
+        },
+        "NetworkSettings": {
+            "Networks": {
+                "workspace": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "MacAddress": "a6:57:b6:cb:1a:33",
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "f2aa7e1797ed5c207c300ef6dbadfe5ea5e08a1047fabcc4eba3f8ffe3ea7b73",
+                    "EndpointID": "c5061d48a20ffe3e07a6b733f8484ff12a76c884a46253146fbe1a239e4b308d",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.3",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/run/desktop/mnt/host/wsl/docker-desktop-bind-mounts/Ubuntu/e60178b199d72ae961d8533e43d492d0dce4ff2ca152752c94a6de5db4f2f2e7",
+                "Destination": "/etc/nginx/vhost.d",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/run/desktop/mnt/host/wsl/docker-desktop-bind-mounts/Ubuntu/docker.sock",
+                "Destination": "/tmp/docker.sock",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/run/desktop/mnt/host/wsl/docker-desktop-bind-mounts/Ubuntu/b8d5015454e5c76c8f902bef76f7237553b41629df6f51206e798f66286e6007",
+                "Destination": "/etc/nginx/ca-certs",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/run/desktop/mnt/host/wsl/docker-desktop-bind-mounts/Ubuntu/2367e2a375c7e95d84f5a9465932a2f03fd4c30482b14fd4165e5ccc84a76f70",
+                "Destination": "/etc/nginx/certs",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ]
+    }
+]

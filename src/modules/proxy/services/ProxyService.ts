@@ -1,12 +1,13 @@
 import {
     Injectable,
     Project,
+    AppConfigService,
+    AppFileSystemService,
     ProxyService as CoreProxyService
 } from "@wocker/core";
 import {promptInput} from "@wocker/utils";
 import * as Path from "path";
 import {PLUGINS_DIR} from "../../../env";
-import {AppConfigService} from "../../../services/AppConfigService";
 import {DockerService} from "../../docker";
 
 
@@ -20,6 +21,7 @@ export class ProxyService extends CoreProxyService {
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
+        protected readonly fs: AppFileSystemService,
         protected readonly dockerService: DockerService
     ) {
         super();
@@ -48,17 +50,17 @@ export class ProxyService extends CoreProxyService {
 
             await this.build(rebuild);
 
-            const fs = this.appConfigService.fs;
+            const fs = this.fs;
 
-            if(!this.appConfigService.fs.exists("certs/ca")) {
-                this.appConfigService.fs.mkdir("certs/ca", {
+            if(!this.fs.exists("certs/ca")) {
+                this.fs.mkdir("certs/ca", {
                     recursive: true,
                     mode: 0o700
                 });
             }
 
-            if(!this.appConfigService.fs.exists("certs/projects")) {
-                this.appConfigService.fs.mkdir("certs/projects", {
+            if(!this.fs.exists("certs/projects")) {
+                this.fs.mkdir("certs/projects", {
                     recursive: true,
                     mode: 0o700
                 });
@@ -71,11 +73,9 @@ export class ProxyService extends CoreProxyService {
                 });
             }
 
-            const config = this.appConfigService.config;
-
-            const httpPort = config.getMeta("PROXY_HTTP_PORT", "80");
-            const httpsPort = config.getMeta("PROXY_HTTPS_PORT", "443");
-            const sshPort = config.getMeta("PROXY_SSH_PORT", "22");
+            const httpPort = this.appConfigService.getMeta("PROXY_HTTP_PORT", "80");
+            const httpsPort = this.appConfigService.getMeta("PROXY_HTTPS_PORT", "443");
+            const sshPort = this.appConfigService.getMeta("PROXY_SSH_PORT", "22");
 
             container = await this.dockerService.createContainer({
                 name: this.containerName,
@@ -88,7 +88,7 @@ export class ProxyService extends CoreProxyService {
                 ports: [
                     `${httpPort}:80`,
                     `${httpsPort}:443`,
-                    ...config.getMeta("PROXY_SSH_PASSWORD") ? [
+                    ...this.appConfigService.getMeta("PROXY_SSH_PASSWORD") ? [
                         `${sshPort}:22`
                     ] : []
                 ],
@@ -136,14 +136,12 @@ export class ProxyService extends CoreProxyService {
             await this.dockerService.imageRm(oldImage);
         }
 
-        const config = this.appConfigService.config;
-
         await this.dockerService.buildImage({
             tag: this.imageName,
             context: Path.join(PLUGINS_DIR, "proxy"),
             src: "./Dockerfile",
             buildArgs: {
-                SSH_PASSWORD: config.getMeta("PROXY_SSH_PASSWORD")
+                SSH_PASSWORD: this.appConfigService.getMeta("PROXY_SSH_PASSWORD")
             }
         });
     }
