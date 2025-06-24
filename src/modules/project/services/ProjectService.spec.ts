@@ -25,7 +25,7 @@ import {
 import {PresetService, PresetRepository} from "../../preset";
 import {ProjectService} from "./ProjectService";
 import {ProjectRepository} from "../repositories/ProjectRepository";
-import {DATA_DIR, WOCKER_VERSION} from "../../../env";
+import {WOCKER_DATA_DIR, WOCKER_VERSION} from "../../../env";
 
 
 describe("ProjectService", () => {
@@ -79,7 +79,7 @@ describe("ProjectService", () => {
                     }
                 ]
             })
-        }, DATA_DIR);
+        }, WOCKER_DATA_DIR);
 
         vol.fromJSON({
             [`${PROJECT_2_PATH}/Dockerfile`]: "FROM node:latest\n",
@@ -100,7 +100,7 @@ describe("ProjectService", () => {
                 providers: [
                     {
                         provide: WOCKER_DATA_DIR_KEY,
-                        useValue: DATA_DIR
+                        useValue: WOCKER_DATA_DIR
                     },
                     {
                         provide: WOCKER_VERSION_KEY,

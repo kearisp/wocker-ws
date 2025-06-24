@@ -4,7 +4,7 @@ import {vol} from "memfs";
 import {Union} from "unionfs";
 
 
-const DATA_DIR = "/home/wocker-test/.workspace",
+const WOCKER_DATA_DIR = "/home/wocker-test/.workspace",
       PRESETS_DIR = "/wocker/presets";
 
 const ufs = (new Union()).use(vol as any).use(fs),
@@ -13,7 +13,7 @@ const ufs = (new Union()).use(vol as any).use(fs),
 vol.reset = (): void => {
     reset();
 
-    vol.mkdirSync(DATA_DIR, {
+    vol.mkdirSync(WOCKER_DATA_DIR, {
         recursive: true
     });
 
@@ -35,7 +35,7 @@ jest.mock("../src/env", () => {
 
     return {
         ...env,
-        DATA_DIR,
+        WOCKER_DATA_DIR,
         PRESETS_DIR
     };
 });
@@ -44,7 +44,7 @@ jest.doMock("fs/promises", () => ufs.promises);
 jest.doMock("process", () => {
     const process: any = jest.requireActual("process");
 
-    let pwd = DATA_DIR;
+    let pwd = WOCKER_DATA_DIR;
 
     return {
         ...process,
@@ -52,8 +52,6 @@ jest.doMock("process", () => {
             return pwd;
         },
         chdir(newPwd: string) {
-            console.log(">>", newPwd);
-
             if(!ufs.existsSync(newPwd)) {
                 throw new Error(`ENOENT: no such file or directory, chdir '${pwd}' -> '${newPwd}'`);
             }
@@ -63,10 +61,10 @@ jest.doMock("process", () => {
     };
 });
 
-jest.doMock(`${DATA_DIR}/wocker.config.js`, () => {
+jest.doMock(`${WOCKER_DATA_DIR}/wocker.config.js`, () => {
     return {
         get config() {
-            const file = vol.readFileSync(`${DATA_DIR}/wocker.config.js`).toString();
+            const file = vol.readFileSync(`${WOCKER_DATA_DIR}/wocker.config.js`).toString();
 
             return eval(file);
         }

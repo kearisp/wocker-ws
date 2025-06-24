@@ -1,5 +1,5 @@
 import {Module, WOCKER_DATA_DIR_KEY, WOCKER_VERSION_KEY} from "@wocker/core";
-import {DATA_DIR, WOCKER_VERSION} from "../../env";
+import {WOCKER_DATA_DIR, WOCKER_VERSION} from "../../env";
 
 
 @Module({
@@ -10,7 +10,7 @@ import {DATA_DIR, WOCKER_VERSION} from "../../env";
         },
         {
             provide: WOCKER_DATA_DIR_KEY,
-            useValue: DATA_DIR
+            useValue: WOCKER_DATA_DIR
         }
     ],
     exports: [

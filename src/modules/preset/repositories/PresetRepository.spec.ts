@@ -15,7 +15,7 @@ import {
 import {Test} from "@wocker/testing";
 import {vol} from "memfs";
 import {PresetRepository} from "./PresetRepository";
-import {DATA_DIR, PRESETS_DIR, WOCKER_VERSION} from "../../../env";
+import {WOCKER_DATA_DIR, PRESETS_DIR, WOCKER_VERSION} from "../../../env";
 
 
 describe("PresetRepository", (): void => {
@@ -48,7 +48,7 @@ describe("PresetRepository", (): void => {
                 name: GITHUB_1_NAME,
                 version: "1.1.1"
             })
-        }, DATA_DIR);
+        }, WOCKER_DATA_DIR);
 
         vol.fromJSON({
             "config.json": JSON.stringify({
@@ -72,7 +72,7 @@ describe("PresetRepository", (): void => {
             providers: [
                 {
                     provide: WOCKER_DATA_DIR_KEY,
-                    useValue: DATA_DIR
+                    useValue: WOCKER_DATA_DIR
                 },
                 {
                     provide: WOCKER_VERSION_KEY,

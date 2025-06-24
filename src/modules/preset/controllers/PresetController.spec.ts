@@ -8,19 +8,18 @@ import {
     AppService,
     AppFileSystemService,
     ProcessService,
-    WOCKER_VERSION_KEY,
-    WOCKER_DATA_DIR_KEY
+    ApplicationContext
 } from "@wocker/core";
 import {Test} from "@wocker/testing";
 import {vol} from "memfs";
-import {DATA_DIR, WOCKER_VERSION} from "../../../env";
 
 
 describe("PresetController", (): void => {
-    let cwdMock: SpiedFunction;
-    let promptMap = {};
+    let context: ApplicationContext,
+        promptMap: any = {},
+        cwdMock: SpiedFunction;
 
-    beforeEach(() => {
+    beforeEach(async (): Promise<void> => {
         cwdMock = jest.spyOn(process, "cwd");
         cwdMock.mockReturnValue("/home/wocker-test/preset");
 
@@ -38,6 +37,44 @@ describe("PresetController", (): void => {
                 promptConfirm: prompt
             };
         });
+
+        const {AppModule} = await import("../../app");
+        const {KeystoreModule} = await import("../../keystore");
+        const {DockerModule} = await import("../../docker");
+        const {ProjectModule} = await import("../../project");
+        const {PresetModule} = await import("../../preset");
+        const {PresetController} = await import("./PresetController");
+
+        context = await Test
+            .createTestingModule({
+                imports: [
+                    AppModule,
+                    KeystoreModule,
+                    DockerModule,
+                    ProjectModule,
+                    PresetModule
+                ],
+                controllers: [
+                    PresetController
+                ],
+                providers: [
+                    AppService,
+                    AppConfigService,
+                    AppFileSystemService,
+                    EventService,
+                    LogService,
+                    ProcessService
+                ],
+                exports: [
+                    AppService,
+                    AppFileSystemService,
+                    AppConfigService,
+                    EventService,
+                    LogService,
+                    ProcessService
+                ]
+            })
+            .build();
     });
 
     afterEach(() => {
@@ -47,48 +84,6 @@ describe("PresetController", (): void => {
     });
 
     it("preset:init", async (): Promise<void> => {
-        const {KeystoreModule} = await import("../../keystore");
-        const {DockerModule} = await import("../../docker");
-        const {ProjectModule} = await import("../../project");
-        const {PresetModule} = await import("../../preset");
-        const {PresetController} = await import("./PresetController");
-
-        const context = await Test.createTestingModule({
-            imports: [
-                KeystoreModule,
-                DockerModule,
-                ProjectModule,
-                PresetModule
-            ],
-            controllers: [
-                PresetController
-            ],
-            providers: [
-                {
-                    provide: WOCKER_DATA_DIR_KEY,
-                    useValue: DATA_DIR
-                },
-                {
-                    provide: WOCKER_VERSION_KEY,
-                    useValue: WOCKER_VERSION
-                },
-                AppService,
-                AppConfigService,
-                AppFileSystemService,
-                EventService,
-                LogService,
-                ProcessService
-            ],
-            exports: [
-                AppService,
-                AppFileSystemService,
-                AppConfigService,
-                EventService,
-                LogService,
-                ProcessService
-            ]
-        }).build();
-
         vol.fromJSON({
             "Dockerfile": "FROM node:latest\n"
         }, "/home/wocker-test/preset");

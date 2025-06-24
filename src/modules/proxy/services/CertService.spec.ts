@@ -21,7 +21,7 @@ import {
     ModemService,
     ProtoService
 } from "../../docker";
-import {DATA_DIR, WOCKER_VERSION} from "../../../env";
+import {WOCKER_DATA_DIR, WOCKER_VERSION} from "../../../env";
 
 
 describe("CertService", (): void => {
@@ -39,7 +39,7 @@ describe("CertService", (): void => {
                 },
                 {
                     provide: WOCKER_DATA_DIR_KEY,
-                    useValue: DATA_DIR
+                    useValue: WOCKER_DATA_DIR
                 },
                 AppService,
                 AppFileSystemService,
@@ -63,7 +63,7 @@ describe("CertService", (): void => {
             "certs/projects/test.key": "",
             "certs/projects/test2.crt": "",
             "certs/projects/test2.key": ""
-        }, DATA_DIR);
+        }, WOCKER_DATA_DIR);
 
         const certService = context.get(CertService);
 
@@ -81,7 +81,7 @@ describe("CertService", (): void => {
             "certs/projects/test.key": "",
             "certs/projects/test2.crt": "",
             "certs/projects/test2.key": ""
-        }, DATA_DIR);
+        }, WOCKER_DATA_DIR);
 
         const certService = context.get(CertService);
 

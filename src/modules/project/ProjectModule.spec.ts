@@ -16,7 +16,7 @@ import {PresetModule} from "../preset";
 import {KeystoreModule} from "../keystore";
 import {DockerModule, DockerService, ImageService, ModemService} from "../docker";
 import {ProjectModule} from "./";
-import {DATA_DIR, ROOT_DIR} from "../../env";
+import {WOCKER_DATA_DIR, ROOT_DIR} from "../../env";
 
 
 describe("ProjectModule", (): void => {
@@ -39,7 +39,7 @@ describe("ProjectModule", (): void => {
                     }
                 ]
             }, null, 4)
-        }, DATA_DIR);
+        }, WOCKER_DATA_DIR);
 
         jest.spyOn(process, "cwd").mockImplementation((): string => {
             return TEST_IMAGE_PROJECT_DIR;
