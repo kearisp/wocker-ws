@@ -1,6 +1,6 @@
 {
     "name": "@wocker/ws",
-    "version": "1.0.24",
+    "version": "1.0.25",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Docker workspace for web projects",
     "license": "MIT",
@@ -33,12 +33,13 @@
         "make-coverage-badge": "make-coverage-badge"
     },
     "dependencies": {
-        "@wocker/core": "1.0.24",
+        "@wocker/core": "1.0.25",
         "@wocker/utils": "^2.0.3",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",
         "child_process": "^1.0.2",
         "cli-table3": "^0.6.2",
+        "docker-compose": "^1.2.0",
         "dockerode": "^4.0.2",
         "fs": "^0.0.1-security",
         "keytar": "^7.9.0",

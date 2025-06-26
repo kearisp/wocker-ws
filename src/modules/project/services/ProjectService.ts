@@ -3,14 +3,18 @@ import {
     Project,
     AppConfigService,
     EventService,
+    ProcessService,
     ProjectService as CoreProjectService,
     ProjectServiceSearchParams as SearchParams,
     FileSystem,
     PROJECT_TYPE_IMAGE,
     PROJECT_TYPE_DOCKERFILE,
     PROJECT_TYPE_PRESET,
-    PROJECT_TYPE_COMPOSE
+    PROJECT_TYPE_COMPOSE,
+    LogService
 } from "@wocker/core";
+import YAML from "yaml";
+import {buildAll, upAll, downAll} from "docker-compose";
 import {ProjectRepository} from "../repositories/ProjectRepository";
 import {DockerService} from "../../docker";
 import {PresetService, PresetRepository} from "../../preset";
@@ -20,11 +24,13 @@ import {PresetService, PresetRepository} from "../../preset";
 export class ProjectService extends CoreProjectService {
     public constructor(
         protected readonly appConfigService: AppConfigService,
+        protected readonly processService: ProcessService,
         protected readonly eventService: EventService,
         protected readonly dockerService: DockerService,
         protected readonly projectRepository: ProjectRepository,
         protected readonly presetService: PresetService,
-        protected readonly presetRepository: PresetRepository
+        protected readonly presetRepository: PresetRepository,
+        protected readonly logService: LogService
     ) {
         super();
     }
@@ -33,7 +39,7 @@ export class ProjectService extends CoreProjectService {
         const project = name
             ? this.projectRepository.searchOne({name})
             : this.projectRepository.searchOne({
-                path: this.appConfigService.pwd()
+                path: this.processService.pwd()
             });
 
         if(!project) {
@@ -41,7 +47,7 @@ export class ProjectService extends CoreProjectService {
         }
 
         if(name) {
-            this.appConfigService.setPWD(project.path);
+            this.processService.chdir(project.path);
         }
 
         return project;
@@ -114,6 +120,33 @@ export class ProjectService extends CoreProjectService {
             }
 
             case PROJECT_TYPE_COMPOSE: {
+                const fs = new FileSystem(project.path);
+                const compose = fs.readYAML(project.composefile);
+
+                if(!compose.networks) {
+                    compose.networks = {};
+                }
+
+                compose.networks.workspace = {
+                    external: true
+                };
+
+                for(const name in compose.services) {
+                    if(!compose.services[name].networks) {
+                        compose.services[name].networks = [];
+                    }
+
+                    if(!compose.services[name].networks.includes("workspace")) {
+                        compose.services[name].networks.push("workspace");
+                    }
+                }
+
+                const res = await upAll({
+                    cwd: project.path,
+                    configAsString: YAML.stringify(compose)
+                });
+
+                this.logService.debug(res);
                 break;
             }
         }
@@ -127,6 +160,9 @@ export class ProjectService extends CoreProjectService {
                 case PROJECT_TYPE_DOCKERFILE:
                 case PROJECT_TYPE_PRESET:
                     await this.dockerService.attach(project.containerName);
+                    break;
+
+                case PROJECT_TYPE_COMPOSE:
                     break;
             }
         }
@@ -142,8 +178,15 @@ export class ProjectService extends CoreProjectService {
                 await this.dockerService.removeContainer(project.containerName);
                 break;
 
-            case PROJECT_TYPE_COMPOSE:
+            case PROJECT_TYPE_COMPOSE: {
+                const res = await downAll({
+                    cwd: project.path,
+                    config: project.composefile
+                });
+
+                this.logService.debug(res);
                 break;
+            }
         }
 
         await this.eventService.emit("project:stop", project);
@@ -210,6 +253,12 @@ export class ProjectService extends CoreProjectService {
             }
 
             case PROJECT_TYPE_COMPOSE: {
+                const res = await buildAll({
+                    cwd: project.path,
+                    config: project.composefile
+                });
+
+                this.logService.debug(res);
                 break;
             }
         }
