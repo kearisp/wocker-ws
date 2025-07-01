@@ -1,6 +1,5 @@
 import {
     Injectable,
-    AppService,
     AppConfigService,
     AppFileSystemService,
     KeystoreService as CoreKeystoreService,
@@ -15,7 +14,6 @@ export class KeystoreService extends CoreKeystoreService {
     protected providers: Map<string, KeystoreProvider>;
 
     public constructor(
-        protected readonly appService: AppService,
         protected readonly appConfigService: AppConfigService,
         protected readonly fs: AppFileSystemService
     ) {

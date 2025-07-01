@@ -8,8 +8,8 @@ export class ProtoService {
     public get root(): Root {
         if(!this._root) {
             this._root = loadSync([
-                `${ROOT_DIR}/proto/solver/pb/ops.proto`,
-                `${ROOT_DIR}/proto/buildkit.proto`
+                `${ROOT_DIR}/fixtures/proto/solver/pb/ops.proto`,
+                `${ROOT_DIR}/fixtures/proto/buildkit.proto`
             ]);
         }
 

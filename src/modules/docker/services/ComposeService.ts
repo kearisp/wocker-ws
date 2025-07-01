@@ -5,6 +5,7 @@ import {
 } from "@wocker/core";
 import YAML from "yaml";
 import * as compose from "docker-compose";
+import {ComposeConfig} from "../type/ComposeConfig";
 
 
 type UpOptions = {
@@ -22,6 +23,13 @@ type BuildOptions = {
     context: string;
 };
 
+type ExecOptions = {
+    service: string;
+    args: string[];
+    composefile: string;
+    context: string;
+};
+
 @Injectable("DOCKER_COMPOSE_SERVICE")
 export class ComposeService {
     public constructor(
@@ -34,30 +42,9 @@ export class ComposeService {
             composefile
         } = options;
 
-        const fs = new FileSystem(context),
-              config: any = fs.readYAML(composefile);
-
-        if(!config.networks) {
-            config.networks = {};
-        }
-
-        config.networks.workspace = {
-            external: true
-        };
-
-        for(const name in config.services) {
-            if(!config.services[name].networks) {
-                config.services[name].networks = [];
-            }
-
-            if(!config.services[name].networks.includes("workspace")) {
-                config.services[name].networks.push("workspace");
-            }
-        }
-
         const res = await compose.upAll({
             cwd: context,
-            configAsString: YAML.stringify(config),
+            configAsString: this.getConfigAsString(context, composefile),
             callback: (chunk, streamSource) => this.processChunk(chunk, streamSource)
         });
 
@@ -72,7 +59,7 @@ export class ComposeService {
 
         const res = await compose.downAll({
             cwd: context,
-            config: composefile,
+            configAsString: this.getConfigAsString(context, composefile),
             callback: (chunk, streamSource) => this.processChunk(chunk, streamSource)
         });
 
@@ -92,6 +79,55 @@ export class ComposeService {
         });
 
         this.logService.debug("build", res);
+    }
+
+    public async exec(options: ExecOptions): Promise<void> {
+        const {
+            service,
+            args,
+            context,
+            composefile
+        } = options;
+
+        const config = this.getConfig(context, composefile);
+
+        console.log(config);
+
+        await compose.exec(service, args, {
+            configAsString: this.getConfigAsString(context, composefile),
+            callback: (chunk, streamSource) => this.processChunk(chunk, streamSource)
+        });
+    }
+
+    protected getConfig(context: string, composefile: string): ComposeConfig {
+        const fs = new FileSystem(context),
+              config: ComposeConfig = fs.readYAML(composefile);
+
+        if(!config.networks) {
+            config.networks = {};
+        }
+
+        config.networks.workspace = {
+            external: true
+        };
+
+        for(const name in config.services) {
+            if(!config.services[name].networks) {
+                config.services[name].networks = [];
+            }
+
+            if(!config.services[name].networks.includes("workspace")) {
+                config.services[name].networks.push("workspace");
+            }
+        }
+
+        return config;
+    }
+
+    protected getConfigAsString(context: string, composefile: string): string {
+        const config = this.getConfig(context, composefile);
+
+        return YAML.stringify(config);
     }
 
     protected processChunk(chunk: Buffer<ArrayBuffer>, streamSource?: "stdout" | "stderr"): void {

@@ -2,7 +2,6 @@ import {
     Injectable,
     DockerService as CoreDockerService,
     DockerServiceParams as Params,
-    FileSystem,
     LogService
 } from "@wocker/core";
 import type Docker from "dockerode";
@@ -164,7 +163,7 @@ export class DockerService extends CoreDockerService {
             },
             NetworkingConfig: {
                 EndpointsConfig: networkMode === "host" ? {} : {
-                    workspace: {
+                    [networkName]: {
                         Links: links,
                         Aliases: aliases || (env.VIRTUAL_HOST ? env.VIRTUAL_HOST.split(",") : undefined)
                     }
@@ -182,42 +181,7 @@ export class DockerService extends CoreDockerService {
     }
 
     public async buildImage(params: Params.BuildImage): Promise<void> {
-        const {
-            tag,
-            labels = {},
-            buildArgs = {},
-            context,
-            src
-        } = params;
-
-        const fs = new FileSystem(context);
-
-        const files = await fs.readdirFiles("", {
-            recursive: true
-        });
-
-        const stream = await this.docker.buildImage({
-            context,
-            src: files
-        }, {
-            t: tag,
-            // version: "2",
-            labels,
-            buildargs: Object.keys(buildArgs).reduce((res, key) => {
-                const value = buildArgs[key];
-
-                if(typeof value !== "undefined") {
-                    res[key] = typeof buildArgs[key] !== "string"
-                        ? (buildArgs[key] as any).toString()
-                        : buildArgs[key];
-                }
-
-                return res;
-            }, {}),
-            dockerfile: src
-        });
-
-        await this.modemService.followProgress(stream);
+        await this.imageService.build(params);
     }
 
     public async imageExists(tag: string): Promise<boolean> {

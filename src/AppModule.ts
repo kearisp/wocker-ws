@@ -1,7 +1,5 @@
 import {
-    AppService,
     AppConfigService,
-    EventService,
     ProcessService,
     AppFileSystemService,
     LogService,
@@ -9,9 +7,7 @@ import {
     Global,
     Container,
     MODULE_METADATA,
-    WOCKER_VERSION_KEY,
-    PLUGIN_DIR_KEY,
-    WOCKER_DATA_DIR_KEY
+    PLUGIN_DIR_KEY
 } from "@wocker/core";
 import {
     CompletionController,
@@ -23,7 +19,7 @@ import {
 import {PluginService} from "./services/PluginService";
 import {NpmService} from "./services/NpmService";
 import {
-    AppModule,
+    CoreModule,
     ProjectModule, ProjectService,
     DockerModule, DockerService, ContainerService, ImageService,
     PresetModule, PresetRepository, PresetService,
@@ -35,7 +31,7 @@ import {
 @Global()
 @Module({
     imports: [
-        AppModule,
+        CoreModule,
         ProjectModule,
         PresetModule,
         DockerModule,
@@ -50,23 +46,10 @@ import {
         DebugController
     ],
     providers: [
-        AppService,
-        AppFileSystemService,
-        AppConfigService,
-        EventService,
-        LogService,
         NpmService,
-        PluginService,
-        ProcessService
+        PluginService
     ],
     exports: [
-        WOCKER_VERSION_KEY,
-        WOCKER_DATA_DIR_KEY,
-        AppService,
-        AppFileSystemService,
-        AppConfigService,
-        EventService,
-        LogService,
         DockerService,
         CertService,
         ContainerService,
@@ -79,10 +62,10 @@ import {
         ProcessService
     ]
 })
-export class RootModule {
+export class AppModule {
     // noinspection JSUnusedGlobalSymbols
     public async load(container: Container) {
-        const appModule = container.getModule(RootModule),
+        const appModule = container.getModule(AppModule),
               fs = appModule.get<AppFileSystemService>(AppFileSystemService),
               appConfigService = appModule.get<AppConfigService>(AppConfigService),
               logService = appModule.get<LogService>(LogService),

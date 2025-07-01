@@ -3,11 +3,6 @@ import {SpiedFunction} from "jest-mock";
 import {
     PRESET_SOURCE_EXTERNAL,
     AppConfigService,
-    EventService,
-    LogService,
-    AppService,
-    AppFileSystemService,
-    ProcessService,
     ApplicationContext
 } from "@wocker/core";
 import {Test} from "@wocker/testing";
@@ -38,7 +33,7 @@ describe("PresetController", (): void => {
             };
         });
 
-        const {AppModule} = await import("../../app");
+        const {CoreModule} = await import("../../core");
         const {KeystoreModule} = await import("../../keystore");
         const {DockerModule} = await import("../../docker");
         const {ProjectModule} = await import("../../project");
@@ -48,7 +43,7 @@ describe("PresetController", (): void => {
         context = await Test
             .createTestingModule({
                 imports: [
-                    AppModule,
+                    CoreModule,
                     KeystoreModule,
                     DockerModule,
                     ProjectModule,
@@ -56,22 +51,6 @@ describe("PresetController", (): void => {
                 ],
                 controllers: [
                     PresetController
-                ],
-                providers: [
-                    AppService,
-                    AppConfigService,
-                    AppFileSystemService,
-                    EventService,
-                    LogService,
-                    ProcessService
-                ],
-                exports: [
-                    AppService,
-                    AppFileSystemService,
-                    AppConfigService,
-                    EventService,
-                    LogService,
-                    ProcessService
                 ]
             })
             .build();

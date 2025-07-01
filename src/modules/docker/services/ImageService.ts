@@ -1,14 +1,7 @@
 import type Docker from "dockerode";
-import {Injectable, FileSystem} from "@wocker/core";
+import {Injectable, FileSystem, DockerServiceParams as Params} from "@wocker/core";
 import {ModemService} from "./ModemService";
 
-
-type BuildParams = {
-    tag: string;
-    context: string;
-    dockerfile: string;
-    version: "1" | "2";
-};
 
 @Injectable()
 export class ImageService {
@@ -20,13 +13,18 @@ export class ImageService {
         return this.modemService.docker;
     }
 
-    public async build(params: BuildParams): Promise<void> {
+    public async build(params: Params.BuildImage): Promise<void> {
         const {
+            version,
             tag,
             context,
-            dockerfile,
-            version
+            labels,
+            buildArgs
         } = params;
+
+        const dockerfile = "dockerfile" in params
+            ? params.dockerfile
+            : params.src;
 
         const files = (new FileSystem(context)).readdir("", {
             recursive: true
@@ -36,9 +34,20 @@ export class ImageService {
             context,
             src: files
         }, {
+            version,
             t: tag,
-            dockerfile,
-            version
+            labels,
+            buildargs: Object.keys(buildArgs || {}).reduce((res, key) => {
+                const value = buildArgs[key];
+
+                if(typeof value !== "undefined") {
+                    res[key] = typeof value !== "string" ? (value as any).toString() : value;
+                }
+
+                return res;
+            }, {}),
+            rm: true,
+            dockerfile
         });
 
         await this.modemService.followProgress(stream);

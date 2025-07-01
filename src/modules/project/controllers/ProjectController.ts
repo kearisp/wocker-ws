@@ -3,6 +3,7 @@ import {
     Command,
     Description,
     Option,
+    Param,
     AppConfigService,
     FileSystemManager,
     ProcessService
@@ -126,5 +127,21 @@ export class ProjectController {
         delete project.imageName;
 
         project.save();
+    }
+
+    @Command("exec [...command]")
+    public async exec(
+        @Param("command")
+        command?: string[],
+        @Option("name", {
+            type: "string",
+            alias: "n",
+            description: "The name of the project"
+        })
+        name?: string
+    ): Promise<void> {
+        const project = this.projectService.get(name);
+
+        await this.projectService.exec(project, command);
     }
 }

@@ -9,7 +9,7 @@ import {
     ProcessService
 } from "@wocker/core";
 import {Test} from "@wocker/testing";
-import {AppModule} from "../../app";
+import {CoreModule} from "../../core";
 import {ModemService} from "./ModemService";
 import {DockerService} from "./DockerService";
 import {ProtoService} from "./ProtoService";
@@ -22,7 +22,7 @@ describe("ModemService", (): void => {
     beforeEach(async () => {
         context = await Test.createTestingModule({
             imports: [
-                AppModule
+                CoreModule
             ],
             providers: [
                 AppService,
