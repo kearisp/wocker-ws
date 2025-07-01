@@ -13,10 +13,8 @@ import {
     PROJECT_TYPE_COMPOSE,
     LogService
 } from "@wocker/core";
-import YAML from "yaml";
-import {buildAll, upAll, downAll} from "docker-compose";
 import {ProjectRepository} from "../repositories/ProjectRepository";
-import {DockerService} from "../../docker";
+import {DockerService, ComposeService} from "../../docker";
 import {PresetService, PresetRepository} from "../../preset";
 
 
@@ -27,6 +25,7 @@ export class ProjectService extends CoreProjectService {
         protected readonly processService: ProcessService,
         protected readonly eventService: EventService,
         protected readonly dockerService: DockerService,
+        protected readonly composeService: ComposeService,
         protected readonly projectRepository: ProjectRepository,
         protected readonly presetService: PresetService,
         protected readonly presetRepository: PresetRepository,
@@ -120,33 +119,10 @@ export class ProjectService extends CoreProjectService {
             }
 
             case PROJECT_TYPE_COMPOSE: {
-                const fs = new FileSystem(project.path);
-                const compose = fs.readYAML(project.composefile);
-
-                if(!compose.networks) {
-                    compose.networks = {};
-                }
-
-                compose.networks.workspace = {
-                    external: true
-                };
-
-                for(const name in compose.services) {
-                    if(!compose.services[name].networks) {
-                        compose.services[name].networks = [];
-                    }
-
-                    if(!compose.services[name].networks.includes("workspace")) {
-                        compose.services[name].networks.push("workspace");
-                    }
-                }
-
-                const res = await upAll({
-                    cwd: project.path,
-                    configAsString: YAML.stringify(compose)
+                await this.composeService.up({
+                    context: project.path,
+                    composefile: project.composefile
                 });
-
-                this.logService.debug(res);
                 break;
             }
         }
@@ -179,12 +155,10 @@ export class ProjectService extends CoreProjectService {
                 break;
 
             case PROJECT_TYPE_COMPOSE: {
-                const res = await downAll({
-                    cwd: project.path,
-                    config: project.composefile
+                await this.composeService.down({
+                    context: project.path,
+                    composefile: project.composefile
                 });
-
-                this.logService.debug(res);
                 break;
             }
         }
@@ -253,12 +227,10 @@ export class ProjectService extends CoreProjectService {
             }
 
             case PROJECT_TYPE_COMPOSE: {
-                const res = await buildAll({
-                    cwd: project.path,
-                    config: project.composefile
+                await this.composeService.build({
+                    context: project.path,
+                    composefile: project.composefile
                 });
-
-                this.logService.debug(res);
                 break;
             }
         }
