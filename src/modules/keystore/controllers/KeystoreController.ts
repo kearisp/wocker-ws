@@ -2,11 +2,10 @@ import {
     Controller,
     Command,
     Description,
-    Param,
     Option,
     AppConfigService
 } from "@wocker/core";
-import {promptInput, promptSelect} from "@wocker/utils";
+import {promptSelect} from "@wocker/utils";
 import {KeystoreService} from "../services/KeystoreService";
 
 
@@ -19,11 +18,10 @@ export class KeystoreController {
     ) {}
 
     @Command("keystore:init")
+    @Description("Initialize keystore")
     public async init(
-        @Option("provider", {
-            type: "string",
-            description: "Keystore provider name"
-        })
+        @Option("provider", "p")
+        @Description("Keystore provider name")
         provider?: string
     ): Promise<void> {
         if(!provider) {
@@ -40,53 +38,5 @@ export class KeystoreController {
 
         this.appConfigService.config.keystore = provider;
         this.appConfigService.save();
-    }
-
-    @Command("secret:create [name]")
-    @Description("Adds secret value to keystore")
-    public async add(
-        @Param("name")
-        name?: string,
-        @Option("provider", {
-            alias: "p",
-            type: "string",
-            description: "Provider name"
-        })
-        provider?: string
-    ): Promise<void> {
-        const value = await promptInput({
-            message: "Secret value",
-            type: "password"
-        });
-
-        await this.keystoreService.provider(provider).set(name, value);
-    }
-
-    @Command("secret:inspect [name]")
-    public async inspect(
-        @Param("name")
-        name?: string,
-        @Option("provider", {
-            type: "string",
-            alias: "p"
-        })
-        provider?: string
-    ): Promise<string | undefined> {
-        return this.keystoreService.provider(provider).get(name);
-    }
-
-    @Command("secret:rm [name]")
-    @Description("Removes secret value from keystore")
-    public async delete(
-        @Param("name")
-        name?: string,
-        @Option("provider", {
-            type: "string",
-            alias: "p",
-            description: "Provider name"
-        })
-        provider?: string
-    ): Promise<void> {
-        await this.keystoreService.provider(provider).delete(name);
     }
 }

@@ -11,10 +11,18 @@ import {
     WOCKER_DATA_DIR_KEY
 } from "@wocker/core";
 import {WOCKER_DATA_DIR, WOCKER_VERSION} from "../../env";
+import {CompletionController} from "./controllers/CompletionController";
+import {DebugController} from "./controllers/DebugController";
+import {ExperimentalController} from "./controllers/ExperimentalController";
 
 
 @Global()
 @Module({
+    controllers: [
+        CompletionController,
+        DebugController,
+        ExperimentalController
+    ],
     providers: [
         {
             provide: WOCKER_VERSION_KEY,

@@ -1,0 +1,2 @@
+dockergen: docker-gen -watch -notify "pkill -HUP dnsmasq" dnsmasq.conf.tmpl /etc/dnsmasq.conf
+# dnsmasq: /app/dnsmasq.sh

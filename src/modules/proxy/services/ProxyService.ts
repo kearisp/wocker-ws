@@ -13,7 +13,8 @@ import {DockerService} from "../../docker";
 
 @Injectable("PROXY_SERVICE")
 export class ProxyService extends CoreProxyService {
-    protected containerName = "proxy.workspace";
+    protected containerName = "wocker-proxy";
+    protected oldContainerNames = ["proxy.workspace"];
     protected imageName = "wocker-proxy:1.0.1";
     protected oldImages = [
         "wocker-proxy:1.0.0"
@@ -46,6 +47,10 @@ export class ProxyService extends CoreProxyService {
         let container = await this.dockerService.getContainer(this.containerName);
 
         if(!container) {
+            for(const containerName of this.oldContainerNames) {
+                await this.dockerService.removeContainer(containerName);
+            }
+
             console.info("Proxy starting...");
 
             await this.build(rebuild);

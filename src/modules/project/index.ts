@@ -3,6 +3,7 @@ import {KeystoreModule} from "../keystore";
 import {DockerModule} from "../docker";
 import {PresetModule} from "../preset";
 import {ProjectController} from "./controllers/ProjectController";
+import {SecretsController} from "./controllers/SecretsController";
 import {ProjectRepository} from "./repositories/ProjectRepository";
 import {ProjectService} from "./services/ProjectService";
 
@@ -13,7 +14,10 @@ import {ProjectService} from "./services/ProjectService";
         KeystoreModule,
         DockerModule
     ],
-    controllers: [ProjectController],
+    controllers: [
+        ProjectController,
+        SecretsController
+    ],
     providers: [
         ProjectRepository,
         ProjectService

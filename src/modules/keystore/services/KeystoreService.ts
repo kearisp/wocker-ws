@@ -71,6 +71,12 @@ export class KeystoreService extends CoreKeystoreService {
         await provider.set(key, value);
     }
 
+    public async delete(key: string): Promise<void> {
+        const provider = this.provider();
+
+        await provider.delete(key);
+    }
+
     public registerProvider(name: string, provider: KeystoreProvider) {
         if(this.providers.has(name)) {
             throw new Error(`Provider ${name} already registered`);

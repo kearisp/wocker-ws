@@ -273,29 +273,38 @@ export class PresetService {
         this.appConfigService.save();
     }
 
-    public async addPreset(name: string, repository?: string, version?: string): Promise<void> {
-        if(!repository) {
-            repository = `kearisp/wocker-${name}-preset`;
+    public async install(repository: string, version?: string): Promise<void> {
+        if(!/^[\w0-9_-]\/[\w0-9_-]$/.test(repository)) {
+            repository = `kearisp/wocker-${repository}-preset`;
         }
+
+        const [owner, name] = repository.split("/");
+
+        const github = new GithubClient(owner, name);
+
+        const info = await github.getInfo(),
+              tags = await github.getTags(),
+              config = await github.getFile(info.default_branch, "config.json");
+
+        const tag = tags.reduce((tag, nextTag) => {
+            // return nextTag;
+
+            return tag;
+        }, tags.shift());
 
         let preset = this.presetRepository.searchOne({
-            name
+            name: config.name
         });
 
-        if(!preset) {
-            console.info("Loading...");
-
-            const [owner, repo] = repository.split("/");
-
-            const github = new GithubClient(owner, repo);
-
-            const info = await github.getInfo();
-
-            // const config = await github.getFile(info.default_branch, "config.json");
-
-            await github.download(info.default_branch, this.fs.path(`presets/${name}`));
-
-            this.appConfigService.registerPreset(name, PRESET_SOURCE_GITHUB);
+        if(preset) {
+            console.log("Preset already installed");
+            return;
         }
+
+        console.info("Loading...");
+
+        // await github.download(info.default_branch, this.fs.path(`presets/${config.name}`));
+
+        // this.appConfigService.registerPreset(config.name, PRESET_SOURCE_GITHUB);
     }
 }

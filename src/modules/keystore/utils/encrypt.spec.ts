@@ -31,7 +31,6 @@ describe("encrypt", () => {
 
         const encryptedValue = encrypt(encryptedKey, value);
 
-        // Перевіряємо, що це дійсно base64
         expect(() => Buffer.from(encryptedValue, "base64")).not.toThrow();
     });
 
@@ -42,7 +41,6 @@ describe("encrypt", () => {
         const encryptedValue = encrypt(encryptedKey, value);
         const encryptedBuffer = Buffer.from(encryptedValue, "base64");
 
-        // Мінімальна довжина: IV (12) + auth tag (16) + хоча б 1 байт даних
         expect(encryptedBuffer.length).toBeGreaterThanOrEqual(12 + 16 + 1);
     });
 
@@ -68,7 +66,7 @@ describe("encrypt", () => {
     });
 
     it("should throw error with invalid key length", () => {
-        const invalidKey = crypto.randomBytes(24); // AES-256 потребує 32-байтовий ключ
+        const invalidKey = crypto.randomBytes(24);
         const value = "test value";
 
         expect(() => {
@@ -87,7 +85,6 @@ describe("encrypt", () => {
     });
 
     it("should encrypt with AES-256-GCM algorithm", () => {
-        // Мокаємо crypto.createCipheriv для перевірки параметрів
         const mockCreateCipheriv = jest.spyOn(crypto, "createCipheriv");
         const encryptedKey = crypto.randomBytes(32);
         const value = "test value";
@@ -104,14 +101,14 @@ describe("encrypt", () => {
     });
 
     it("should use random IV for each encryption", () => {
-        // Мокаємо crypto.randomBytes для перевірки виклику
-        const mockRandomBytes = jest.spyOn(crypto, "randomBytes");
         const encryptedKey = crypto.randomBytes(32);
         const value = "test value";
 
+        const mockRandomBytes: any = jest.spyOn(crypto, "randomBytes");
+
         encrypt(encryptedKey, value);
 
-        expect(mockRandomBytes).toHaveBeenCalledWith(12); // Перевіряємо, що IV має 12 байтів
+        expect(mockRandomBytes).toHaveBeenCalledWith(12);
 
         mockRandomBytes.mockRestore();
     });

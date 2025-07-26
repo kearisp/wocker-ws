@@ -1,20 +1,20 @@
 import {
-    Injectable,
-    Project,
     AppConfigService,
     EventService,
-    ProcessService,
-    ProjectService as CoreProjectService,
-    ProjectServiceSearchParams as SearchParams,
     FileSystem,
-    PROJECT_TYPE_IMAGE,
-    PROJECT_TYPE_DOCKERFILE,
-    PROJECT_TYPE_PRESET,
+    Injectable,
+    LogService,
+    ProcessService,
+    Project,
     PROJECT_TYPE_COMPOSE,
-    LogService
+    PROJECT_TYPE_DOCKERFILE,
+    PROJECT_TYPE_IMAGE,
+    PROJECT_TYPE_PRESET,
+    ProjectService as CoreProjectService,
+    ProjectRepositorySearchParams as SearchParams
 } from "@wocker/core";
-import {DockerService, ComposeService} from "../../docker";
-import {PresetService, PresetRepository} from "../../preset";
+import {ComposeService, DockerService} from "../../docker";
+import {PresetRepository, PresetService} from "../../preset";
 import {ProjectRepository} from "../repositories/ProjectRepository";
 
 
@@ -238,6 +238,57 @@ export class ProjectService extends CoreProjectService {
         }
 
         await this.eventService.emit("project:build", project, rebuild);
+    }
+
+    public async attach(project: Project): Promise<void> {
+        switch(project.type) {
+            case PROJECT_TYPE_IMAGE:
+            case PROJECT_TYPE_DOCKERFILE:
+            case PROJECT_TYPE_PRESET: {
+                await this.dockerService.attach(project.containerName);
+                break;
+            }
+        }
+    }
+
+    public async run(project: Project, script: string, service?: string, args: string[] = []): Promise<void> {
+        if(!project.scripts || !project.scripts[script]) {
+            throw new Error(`Script ${script} not found`);
+        }
+
+        switch(project.type) {
+            case PROJECT_TYPE_IMAGE:
+            case PROJECT_TYPE_DOCKERFILE:
+            case PROJECT_TYPE_PRESET: {
+                const container = await this.dockerService.getContainer(project.containerName);
+
+                if(!container) {
+                    throw new Error("The project is not started");
+                }
+
+                const exec = await container.exec({
+                    AttachStdin: true,
+                    AttachStdout: true,
+                    AttachStderr: true,
+                    Tty: process.stdin.isTTY,
+                    Cmd: ["bash", "-i", "-c", [project.scripts[script], ...args || []].join(" ")]
+                });
+
+                const stream = await exec.start({
+                    hijack: true,
+                    stdin: true,
+                    Tty: process.stdin.isTTY
+                });
+
+                await this.dockerService.attachStream(stream);
+                break;
+            }
+
+            case PROJECT_TYPE_COMPOSE: {
+                console.log(service, script, args);
+                break;
+            }
+        }
     }
 
     public async exec(project: Project, command: string[]): Promise<void> {

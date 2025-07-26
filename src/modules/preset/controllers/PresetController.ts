@@ -1,5 +1,6 @@
 import {
     Controller,
+    Completion,
     Command,
     Param,
     Project,
@@ -56,16 +57,16 @@ export class PresetController {
         return table.toString();
     }
 
-    @Command("preset:install <preset>")
-    @Command("preset:install <preset>@<version>")
+    @Command("preset:install <repository>")
+    @Command("preset:install <repository>@<version>")
     @Description("Adding preset from github repository")
-    public async add(
-        @Param("preset")
-        name: string,
+    public async install(
+        @Param("repository")
+        repository: string,
         @Param("version")
         version?: string
     ): Promise<void> {
-        await this.presetService.addPreset(name, version);
+        await this.presetService.install(repository, version);
     }
 
     @Command("preset:destroy")
@@ -134,6 +135,7 @@ export class PresetController {
         });
     }
 
+    @Completion("preset")
     public async presets(): Promise<string[]> {
         const presets = this.presetRepository.search();
 

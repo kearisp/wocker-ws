@@ -99,7 +99,6 @@ export class DockerService extends CoreDockerService {
             User: user,
             Image: image,
             Hostname: name,
-            Domainname: name,
             Labels: {
                 ...projectId ? {projectId} : {}
             },

@@ -6,9 +6,9 @@ import {
 } from "@wocker/core";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
-import {NpmService} from "./NpmService";
-import {Http, Plugin} from "../makes";
-import {exec, spawn} from "../utils";
+import {NpmService} from "../../npm";
+import {Http, Plugin} from "../../../makes";
+import {exec, spawn} from "../../../utils";
 
 
 @Injectable()
@@ -110,7 +110,7 @@ export class PluginService {
         return new Plugin(type);
     }
 
-    public async update(): Promise<void> {
+    public async update(name?: string): Promise<void> {
         if(this.appConfigService.plugins.length === 0) {
             return;
         }

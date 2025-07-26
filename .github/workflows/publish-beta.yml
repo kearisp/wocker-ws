@@ -26,10 +26,10 @@ jobs:
           - name: Setup Node.js
             uses: actions/setup-node@v4
             with:
-                node-version: 22
+                node-version: 24
                 registry-url: 'https://registry.npmjs.org'
 
-          - name: Setup beta
+          - name: Setup beta version
             uses: ./.github/actions/beta-version
 
           - name: Cache dependencies
