@@ -1,13 +1,6 @@
 import {describe, beforeEach, it, expect} from "@jest/globals";
 import Modem from "docker-modem";
-import {
-    ApplicationContext,
-    AppConfigService,
-    AppService,
-    AppFileSystemService,
-    LogService,
-    ProcessService
-} from "@wocker/core";
+import {ApplicationContext} from "@wocker/core";
 import {Test} from "@wocker/testing";
 import {CoreModule} from "../../core";
 import {ModemService} from "./ModemService";
@@ -25,15 +18,10 @@ describe("ModemService", (): void => {
                 CoreModule
             ],
             providers: [
-                AppService,
-                AppConfigService,
-                AppFileSystemService,
                 ModemService,
                 ProtoService,
                 DockerService,
-                ContainerService,
-                ProcessService,
-                LogService
+                ContainerService
             ]
         }).build();
     });
