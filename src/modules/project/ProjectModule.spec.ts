@@ -2,16 +2,10 @@ import {describe, expect, it, beforeEach, afterEach, jest} from "@jest/globals";
 import {vol} from "memfs";
 import {
     Injectable,
-    AppService,
-    AppConfigService,
-    EventService,
-    AppFileSystemService,
-    LogService,
-    ProcessService,
     PROJECT_TYPE_IMAGE
 } from "@wocker/core";
 import {Test, ModemMock, Fixtures} from "@wocker/testing";
-import {AppModule} from "../app";
+import {CoreModule} from "../core";
 import {PresetModule} from "../preset";
 import {KeystoreModule} from "../keystore";
 import {DockerModule, DockerService, ImageService, ModemService} from "../docker";
@@ -53,7 +47,7 @@ describe("ProjectModule", (): void => {
     const getContext = async () => {
         const fixtures = Fixtures.fromPath(`${ROOT_DIR}/fixtures`);
 
-        @Injectable("MODEM_SERVICE")
+        @Injectable("DOCKER_MODEM_SERVICE")
         class TestModemService extends ModemService {
             protected _modem?: ModemMock;
 
@@ -71,27 +65,11 @@ describe("ProjectModule", (): void => {
         return Test
             .createTestingModule({
                 imports: [
-                    AppModule,
+                    CoreModule,
                     PresetModule,
                     ProjectModule,
                     KeystoreModule,
                     DockerModule
-                ],
-                providers: [
-                    AppService,
-                    AppConfigService,
-                    AppFileSystemService,
-                    EventService,
-                    LogService,
-                    ProcessService
-                ],
-                exports: [
-                    AppService,
-                    AppConfigService,
-                    EventService,
-                    AppFileSystemService,
-                    LogService,
-                    ProcessService
                 ]
             })
             .overrideProvider(ModemService)

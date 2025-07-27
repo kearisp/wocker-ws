@@ -1,34 +1,22 @@
 import {describe, it, expect, beforeAll, beforeEach} from "@jest/globals";
 import {vol} from "memfs";
 import {
-    AppConfigService,
-    EventService,
-    AppFileSystemService,
-    AppService,
-    LogService,
+    ApplicationContext,
     ProcessService,
-    WOCKER_DATA_DIR_KEY,
-    WOCKER_VERSION_KEY,
-    ApplicationContext
+    PROJECT_TYPE_IMAGE,
+    PROJECT_TYPE_DOCKERFILE
 } from "@wocker/core";
 import {Test, MockProcessService} from "@wocker/testing";
-import {PROJECT_TYPE_IMAGE, PROJECT_TYPE_DOCKERFILE} from "@wocker/core";
-import {KeystoreService} from "../../keystore";
-import {
-    DockerModule,
-    DockerService,
-    ImageService,
-    ModemService,
-    ProtoService,
-    ContainerService
-} from "../../docker";
+import {KeystoreModule} from "../../keystore";
+import {DockerModule} from "../../docker";
 import {PresetService, PresetRepository} from "../../preset";
 import {ProjectService} from "./ProjectService";
 import {ProjectRepository} from "../repositories/ProjectRepository";
-import {WOCKER_DATA_DIR, WOCKER_VERSION} from "../../../env";
+import {WOCKER_DATA_DIR} from "../../../env";
+import {CoreModule} from "../../core";
 
 
-describe("ProjectService", () => {
+describe("ProjectService", (): void => {
     const PROJECT_1_NAME = "project-1",
           PROJECT_1_PATH = `/home/wocker-test/projects/${PROJECT_1_NAME}`,
           PROJECT_2_NAME = "project-2",
@@ -38,7 +26,7 @@ describe("ProjectService", () => {
 
     let context: ApplicationContext;
 
-    beforeAll(() => {
+    beforeAll((): void => {
         vol.reset();
 
         vol.fromJSON({
@@ -95,33 +83,15 @@ describe("ProjectService", () => {
         context = await Test
             .createTestingModule({
                 imports: [
-                    // DockerModule
+                    CoreModule,
+                    DockerModule,
+                    KeystoreModule
                 ],
                 providers: [
-                    {
-                        provide: WOCKER_DATA_DIR_KEY,
-                        useValue: WOCKER_DATA_DIR
-                    },
-                    {
-                        provide: WOCKER_VERSION_KEY,
-                        useValue: WOCKER_VERSION
-                    },
-                    AppService,
-                    AppConfigService,
-                    AppFileSystemService,
-                    EventService,
                     ProjectService,
-                    KeystoreService,
-                    LogService,
-                    DockerService,
-                    ModemService,
-                    ImageService,
-                    ContainerService,
-                    ProtoService,
                     ProjectRepository,
                     PresetService,
-                    PresetRepository,
-                    ProcessService
+                    PresetRepository
                 ]
             })
             .overrideProvider(ProcessService).useProvider(MockProcessService)
@@ -141,10 +111,10 @@ describe("ProjectService", () => {
     });
 
     it("should get project from dir", async (): Promise<void> => {
-        const appConfigService = context.get(AppConfigService),
-              projectService = context.get(ProjectService);
+        const projectService = context.get(ProjectService),
+              processService = context.get(ProcessService);
 
-        appConfigService.setPWD(PROJECT_2_PATH);
+        processService.chdir(PROJECT_2_PATH);
 
         const project2 = projectService.get();
 
@@ -155,7 +125,7 @@ describe("ProjectService", () => {
         expect(project2.type).toBe(PROJECT_TYPE_DOCKERFILE);
     });
 
-    it("should throw error when project not found", async () => {
+    it("should throw error when project not found", async (): Promise<void> => {
         const processService = context.get(ProcessService),
               projectService = context.get(ProjectService);
 

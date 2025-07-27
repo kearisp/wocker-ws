@@ -43,20 +43,31 @@ export class PresetService {
                 }
 
                 case "select": {
+                    const options = normalizeOptions(config.options);
+
+                    const defaultValue = config.multiple ? options.reduce((defaultValue, option) => {
+                        if(values[option.value] === "true") {
+                            return [
+                                ...defaultValue,
+                                option.value
+                            ];
+                        }
+
+                        return defaultValue;
+                    }, []) : values[name];
+
                     const result = await promptSelect({
                         required: config.required,
                         multiple: config.multiple,
                         message: config.message,
                         options: config.options,
-                        default: values[name]
+                        default: defaultValue
                     });
 
                     if(!config.multiple) {
                         values[name] = result;
                     }
                     else {
-                        const options = normalizeOptions(config.options);
-
                         for(const option of options) {
                             if(result.includes(option.value)) {
                                 values[option.value] = "true";

@@ -1,15 +1,8 @@
 import {describe, beforeEach, it, expect} from "@jest/globals";
 import Modem from "docker-modem";
-import {
-    ApplicationContext,
-    AppConfigService,
-    AppService,
-    AppFileSystemService,
-    LogService,
-    ProcessService
-} from "@wocker/core";
+import {ApplicationContext} from "@wocker/core";
 import {Test} from "@wocker/testing";
-import {AppModule} from "../../app";
+import {CoreModule} from "../../core";
 import {ModemService} from "./ModemService";
 import {DockerService} from "./DockerService";
 import {ProtoService} from "./ProtoService";
@@ -22,18 +15,13 @@ describe("ModemService", (): void => {
     beforeEach(async () => {
         context = await Test.createTestingModule({
             imports: [
-                AppModule
+                CoreModule
             ],
             providers: [
-                AppService,
-                AppConfigService,
-                AppFileSystemService,
                 ModemService,
                 ProtoService,
                 DockerService,
-                ContainerService,
-                ProcessService,
-                LogService
+                ContainerService
             ]
         }).build();
     });

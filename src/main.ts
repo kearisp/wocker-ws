@@ -6,13 +6,13 @@ import {
     LogService
 } from "@wocker/core";
 import colors from "yoctocolors-cjs";
-import {RootModule} from "./RootModule";
+import {AppModule} from "./AppModule";
 
 
 // noinspection JSUnusedGlobalSymbols
 export const app = {
     async run(args: string[]): Promise<void> {
-        const context = await Factory.create(RootModule),
+        const context = await Factory.create(AppModule),
               appConfigService = context.get(AppConfigService),
               logService = context.get(LogService);
 

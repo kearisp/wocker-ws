@@ -1,4 +1,5 @@
 import {Module} from "@wocker/core";
+import {ComposeService} from "./services/ComposeService";
 import {ContainerService} from "./services/ContainerService";
 import {DockerService} from "./services/DockerService";
 import {ImageService} from "./services/ImageService";
@@ -8,6 +9,7 @@ import {ProtoService} from "./services/ProtoService";
 
 @Module({
     providers: [
+        ComposeService,
         ContainerService,
         DockerService,
         ImageService,
@@ -15,6 +17,7 @@ import {ProtoService} from "./services/ProtoService";
         ProtoService
     ],
     exports: [
+        ComposeService,
         ContainerService,
         DockerService,
         ImageService,
@@ -23,7 +26,9 @@ import {ProtoService} from "./services/ProtoService";
     ]
 })
 export class DockerModule {}
+
 export {
+    ComposeService,
     ContainerService,
     DockerService,
     ImageService,

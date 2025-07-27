@@ -2,7 +2,8 @@ import {
     Controller,
     EventService,
     Project,
-    PROJECT_TYPE_PRESET
+    PROJECT_TYPE_PRESET,
+    AppConfigService
 } from "@wocker/core";
 import {promptInput, promptSelect, volumeFormat, volumeParse} from "@wocker/utils";
 import {DockerService} from "../../docker";
@@ -14,6 +15,7 @@ import {injectVariables} from "../../../utils";
 @Controller()
 export class PresetListener {
     public constructor(
+        protected readonly appConfigService: AppConfigService,
         protected readonly eventService: EventService,
         protected readonly dockerService: DockerService,
         protected readonly presetRepository: PresetRepository,
@@ -145,13 +147,14 @@ export class PresetListener {
 
             if(!await this.dockerService.imageExists(project.imageName)) {
                 await this.dockerService.buildImage({
+                    version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
                     tag: project.imageName,
                     labels: {
                         presetName: preset.name
                     },
                     buildArgs: project.buildArgs,
                     context: preset.path,
-                    src: preset.dockerfile
+                    dockerfile: preset.dockerfile
                 });
             }
         }

@@ -123,13 +123,14 @@ export class PresetController {
         }
 
         await this.dockerService.buildImage({
+            version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
             tag: imageName,
             labels: {
                 presetName: preset.name
             },
             buildArgs: buildArgs,
             context: preset.path,
-            src: preset.dockerfile
+            dockerfile: preset.dockerfile
         });
     }
 

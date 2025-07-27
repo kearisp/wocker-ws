@@ -137,12 +137,13 @@ export class ProxyService extends CoreProxyService {
         }
 
         await this.dockerService.buildImage({
+            version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
             tag: this.imageName,
-            context: Path.join(PLUGINS_DIR, "proxy"),
-            src: "./Dockerfile",
             buildArgs: {
                 SSH_PASSWORD: this.appConfigService.getMeta("PROXY_SSH_PASSWORD")
-            }
+            },
+            context: Path.join(PLUGINS_DIR, "proxy"),
+            dockerfile: "./Dockerfile"
         });
     }
 

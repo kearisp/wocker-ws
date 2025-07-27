@@ -3,28 +3,33 @@ import {
     Project,
     AppConfigService,
     EventService,
+    ProcessService,
     ProjectService as CoreProjectService,
     ProjectServiceSearchParams as SearchParams,
     FileSystem,
     PROJECT_TYPE_IMAGE,
     PROJECT_TYPE_DOCKERFILE,
     PROJECT_TYPE_PRESET,
-    PROJECT_TYPE_COMPOSE
+    PROJECT_TYPE_COMPOSE,
+    LogService
 } from "@wocker/core";
-import {ProjectRepository} from "../repositories/ProjectRepository";
-import {DockerService} from "../../docker";
+import {DockerService, ComposeService} from "../../docker";
 import {PresetService, PresetRepository} from "../../preset";
+import {ProjectRepository} from "../repositories/ProjectRepository";
 
 
 @Injectable("PROJECT_SERVICE")
 export class ProjectService extends CoreProjectService {
     public constructor(
         protected readonly appConfigService: AppConfigService,
+        protected readonly processService: ProcessService,
         protected readonly eventService: EventService,
         protected readonly dockerService: DockerService,
+        protected readonly composeService: ComposeService,
         protected readonly projectRepository: ProjectRepository,
         protected readonly presetService: PresetService,
-        protected readonly presetRepository: PresetRepository
+        protected readonly presetRepository: PresetRepository,
+        protected readonly logService: LogService
     ) {
         super();
     }
@@ -33,7 +38,7 @@ export class ProjectService extends CoreProjectService {
         const project = name
             ? this.projectRepository.searchOne({name})
             : this.projectRepository.searchOne({
-                path: this.appConfigService.pwd()
+                path: this.processService.pwd()
             });
 
         if(!project) {
@@ -41,7 +46,7 @@ export class ProjectService extends CoreProjectService {
         }
 
         if(name) {
-            this.appConfigService.setPWD(project.path);
+            this.processService.chdir(project.path);
         }
 
         return project;
@@ -114,6 +119,10 @@ export class ProjectService extends CoreProjectService {
             }
 
             case PROJECT_TYPE_COMPOSE: {
+                await this.composeService.up({
+                    context: project.path,
+                    composefile: project.composefile
+                });
                 break;
             }
         }
@@ -127,6 +136,9 @@ export class ProjectService extends CoreProjectService {
                 case PROJECT_TYPE_DOCKERFILE:
                 case PROJECT_TYPE_PRESET:
                     await this.dockerService.attach(project.containerName);
+                    break;
+
+                case PROJECT_TYPE_COMPOSE:
                     break;
             }
         }
@@ -142,8 +154,13 @@ export class ProjectService extends CoreProjectService {
                 await this.dockerService.removeContainer(project.containerName);
                 break;
 
-            case PROJECT_TYPE_COMPOSE:
+            case PROJECT_TYPE_COMPOSE: {
+                await this.composeService.down({
+                    context: project.path,
+                    composefile: project.composefile
+                });
                 break;
+            }
         }
 
         await this.eventService.emit("project:stop", project);
@@ -165,10 +182,11 @@ export class ProjectService extends CoreProjectService {
 
                 if(!await this.dockerService.imageExists(project.imageName)) {
                     await this.dockerService.buildImage({
+                        version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
                         tag: project.imageName,
                         buildArgs: project.buildArgs,
                         context: project.path,
-                        src: project.dockerfile
+                        dockerfile: project.dockerfile
                     });
                 }
                 break;
@@ -196,13 +214,14 @@ export class ProjectService extends CoreProjectService {
 
                     if(!await this.dockerService.imageExists(project.imageName)) {
                         await this.dockerService.buildImage({
+                            version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
                             tag: project.imageName,
                             labels: {
                                 "org.wocker.preset": preset.name
                             },
                             buildArgs: project.buildArgs,
                             context: preset.path,
-                            src: preset.dockerfile
+                            dockerfile: preset.dockerfile
                         });
                     }
                 }
@@ -210,11 +229,37 @@ export class ProjectService extends CoreProjectService {
             }
 
             case PROJECT_TYPE_COMPOSE: {
+                await this.composeService.build({
+                    context: project.path,
+                    composefile: project.composefile
+                });
                 break;
             }
         }
 
         await this.eventService.emit("project:build", project, rebuild);
+    }
+
+    public async exec(project: Project, command: string[]): Promise<void> {
+        switch(project.type) {
+            case PROJECT_TYPE_IMAGE:
+            case PROJECT_TYPE_DOCKERFILE:
+            case PROJECT_TYPE_PRESET:
+                await this.dockerService.exec(project.containerName, command, true);
+                break;
+
+            case PROJECT_TYPE_COMPOSE: {
+                const [service, ...args] = command;
+
+                await this.composeService.exec({
+                    service,
+                    args,
+                    context: project.path,
+                    composefile: project.composefile
+                });
+                break;
+            }
+        }
     }
 
     public async logs(project: Project, detach?: boolean): Promise<void> {

@@ -1,6 +1,7 @@
 import {
     Injectable,
-    ModemService as CoreModemService
+    ModemService as CoreModemService,
+    LogService
 } from "@wocker/core";
 import type Modem from "docker-modem";
 import type Docker from "dockerode";
@@ -8,14 +9,15 @@ import {formatSizeUnits} from "../utils/formatSizeUnits";
 import {ProtoService} from "./ProtoService";
 
 
-@Injectable("MODEM_SERVICE")
+@Injectable("DOCKER_MODEM_SERVICE")
 export class ModemService extends CoreModemService {
     protected _modem?: Modem;
     protected _docker?: Docker;
     protected record?: boolean = true;
 
     public constructor(
-        protected readonly protoService: ProtoService
+        protected readonly protoService: ProtoService,
+        protected readonly logService: LogService
     ) {
         super();
     }
@@ -100,11 +102,30 @@ export class ModemService extends CoreModemService {
 
                 for(const item of items) {
                     if(item.id === "moby.buildkit.trace") {
-                        // TODO
+                        const StatusResponse = this.protoService.lookupType("moby.buildkit.v1.StatusResponse");
+
+                        const buffer = Buffer.from(item.aux, "base64");
+                        const decoded = StatusResponse.decode(buffer);
+
+                        const obj = StatusResponse.toObject(decoded, {
+                            enums: String,
+                            longs: String,
+                            bytes: String,
+                            defaults: true
+                        });
+
+                        console.dir(obj, {
+                            depth: null
+                        });
                     }
-                    if(item.stream) {
+                    else if(item.id === "moby.image.id") {
+                        console.dir(item, {
+                            depth: null
+                        });
+                    }
+                    else if(item.stream) {
                         process.stdout.write(`${item.stream}`);
-                        line += item.stream.split("\n").length -1;
+                        line += item.stream.split("\n").length - 1;
                     }
                     else if(item.id) {
                         const {
@@ -112,7 +133,7 @@ export class ModemService extends CoreModemService {
                             status,
                             processDetail: {
                                 current,
-                                total,
+                                total
                             } = {}
                         } = item;
 

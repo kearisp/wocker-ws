@@ -901,22 +901,6 @@ export class ProjectController {
         await this.dockerService.attach(project.containerName);
     }
 
-    @Command("exec [...command]")
-    public async exec(
-        @Param("command")
-        command?: string[],
-        @Option("name", {
-            type: "string",
-            alias: "n",
-            description: "The name of the project"
-        })
-        name?: string
-    ): Promise<void> {
-        const project = this.projectService.get(name);
-
-        await this.dockerService.exec(project.containerName, command, true);
-    }
-
     // noinspection BadExpressionStatementJS
     @Command("run <script> [...args]")
     public async run(
