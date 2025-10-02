@@ -8,7 +8,6 @@ import {
     DnsModule,
     ProjectModule, ProjectService, ProjectRepository,
     DockerModule, DockerService, ContainerService, ImageService,
-    NpmModule,
     PluginModule,
     PresetModule, PresetRepository, PresetService,
     ProxyModule, ProxyService, CertService,
@@ -21,7 +20,6 @@ import {
     imports: [
         CoreModule,
         DnsModule.register(),
-        NpmModule,
         PluginModule.register(),
         ProjectModule,
         PresetModule,

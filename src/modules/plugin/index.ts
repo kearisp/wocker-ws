@@ -8,7 +8,7 @@ import {
     PLUGIN_DIR_KEY
 } from "@wocker/core";
 import {CoreModule} from "../core";
-import {NpmModule} from "../npm";
+import {PackageManagerModule} from "../package-manager";
 import {PluginController} from "./controllers/PluginController";
 import {PluginService} from "./services/PluginService";
 
@@ -16,7 +16,7 @@ import {PluginService} from "./services/PluginService";
 @Module({
     imports: [
         CoreModule,
-        NpmModule
+        PackageManagerModule
     ],
     controllers: [PluginController],
     providers: [PluginService]
@@ -54,12 +54,13 @@ export class PluginModule {
                         });
                     }
                     catch(err) {
-                        logService.error(err.message);
+                        logService.error(err.message, {
+                            pluginName: pluginData.name,
+                            pluginEnv: pluginData.env
+                        });
 
                         appConfigService.removePlugin(pluginData.name);
                         appConfigService.save();
-
-                        throw err;
                     }
                 }
 

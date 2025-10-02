@@ -14,7 +14,7 @@
         "devops"
     ],
     "bin": {
-        "ws": "./bin/ws.js"
+        "ws": "./lib/main.js"
     },
     "homepage": "https://kearisp.github.io/wocker",
     "repository": {
@@ -28,7 +28,8 @@
         "prepublishOnly": "npm run build",
         "start": "npm run watch",
         "build": "tsc --project tsconfig.build.json",
-        "watch": "tsc -w --project tsconfig.build.json",
+        "postbuild": "chmod +x ./lib/main.js",
+        "watch": "npm run build && tsc -w --project tsconfig.build.json",
         "test": "jest --colors",
         "test-watch": "jest --colors --watchAll",
         "make-coverage-badge": "make-coverage-badge"
@@ -61,7 +62,7 @@
         "memfs": "^4.17.0",
         "ts-jest": "^29.4.4",
         "ts-node": "^10.9.2",
-        "typescript": "^5.9.2",
+        "typescript": "^5.9.3",
         "unionfs": "^4.5.4"
     }
 }

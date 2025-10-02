@@ -10,10 +10,15 @@ const exec = async (command: string, options?: Options): Promise<string> => {
     } as any);
 
     return new Promise((resolve, reject) => {
-        let data = "";
+        let data = "",
+            errData = "";
 
         worker.stdout.on("data", (chunk) => {
             data += chunk.toString();
+        });
+
+        worker.stderr.on("data", (chunk) => {
+            errData += chunk.toString();
         });
 
         worker.on("exit", (code) => {

@@ -6,16 +6,16 @@ import {
 } from "@wocker/core";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
-import {NpmService} from "../../npm";
-import {Http, Plugin} from "../../../makes";
-import {exec, spawn} from "../../../utils";
+import {PackageManager, RegistryService} from "../../package-manager";
+import {Plugin} from "../../../makes";
 
 
 @Injectable()
 export class PluginService {
     public constructor(
         protected readonly appConfigService: AppConfigService,
-        protected readonly npmService: NpmService,
+        protected readonly pm: PackageManager,
+        protected readonly registryService: RegistryService,
         protected readonly logService: LogService,
         protected readonly cli: Cli
     ) {}
@@ -40,6 +40,7 @@ export class PluginService {
     public async checkPlugin(pluginName: string): Promise<boolean> {
         try {
             await this.import(pluginName);
+
             return true;
         }
         catch(err) {
@@ -61,28 +62,17 @@ export class PluginService {
         const fullName = `${prefix}${name}${suffix}`;
 
         try {
-            if(await this.checkPlugin(fullName)) {
-                this.appConfigService.addPlugin(fullName);
-                this.appConfigService.save();
+            if(!await this.checkPlugin(fullName)) {
+                const packageInfo = await this.registryService.getPackageInfo(fullName),
+                      env = packageInfo["dist-tags"].beta && beta ? "beta" : "latest";
 
-                console.info(`Plugin ${fullName} activated`);
-
-                return;
+                await this.pm.install(fullName, env);
             }
 
-            const packageInfo = await this.npmService.getPackageInfo(fullName);
+            this.appConfigService.addPlugin(fullName);
+            this.appConfigService.save();
 
-            const env = packageInfo["dist-tags"].beta && beta ? "beta" : "latest";
-            await this.npmService.install(fullName, env);
-
-            if(await this.checkPlugin(fullName)) {
-                this.appConfigService.addPlugin(fullName, env);
-                this.appConfigService.save();
-
-                console.info(`Plugin ${fullName}@${env} activated`);
-
-                return;
-            }
+            console.info(`Plugin ${fullName} activated`);
         }
         catch(err) {
             this.logService.error(err.message);
@@ -98,6 +88,10 @@ export class PluginService {
 
         const fullName = `${prefix}${name}${suffix}`;
 
+        if(await this.checkPlugin(fullName)) {
+            await this.pm.uninstall(fullName);
+        }
+
         this.appConfigService.removePlugin(fullName);
         this.appConfigService.save();
 
@@ -110,8 +104,9 @@ export class PluginService {
         return new Plugin(type);
     }
 
-    public async update(name?: string): Promise<void> {
+    public async update(): Promise<void> {
         if(this.appConfigService.plugins.length === 0) {
+            console.info("No plugins installed");
             return;
         }
 
@@ -119,27 +114,26 @@ export class PluginService {
             console.info(`Checking ${plugin.name}...`);
 
             try {
-                const current = await this.getCurrentVersion(plugin.name);
-
-                const res = await Http.get("https://registry.npmjs.org")
-                    .send(plugin.name);
-
-                if(res.status !== 200) {
-                    continue;
-                }
+                const current = await this.getCurrentVersion(plugin.name),
+                      info = await this.registryService.getPackageInfo(plugin.name);
 
                 const {
                     "dist-tags": {
-                        latest
+                        latest,
+                        beta
                     }
-                } = res.data;
+                } = info;
 
-                this.logService.info(plugin.name, current, latest);
+                const newVersion = plugin.env === "latest"
+                    ? latest
+                    : beta || latest;
 
-                if(!current || current < latest) {
+                this.logService.info(plugin.name, current, newVersion);
+
+                if(!current || current !== latest) {
                     console.log(`Updating ${plugin.name}...`);
 
-                    await spawn("npm", ["i", "-g", plugin.name]);
+                    await this.pm.install(plugin.name, newVersion);
                 }
             }
             catch(err) {
@@ -152,15 +146,12 @@ export class PluginService {
 
     protected async getCurrentVersion(name: string): Promise<string|null> {
         try {
-            const {
-                dependencies: {
-                    [name]: {
-                        version
-                    }
-                }
-            } = JSON.parse(await exec(`npm ls --json -g ${name}`));
+            const packages = await this.pm.getPackages(),
+                  package1  = packages.find((p) => p.name === name);
 
-            return version;
+            if(package1) {
+                return package1.version;
+            }
         }
         catch(err) {
             this.logService.error(`Failed to get current version of ${name}`);

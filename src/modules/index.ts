@@ -2,7 +2,7 @@ export * from "./core";
 export * from "./dns";
 export * from "./docker";
 export * from "./keystore";
-export * from "./npm";
+export * from "./package-manager";
 export * from "./plugin";
 export * from "./preset";
 export * from "./project";
