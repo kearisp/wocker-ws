@@ -85,6 +85,7 @@ export class ProjectService extends CoreProjectService {
                     container = await this.dockerService.createContainer({
                         name: project.containerName,
                         image: project.imageName,
+                        cmd: project.cmd,
                         env: {
                             ...this.appConfigService.config.env || {},
                             ...project.env || {}

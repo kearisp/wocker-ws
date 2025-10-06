@@ -292,6 +292,7 @@ export class ProjectController {
     }
 
     @Command("build-args")
+    @Description("Show build args of the project")
     public async buildArgsList(
         @Option("name", "n")
         @Description("The name of the project")
@@ -368,6 +369,7 @@ export class ProjectController {
     }
 
     @Command("build-args:set [...buildArgs]")
+    @Description("Set build args for the project")
     public async buildArgsSet(
         @Param("buildArgs")
         args: string[],
@@ -401,6 +403,7 @@ export class ProjectController {
     }
 
     @Command("build-args:unset [...buildArgs]")
+    @Description("Remove build args for the project")
     public async buildArgsUnset(
         @Param("buildArgs")
         args: string[],

@@ -24,6 +24,7 @@ import {PresetService} from "./services/PresetService";
     ]
 })
 export class PresetModule {}
+
 export {
     PresetRepository,
     PresetService
