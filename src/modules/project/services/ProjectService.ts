@@ -13,10 +13,17 @@ import {
     ProjectService as CoreProjectService,
     ProjectRepositorySearchParams as SearchParams
 } from "@wocker/core";
+import {Cli} from "@kearisp/cli";
 import {ComposeService, DockerService} from "../../docker";
 import {PresetRepository, PresetService} from "../../preset";
 import {ProjectRepository} from "../repositories/ProjectRepository";
 
+
+class PublicCli extends Cli {
+    public parseCommand(command: string, index: number): string[] {
+        return super.parseCommand(command, index);
+    }
+}
 
 @Injectable("PROJECT_SERVICE")
 export class ProjectService extends CoreProjectService {
@@ -267,12 +274,18 @@ export class ProjectService extends CoreProjectService {
                     throw new Error("The project is not started");
                 }
 
+                const cli = new PublicCli();
+
+                const cmd = cli.parseCommand(`command ${project.scripts[script]}`, 0);
+
+                this.logService.debug(cmd);
+
                 const exec = await container.exec({
                     AttachStdin: true,
                     AttachStdout: true,
                     AttachStderr: true,
                     Tty: process.stdin.isTTY,
-                    Cmd: ["bash", "-i", "-c", [project.scripts[script], ...args || []].join(" ")]
+                    Cmd: [...cmd, ...args || []]
                 });
 
                 const stream = await exec.start({
