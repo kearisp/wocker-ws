@@ -12,12 +12,15 @@ import {
 } from "@wocker/core";
 import {promptSelect, promptInput, promptConfirm, normalizeOptions} from "@wocker/utils";
 import md5 from "md5";
+import semver from "semver";
 import {PresetRepository} from "../repositories/PresetRepository";
 import {GithubClient} from "../../../makes/GithubClient";
 
 
 @Injectable()
 export class PresetService {
+    protected range = "1.x.x";
+
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly fs: AppFileSystemService,
@@ -273,7 +276,7 @@ export class PresetService {
         this.appConfigService.save();
     }
 
-    public async install(repository: string, version?: string): Promise<void> {
+    public async install(repository: string, version: string = "*"): Promise<void> {
         if(!/^[\w0-9_-]\/[\w0-9_-]$/.test(repository)) {
             repository = `kearisp/wocker-${repository}-preset`;
         }
@@ -283,28 +286,36 @@ export class PresetService {
         const github = new GithubClient(owner, name);
 
         const info = await github.getInfo(),
-              // tags = await github.getTags(),
+              tags = await github.getTags(),
+              versionTags = tags.filter((tag) => semver.satisfies(tag.name, this.range)),
+              satisfyingVersion = semver.maxSatisfying(versionTags.map((tag) => tag.name), version),
+              tag = versionTags.find((tag) => tag.name === satisfyingVersion),
               config = await github.getFile(info.default_branch, "config.json");
 
-        // const tag = tags.reduce((tag, nextTag) => {
-        //     // return nextTag;
-        //
-        //     return tag;
-        // }, tags.shift());
+        if(!tag) {
+            console.info(`Version "${version}" not found`);
+            return;
+        }
 
         let preset = this.presetRepository.searchOne({
             name: config.name
         });
 
-        if(preset) {
-            console.log("Preset already installed");
+        if(preset && preset.source === PRESET_SOURCE_GITHUB && preset.version === semver.parse(tag.name).version) {
+            console.info("Preset already installed");
             return;
         }
 
-        console.info("Loading...");
+        console.info(`Loading "${tag.name}"...`);
 
-        await github.downloadBranch(info.default_branch, this.fs.path(`presets/${config.name}`));
+        this.fs.rm(`presets/${config.name}`, {
+            recursive: true
+        });
+
+        await github.download(tag.zipball_url, this.fs.path(`presets/${config.name}`));
 
         this.appConfigService.registerPreset(config.name, PRESET_SOURCE_GITHUB);
+
+        console.info("Preset installed successfully");
     }
 }
