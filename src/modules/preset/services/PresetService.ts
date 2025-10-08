@@ -283,14 +283,14 @@ export class PresetService {
         const github = new GithubClient(owner, name);
 
         const info = await github.getInfo(),
-              tags = await github.getTags(),
+              // tags = await github.getTags(),
               config = await github.getFile(info.default_branch, "config.json");
 
-        const tag = tags.reduce((tag, nextTag) => {
-            // return nextTag;
-
-            return tag;
-        }, tags.shift());
+        // const tag = tags.reduce((tag, nextTag) => {
+        //     // return nextTag;
+        //
+        //     return tag;
+        // }, tags.shift());
 
         let preset = this.presetRepository.searchOne({
             name: config.name
@@ -303,8 +303,8 @@ export class PresetService {
 
         console.info("Loading...");
 
-        // await github.download(info.default_branch, this.fs.path(`presets/${config.name}`));
+        await github.downloadBranch(info.default_branch, this.fs.path(`presets/${config.name}`));
 
-        // this.appConfigService.registerPreset(config.name, PRESET_SOURCE_GITHUB);
+        this.appConfigService.registerPreset(config.name, PRESET_SOURCE_GITHUB);
     }
 }
