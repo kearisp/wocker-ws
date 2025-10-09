@@ -308,14 +308,22 @@ export class PresetService {
 
         console.info(`Loading "${tag.name}"...`);
 
-        this.fs.rm(`presets/${config.name}`, {
-            recursive: true
-        });
+        await github.download(tag.zipball_url, this.fs.path(`presets/.tmp/${config.name}`));
 
-        await github.download(tag.zipball_url, this.fs.path(`presets/${config.name}`));
+        if(this.fs.exists(`presets/${config.name}`)) {
+            this.fs.rm(`presets/${config.name}`, {
+                recursive: true
+            });
+        }
+
+        this.fs.mv(`presets/.tmp/${config.name}`, `presets/${config.name}`);
 
         this.appConfigService.registerPreset(config.name, PRESET_SOURCE_GITHUB);
 
         console.info("Preset installed successfully");
+
+        this.fs.rm("presets/.tmp", {
+            recursive: true
+        });
     }
 }

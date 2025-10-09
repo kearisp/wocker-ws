@@ -21,5 +21,3 @@ RUN if [ -n "$SSH_PASSWORD" ]; then \
         ssh-keygen -A; \
         echo "sshd: /usr/sbin/sshd -D" >> /app/Procfile; \
     fi
-
-EXPOSE 22
