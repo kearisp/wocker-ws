@@ -7,11 +7,13 @@ import {
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
 import {PackageManager, RegistryService} from "../../package-manager";
-import {Plugin} from "../../../makes";
+import {Plugin, Version, VersionRule} from "../../../makes";
 
 
 @Injectable()
 export class PluginService {
+    protected rule = "1.x.x";
+
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly pm: PackageManager,
@@ -52,7 +54,7 @@ export class PluginService {
         return false;
     }
 
-    public async install(pluginName: string, beta?: boolean): Promise<void> {
+    public async install(pluginName: string, version: string = "latest"): Promise<void> {
         const [,
             prefix = "@wocker/",
             name,
@@ -61,22 +63,36 @@ export class PluginService {
 
         const fullName = `${prefix}${name}${suffix}`;
 
-        try {
-            if(!await this.checkPlugin(fullName)) {
-                const packageInfo = await this.registryService.getPackageInfo(fullName),
-                      env = packageInfo["dist-tags"].beta && beta ? "beta" : "latest";
+        const installed = (await this.pm.getPackages()).find((p) => p.name === fullName),
+              wRule = VersionRule.parse(this.rule),
+              rule = VersionRule.parse(version === "latest" ? "x" : version || this.rule);
 
-                await this.pm.install(fullName, env);
-            }
+        const packageInfo = await this.registryService.getPackageInfo(fullName);
 
-            this.appConfigService.addPlugin(fullName);
-            this.appConfigService.save();
+        const versions = Object.keys(packageInfo.versions)
+            .filter((version) => {
+                return wRule.match(version, true) && rule.match(version, true);
+            })
+            .sort((a, b) => {
+                return Version.parse(b).compare(a);
+            });
 
-            console.info(`Plugin ${fullName} activated`);
+        const bestSatisfyingVersion =
+            versions.find((version) => rule.match(version)) ??
+            versions.find((version) => rule.match(version, true));
+
+        if(!bestSatisfyingVersion) {
+            throw new Error(`No matching version found for ${fullName}@${version}.`);
         }
-        catch(err) {
-            this.logService.error(err.message);
+
+        if((!installed || installed.version !== bestSatisfyingVersion) || !await this.checkPlugin(fullName)) {
+            await this.pm.install(fullName, bestSatisfyingVersion);
         }
+
+        this.appConfigService.addPlugin(fullName, version);
+        this.appConfigService.save();
+
+        console.info(`Plugin ${fullName} activated`);
     }
 
     public async uninstall(pluginName: string): Promise<void> {

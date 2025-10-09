@@ -5,20 +5,17 @@ import {exec} from "../../../utils";
 
 export class YarnProvider extends PackageManagerProvider {
     public async getPackages(): Promise<Package[]> {
-        const res = await exec("yarn global list --json --depth=0"),
-              text = res.replace(/}\s*\{/g, '},{'),
-              items: any[] = JSON.parse(`[${text}]`),
+        const res = await exec("yarn --cwd `yarn global dir` list --json --depth=0"),
+              three = JSON.parse(res),
               packages: Package[] = [];
 
-        for(const item of items) {
-            if(item.type === "info") {
-                const [, name, version] = /^"(.*)@(.*)".*$/.exec(item.data);
+        for(const item of three.data.trees) {
+            const [, name, version] = /^(.*)@(.*)$/.exec(item.name);
 
-                packages.push({
-                    name,
-                    version
-                });
-            }
+            packages.push({
+                name,
+                version
+            });
         }
 
         return packages;

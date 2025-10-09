@@ -27,11 +27,13 @@ export class PluginController {
     @Description("Install a plugin by specifying its name")
     public async add(
         @Param("names")
-        @Description("Name to install a plugin")
+        @Description("Names of plugins to install")
         names: string[]
     ): Promise<void> {
-        for(const name of names) {
-            await this.pluginService.install(name);
+        for(const fullName of names) {
+            const [, name, version] = /^(@?[^@/\s]+(?:\/[^@/\s]+)?)(?:@([^@\s]+))?$/.exec(fullName) || [];
+
+            await this.pluginService.install(name, version);
         }
     }
 
@@ -39,7 +41,7 @@ export class PluginController {
     @Description("Remove a plugin")
     public async remove(
         @Param("names")
-        @Description("Name to remove a plugin")
+        @Description("Names of plugins to remove")
         names: string[]
     ): Promise<void> {
         for(const name of names) {

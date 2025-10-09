@@ -7,7 +7,7 @@ type RepositoryInfo = {
     default_branch: string;
 };
 
-type Tag = {
+export type GithubTag = {
     name: string;
     zipball_url: string;
     tarball_url: string;
@@ -16,6 +16,15 @@ type Tag = {
         url: string;
     };
     node_id: string;
+};
+
+export type GithubBranch = {
+    name: string;
+    commit: {
+        sha: string;
+        url: string;
+    };
+    protected: boolean;
 };
 
 export class GithubClient {
@@ -42,23 +51,32 @@ export class GithubClient {
         return response.data;
     }
 
-    public async getTags(): Promise<Tag[]> {
-        const response = await this.axios.get<Tag[]>(`https://api.github.com/repos/${this.owner}/${this.repository}/tags`);
+    public async getBranches(): Promise<GithubBranch[]>{
+        const response = await this.axios
+            .get<GithubBranch[]>(`https://api.github.com/repos/${this.owner}/${this.repository}/branches`);
 
         return response.data;
     }
 
-    public async getFile(branch: string, path: string): Promise<any> {
-        const response = await this.axios.get(`https://raw.githubusercontent.com/${this.owner}/${this.repository}/${branch}/${path}`, {
-            headers: {
-                "Accept": "application/vnd.github+json"
-            }
-        });
+    public async getTags(): Promise<GithubTag[]> {
+        const response = await this.axios
+            .get<GithubTag[]>(`https://api.github.com/repos/${this.owner}/${this.repository}/tags`);
 
         return response.data;
     }
 
-    public async download(url: string, dirPath: string): Promise<void> {
+    public async getFile(ref: string, path: string): Promise<any> {
+        const res = await this.axios
+            .get(`https://raw.githubusercontent.com/${this.owner}/${this.repository}/${ref}/${path}`, {
+                headers: {
+                    "Accept": "application/vnd.github+json"
+                }
+            });
+
+        return res.data;
+    }
+
+    public async downloadZipByUrl(url: string, dirPath: string): Promise<void> {
         const res = await this.axios.get(url, {
             responseType: "stream"
         });
@@ -95,9 +113,9 @@ export class GithubClient {
         });
     }
 
-    public async downloadBranch(branch: string, dirPath: string): Promise<void> {
-        return this.download(
-            `https://github.com/${this.owner}/${this.repository}/archive/refs/heads/${branch}.zip`,
+    public async download(branch: string, dirPath: string): Promise<void> {
+        return this.downloadZipByUrl(
+            `https://api.github.com/repos/${this.owner}/${this.repository}/zipball/${branch}`,
             dirPath
         );
     }

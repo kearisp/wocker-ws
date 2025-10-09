@@ -10,8 +10,8 @@ runs:
             CORE_VERSION=$(npm pkg get dependencies.@wocker/core | sed -e 's/^"//' -e 's/"$//')
             CORE_BETA_VERSION=$(npm view @wocker/core@beta version 2> /dev/null || echo "")
             if [[ "$CORE_BETA_VERSION" == "$CORE_VERSION"* ]]; then
-                npm pkg set "dependencies.@wocker/core=$CORE_BETA_VERSION"
-                npm pkg set "overrides.@wocker/testing.@wocker/core=$CORE_BETA_VERSION"
+                npm pkg set "dependencies.@wocker/core=^$CORE_BETA_VERSION"
+                npm pkg set "overrides.@wocker/testing.@wocker/core=^$CORE_BETA_VERSION"
             fi
 
       - name: Setup version

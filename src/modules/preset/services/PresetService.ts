@@ -12,9 +12,9 @@ import {
 } from "@wocker/core";
 import {promptSelect, promptInput, promptConfirm, normalizeOptions} from "@wocker/utils";
 import md5 from "md5";
-import semver from "semver";
 import {PresetRepository} from "../repositories/PresetRepository";
-import {GithubClient} from "../../../makes/GithubClient";
+import {Version, VersionRule} from "../../../makes";
+import {GithubBranch, GithubClient, GithubTag} from "../../../makes/GithubClient";
 
 
 @Injectable()
@@ -276,54 +276,101 @@ export class PresetService {
         this.appConfigService.save();
     }
 
-    public async install(repository: string, version: string = "*"): Promise<void> {
-        if(!/^[\w0-9_-]\/[\w0-9_-]$/.test(repository)) {
+    public async install(repository: string, version?: string): Promise<void> {
+        if(!/^[\w-]+\/[\w-]+$/.test(repository)) {
             repository = `kearisp/wocker-${repository}-preset`;
         }
 
         const [owner, name] = repository.split("/");
 
-        const github = new GithubClient(owner, name);
+        let satisfyingTag: GithubTag;
+        let satisfyingBranch: GithubBranch;
 
-        const info = await github.getInfo(),
-              tags = await github.getTags(),
-              versionTags = tags.filter((tag) => semver.satisfies(tag.name, this.range)),
-              satisfyingVersion = semver.maxSatisfying(versionTags.map((tag) => tag.name), version),
-              tag = versionTags.find((tag) => tag.name === satisfyingVersion),
-              config = await github.getFile(info.default_branch, "config.json");
+        const github = new GithubClient(owner, name),
+              wRule = VersionRule.parse(this.range),
+              rule = VersionRule.parse(["latest", "beta"].includes(version) ? "x" : version ?? this.range);
 
-        if(!tag) {
-            console.info(`Version "${version}" not found`);
-            return;
+        if(version !== "beta") {
+            satisfyingTag = (await github.getTags())
+                .filter((tag) => {
+                    if(!Version.valid(tag.name)) {
+                        return false;
+                    }
+
+                    return wRule.match(tag.name) || rule.match(tag.name);
+                })
+                .reduce((tag: GithubTag | null, nextTag: GithubTag) => {
+                    if(!tag) {
+                        return nextTag;
+                    }
+
+                    return Version.parse(tag.name).compare(nextTag.name) < 0 ? nextTag : tag;
+                }, null);
         }
 
-        let preset = this.presetRepository.searchOne({
-            name: config.name
-        });
+        if(!satisfyingTag) {
+            satisfyingBranch = (await github.getBranches())
+                .filter((branch) => {
+                    if(!Version.valid(branch.name)) {
+                        return false;
+                    }
 
-        if(preset && preset.source === PRESET_SOURCE_GITHUB && preset.version === semver.parse(tag.name).version) {
-            console.info("Preset already installed");
-            return;
+                    return wRule.match(branch.name) || rule.match(branch.name);
+                })
+                .reduce((branch: GithubBranch | null, nextBranch) => {
+                    if(!branch) {
+                        return nextBranch;
+                    }
+
+                    return Version.parse(branch.name).compare(nextBranch.name) < 0 ? nextBranch : branch;
+                }, null);
         }
 
-        console.info(`Loading "${tag.name}"...`);
+        if(!satisfyingTag && !satisfyingBranch) {
+            throw new Error(`Version "${version}" not found`);
+        }
 
-        await github.download(tag.zipball_url, this.fs.path(`presets/.tmp/${config.name}`));
+        try {
+            const ref = satisfyingTag ? satisfyingTag.name : satisfyingBranch.name,
+                  config = await github.getFile(ref, "config.json");
 
-        if(this.fs.exists(`presets/${config.name}`)) {
-            this.fs.rm(`presets/${config.name}`, {
-                recursive: true
+            console.info(`Loading "${ref}"...`);
+
+            let preset = this.presetRepository.searchOne({
+                name: config.name
             });
+
+            if(preset && satisfyingTag && preset.source === PRESET_SOURCE_GITHUB && Version.parse(ref).compare(preset.version) === 0) {
+                console.info("Preset already installed");
+                return;
+            }
+
+            if(this.fs.exists(`presets/.tmp/${config.name}`)) {
+                this.fs.rm(`presets/.tmp/${config.name}`, {
+                    recursive: true
+                });
+            }
+
+            await github.download(ref, this.fs.path(`presets/.tmp/${config.name}`));
+
+            if(this.fs.exists(`presets/${config.name}`)) {
+                this.fs.rm(`presets/${config.name}`, {
+                    recursive: true
+                });
+            }
+
+            this.fs.mv(`presets/.tmp/${config.name}`, `presets/${config.name}`);
+
+            this.appConfigService.registerPreset(config.name, PRESET_SOURCE_GITHUB);
+
+            console.info("Preset installed successfully");
         }
-
-        this.fs.mv(`presets/.tmp/${config.name}`, `presets/${config.name}`);
-
-        this.appConfigService.registerPreset(config.name, PRESET_SOURCE_GITHUB);
-
-        console.info("Preset installed successfully");
-
-        this.fs.rm("presets/.tmp", {
-            recursive: true
-        });
+        finally {
+            if(this.fs.exists("presets/.tmp")) {
+                this.fs.rm("presets/.tmp", {
+                    recursive: true
+                });
+            }
+        }
     }
 }
