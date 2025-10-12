@@ -130,29 +130,11 @@ export class PluginService {
             console.info(`Checking ${plugin.name}...`);
 
             try {
-                const current = await this.getCurrentVersion(plugin.name),
-                      info = await this.registryService.getPackageInfo(plugin.name);
-
-                const {
-                    "dist-tags": {
-                        latest,
-                        beta
-                    }
-                } = info;
-
-                const newVersion = plugin.env === "latest"
-                    ? latest
-                    : beta || latest;
-
-                this.logService.info(plugin.name, current, newVersion);
-
-                if(!current || current !== latest) {
-                    console.log(`Updating ${plugin.name}...`);
-
-                    await this.pm.install(plugin.name, newVersion);
-                }
+                await this.install(plugin.name, plugin.env);
             }
             catch(err) {
+                console.info(err.message);
+
                 this.logService.error(err.message);
             }
         }
