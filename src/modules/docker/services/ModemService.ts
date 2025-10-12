@@ -13,7 +13,6 @@ import {ProtoService} from "./ProtoService";
 export class ModemService extends CoreModemService {
     protected _modem?: Modem;
     protected _docker?: Docker;
-    protected record?: boolean = true;
 
     public constructor(
         protected readonly protoService: ProtoService,

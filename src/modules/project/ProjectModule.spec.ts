@@ -1,11 +1,13 @@
 import {describe, expect, it, beforeEach, afterEach, jest} from "@jest/globals";
 import {vol} from "memfs";
 import {
+    ProcessService,
     Injectable,
-    PROJECT_TYPE_IMAGE
+    PROJECT_TYPE_IMAGE,
+    WOCKER_DATA_DIR_KEY,
+    FILE_SYSTEM_DRIVER_KEY
 } from "@wocker/core";
 import {Test, ModemMock, Fixtures} from "@wocker/testing";
-import {CoreModule} from "../core";
 import {PresetModule} from "../preset";
 import {KeystoreModule} from "../keystore";
 import {DockerModule, DockerService, ImageService, ModemService} from "../docker";
@@ -18,6 +20,10 @@ describe("ProjectModule", (): void => {
 
     beforeEach((): void => {
         vol.reset();
+
+        vol.fromJSON({
+            "test.txt": ""
+        }, TEST_IMAGE_PROJECT_DIR);
 
         vol.fromJSON({
             "projects/test/config.json": JSON.stringify({
@@ -65,15 +71,15 @@ describe("ProjectModule", (): void => {
         return Test
             .createTestingModule({
                 imports: [
-                    CoreModule,
                     PresetModule,
                     ProjectModule,
                     KeystoreModule,
                     DockerModule
                 ]
             })
-            .overrideProvider(ModemService)
-            .useProvider(TestModemService)
+            .overrideProvider(WOCKER_DATA_DIR_KEY).useValue(WOCKER_DATA_DIR)
+            .overrideProvider(FILE_SYSTEM_DRIVER_KEY).useValue(vol)
+            .overrideProvider(ModemService).useProvider(TestModemService)
             .build();
     };
 
@@ -81,9 +87,13 @@ describe("ProjectModule", (): void => {
         const context = await getContext();
 
         const imageService = context.get(ImageService),
+              processService = context.get(ProcessService),
               dockerService = context.get<DockerService>(DockerService);
 
-        const writeSpy = jest.spyOn(process.stdout, "write").mockImplementation(() => true);
+        processService.chdir(TEST_IMAGE_PROJECT_DIR);
+
+        const writeSpy = jest.spyOn(process.stdout, "write")
+            .mockImplementation(() => true);
 
         await context.run(["/bin/node", "/bin/ws", "start"]);
 
@@ -97,6 +107,7 @@ describe("ProjectModule", (): void => {
         await context.run(["/bin/node", "/bin/ws", "stop"]);
 
         // container = await dockerService.getContainer("test.workspace");
+        //
         // expect(container).toBeNull();
     });
 });

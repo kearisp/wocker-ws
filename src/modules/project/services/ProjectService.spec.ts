@@ -3,10 +3,12 @@ import {vol} from "memfs";
 import {
     ApplicationContext,
     ProcessService,
+    FILE_SYSTEM_DRIVER_KEY,
+    WOCKER_DATA_DIR_KEY,
     PROJECT_TYPE_IMAGE,
     PROJECT_TYPE_DOCKERFILE
 } from "@wocker/core";
-import {Test, MockProcessService} from "@wocker/testing";
+import {Test} from "@wocker/testing";
 import {KeystoreModule} from "../../keystore";
 import {DockerModule} from "../../docker";
 import {PresetService, PresetRepository} from "../../preset";
@@ -94,7 +96,8 @@ describe("ProjectService", (): void => {
                     PresetRepository
                 ]
             })
-            .overrideProvider(ProcessService).useProvider(MockProcessService)
+            .overrideProvider(FILE_SYSTEM_DRIVER_KEY).useValue(vol)
+            .overrideProvider(WOCKER_DATA_DIR_KEY).useValue(WOCKER_DATA_DIR)
             .build();
     });
 

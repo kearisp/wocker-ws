@@ -1,23 +1,22 @@
-import {describe, it, jest, expect, beforeEach, afterEach} from "@jest/globals";
-import {SpiedFunction} from "jest-mock";
+import {describe, it, jest, expect, beforeAll, afterAll, beforeEach} from "@jest/globals";
 import {
     PRESET_SOURCE_EXTERNAL,
     AppConfigService,
-    ApplicationContext
+    ApplicationContext,
+    FILE_SYSTEM_DRIVER_KEY,
+    WOCKER_DATA_DIR_KEY,
+    ProcessService
 } from "@wocker/core";
 import {Test} from "@wocker/testing";
 import {vol} from "memfs";
+import {WOCKER_DATA_DIR} from "../../../env";
 
 
 describe("PresetController", (): void => {
     let context: ApplicationContext,
-        promptMap: any = {},
-        cwdMock: SpiedFunction;
+        promptMap: any = {};
 
-    beforeEach(async (): Promise<void> => {
-        cwdMock = jest.spyOn(process, "cwd");
-        cwdMock.mockReturnValue("/home/wocker-test/preset");
-
+    beforeAll((): void => {
         const prompt = ({message}) => {
             return promptMap[message];
         };
@@ -32,6 +31,9 @@ describe("PresetController", (): void => {
                 promptConfirm: prompt
             };
         });
+    });
+
+    beforeEach(async (): Promise<void> => {
 
         const {CoreModule} = await import("../../core");
         const {KeystoreModule} = await import("../../keystore");
@@ -53,12 +55,20 @@ describe("PresetController", (): void => {
                     PresetController
                 ]
             })
+            .overrideProvider(FILE_SYSTEM_DRIVER_KEY).useValue(vol)
+            .overrideProvider(WOCKER_DATA_DIR_KEY).useValue(WOCKER_DATA_DIR)
             .build();
+
+        const processService = context.get(ProcessService);
+
+        vol.mkdirSync("/home/wocker-test/preset", {
+            recursive: true
+        });
+
+        processService.chdir("/home/wocker-test/preset");
     });
 
-    afterEach(() => {
-        cwdMock.mockReset();
-
+    afterAll((): void => {
         jest.unmock("@wocker/utils");
     });
 

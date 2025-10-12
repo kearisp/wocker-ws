@@ -63,7 +63,7 @@ export class PluginService {
 
         const fullName = `${prefix}${name}${suffix}`;
 
-        const installed = (await this.pm.getPackages()).find((p) => p.name === fullName),
+        const currentVersion = await this.getCurrentVersion(fullName),
               wRule = VersionRule.parse(this.rule),
               rule = VersionRule.parse(version === "latest" ? "x" : version || this.rule);
 
@@ -85,7 +85,7 @@ export class PluginService {
             throw new Error(`No matching version found for ${fullName}@${version}.`);
         }
 
-        if((!installed || installed.version !== bestSatisfyingVersion) || !await this.checkPlugin(fullName)) {
+        if((!currentVersion || currentVersion !== bestSatisfyingVersion) || !await this.checkPlugin(fullName)) {
             await this.pm.install(fullName, bestSatisfyingVersion);
         }
 
@@ -152,7 +152,7 @@ export class PluginService {
             }
         }
         catch(err) {
-            this.logService.error(`Failed to get current version of ${name}`);
+            this.logService.error(`Failed to get current version of "${name}"`);
         }
 
         return null;
