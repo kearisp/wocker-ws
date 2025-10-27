@@ -3,8 +3,8 @@ import {
     LogService,
     DockerServiceParams as Params
 } from "@wocker/core";
-import type Docker from "dockerode";
 import {Duplex} from "stream";
+import type Docker from "dockerode";
 import type {Container} from "dockerode";
 import {ModemService} from "./ModemService";
 

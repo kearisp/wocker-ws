@@ -4,6 +4,7 @@ import {
     PRESET_SOURCE_INTERNAL,
     PRESET_SOURCE_EXTERNAL,
     PRESET_SOURCE_GITHUB,
+    FILE_SYSTEM_DRIVER_KEY,
     AppConfigService,
     LogService,
     AppService,
@@ -68,24 +69,15 @@ describe("PresetRepository", (): void => {
             })
         }, PRESETS_DIR);
 
-        return await Test.createTestingModule({
-            providers: [
-                {
-                    provide: WOCKER_DATA_DIR_KEY,
-                    useValue: WOCKER_DATA_DIR
-                },
-                {
-                    provide: WOCKER_VERSION_KEY,
-                    useValue: WOCKER_VERSION
-                },
-                AppConfigService,
-                AppService,
-                AppFileSystemService,
-                PresetRepository,
-                LogService,
-                ProcessService
-            ]
-        }).build();
+        return await Test
+            .createTestingModule({
+                providers: [
+                    PresetRepository
+                ]
+            })
+            .overrideProvider(FILE_SYSTEM_DRIVER_KEY).useValue(vol)
+            .overrideProvider(WOCKER_DATA_DIR_KEY).useValue(WOCKER_DATA_DIR)
+            .build();
     };
 
     it(`should search ${PRESET_SOURCE_INTERNAL} preset`, async () => {

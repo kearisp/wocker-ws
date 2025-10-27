@@ -1,0 +1,11 @@
+{{- $globals := dict }}
+{{- $_ := set $globals "containers" $ }}
+
+{{- range $hostname, $containers := groupByMulti $globals.containers "Env.VIRTUAL_HOST" "," }}
+{{ $hostname }}
+
+{{- range $container := $containers }}
+{{ printf "%#v" $container.Networks }}
+{{- end }}
+{{- end }}
+

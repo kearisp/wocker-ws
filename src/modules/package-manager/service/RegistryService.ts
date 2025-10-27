@@ -1,11 +1,10 @@
 import {Injectable} from "@wocker/core";
-import {Http} from "../makes";
-import {exec} from "../utils";
-import {PackageInfo} from "../types";
+import {Http} from "../../../makes";
+import {PackageInfo} from "../types/PackageInfo";
 
 
 @Injectable()
-export class NpmService {
+export class RegistryService {
     public async getPackageInfo(name: string): Promise<PackageInfo> {
         const res = await Http.get("https://registry.npmjs.org")
             .send(name);
@@ -19,11 +18,5 @@ export class NpmService {
         }
 
         return res.data;
-    }
-
-    public async install(name: string, version?: string): Promise<void> {
-        console.info(`npm install -g ${version ? `${name}@${version}` : name}`);
-
-        await exec(`npm install -g ${version ? `${name}@${version}` : name}`);
     }
 }

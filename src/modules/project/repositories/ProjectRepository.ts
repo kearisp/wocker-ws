@@ -3,50 +3,28 @@ import {
     AppConfigService,
     AppFileSystemService,
     Project,
-    ProjectProperties,
-    ProjectServiceSearchParams as SearchParams
+    ProjectRepository as CoreProjectRepository,
+    ProjectRepositorySearchParams as SearchParams
 } from "@wocker/core";
-import {KeystoreService} from "../../keystore";
 
 
 @Injectable()
-export class ProjectRepository {
+export class ProjectRepository extends CoreProjectRepository{
     public constructor(
         protected readonly appConfigService: AppConfigService,
-        protected readonly fs: AppFileSystemService,
-        protected readonly keystoreService: KeystoreService
-    ) {}
+        protected readonly fs: AppFileSystemService
+    ) {
+        super();
+    }
 
-    public getByName(name: string) {
+    public getByName(name: string): Project {
         const ref = this.appConfigService.config.getProject(name),
               config = this.fs.readJSON(`projects/${name}/config.json`);
 
-        return this.fromObject({
+        return new Project({
             ...config,
             path: ref.path
         });
-    }
-
-    public fromObject(data: Partial<ProjectProperties>): Project {
-        const _this = this;
-
-        return new class extends Project {
-            public constructor(data: ProjectProperties) {
-                super(data);
-            }
-
-            public async getSecret(key: string, defaultValue?: string) {
-                return _this.keystoreService.get(`p:${this.name}:${key}`, defaultValue);
-            }
-
-            public async setSecret(key: string, value: string) {
-                return _this.keystoreService.set(`p:${this.name}:${key}`, value);
-            }
-
-            public save(): void {
-                _this.save(this);
-            }
-        }(data as ProjectProperties);
     }
 
     public save(project: Project): void {
@@ -62,8 +40,8 @@ export class ProjectRepository {
             project.id = project.name;
         }
 
-        if(!this.fs.exists(`projects/${project.id}`)) {
-            this.fs.mkdir(`projects/${project.id}`, {
+        if(!this.fs.exists(`projects/${project.name}`)) {
+            this.fs.mkdir(`projects/${project.name}`, {
                 recursive: true
             });
         }
@@ -73,8 +51,8 @@ export class ProjectRepository {
             ...rest
         } = project.toObject();
 
-        this.appConfigService.addProject(project.id, project.name, path);
-        this.fs.writeJSON(`projects/${project.id}/config.json`, rest);
+        this.appConfigService.addProject(project.name, path);
+        this.fs.writeJSON(`projects/${project.name}/config.json`, rest);
         this.appConfigService.save();
     }
 

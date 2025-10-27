@@ -1,4 +1,4 @@
-const code = '\x1b[6n';
+const code = "\x1b[6n";
 
 
 export const getCursorPosition = async () => {

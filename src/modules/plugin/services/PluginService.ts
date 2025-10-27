@@ -6,16 +6,18 @@ import {
 } from "@wocker/core";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
-import {NpmService} from "./NpmService";
-import {Http, Plugin} from "../makes";
-import {exec, spawn} from "../utils";
+import {PackageManager, RegistryService} from "../../package-manager";
+import {Plugin, Version, VersionRule} from "../../../makes";
 
 
 @Injectable()
 export class PluginService {
+    protected rule = "1.x.x";
+
     public constructor(
         protected readonly appConfigService: AppConfigService,
-        protected readonly npmService: NpmService,
+        protected readonly pm: PackageManager,
+        protected readonly registryService: RegistryService,
         protected readonly logService: LogService,
         protected readonly cli: Cli
     ) {}
@@ -40,6 +42,7 @@ export class PluginService {
     public async checkPlugin(pluginName: string): Promise<boolean> {
         try {
             await this.import(pluginName);
+
             return true;
         }
         catch(err) {
@@ -51,7 +54,7 @@ export class PluginService {
         return false;
     }
 
-    public async install(pluginName: string, beta?: boolean): Promise<void> {
+    public async install(pluginName: string, version: string = "latest"): Promise<void> {
         const [,
             prefix = "@wocker/",
             name,
@@ -60,33 +63,36 @@ export class PluginService {
 
         const fullName = `${prefix}${name}${suffix}`;
 
-        try {
-            if(await this.checkPlugin(fullName)) {
-                this.appConfigService.addPlugin(fullName);
-                this.appConfigService.save();
+        const currentVersion = await this.getCurrentVersion(fullName),
+              wRule = VersionRule.parse(this.rule),
+              rule = VersionRule.parse(version === "latest" ? "x" : version || this.rule);
 
-                console.info(`Plugin ${fullName} activated`);
+        const packageInfo = await this.registryService.getPackageInfo(fullName);
 
-                return;
-            }
+        const versions = Object.keys(packageInfo.versions)
+            .filter((version) => {
+                return wRule.match(version, true) && rule.match(version, true);
+            })
+            .sort((a, b) => {
+                return Version.parse(b).compare(a);
+            });
 
-            const packageInfo = await this.npmService.getPackageInfo(fullName);
+        const bestSatisfyingVersion =
+            versions.find((version) => rule.match(version)) ??
+            versions.find((version) => rule.match(version, true));
 
-            const env = packageInfo["dist-tags"].beta && beta ? "beta" : "latest";
-            await this.npmService.install(fullName, env);
-
-            if(await this.checkPlugin(fullName)) {
-                this.appConfigService.addPlugin(fullName, env);
-                this.appConfigService.save();
-
-                console.info(`Plugin ${fullName}@${env} activated`);
-
-                return;
-            }
+        if(!bestSatisfyingVersion) {
+            throw new Error(`No matching version found for ${fullName}@${version}.`);
         }
-        catch(err) {
-            this.logService.error(err.message);
+
+        if((!currentVersion || currentVersion !== bestSatisfyingVersion) || !await this.checkPlugin(fullName)) {
+            await this.pm.install(fullName, bestSatisfyingVersion);
         }
+
+        this.appConfigService.addPlugin(fullName, version);
+        this.appConfigService.save();
+
+        console.info(`Plugin ${fullName} activated`);
     }
 
     public async uninstall(pluginName: string): Promise<void> {
@@ -97,6 +103,10 @@ export class PluginService {
         ] = /^(@wocker\/)?(\w+)(-plugin)?$/.exec(pluginName) || [];
 
         const fullName = `${prefix}${name}${suffix}`;
+
+        if(await this.checkPlugin(fullName)) {
+            await this.pm.uninstall(fullName);
+        }
 
         this.appConfigService.removePlugin(fullName);
         this.appConfigService.save();
@@ -112,6 +122,7 @@ export class PluginService {
 
     public async update(): Promise<void> {
         if(this.appConfigService.plugins.length === 0) {
+            console.info("No plugins installed");
             return;
         }
 
@@ -119,30 +130,11 @@ export class PluginService {
             console.info(`Checking ${plugin.name}...`);
 
             try {
-                const current = await this.getCurrentVersion(plugin.name);
-
-                const res = await Http.get("https://registry.npmjs.org")
-                    .send(plugin.name);
-
-                if(res.status !== 200) {
-                    continue;
-                }
-
-                const {
-                    "dist-tags": {
-                        latest
-                    }
-                } = res.data;
-
-                this.logService.info(plugin.name, current, latest);
-
-                if(!current || current < latest) {
-                    console.log(`Updating ${plugin.name}...`);
-
-                    await spawn("npm", ["i", "-g", plugin.name]);
-                }
+                await this.install(plugin.name, plugin.env);
             }
             catch(err) {
+                console.info(err.message);
+
                 this.logService.error(err.message);
             }
         }
@@ -152,18 +144,15 @@ export class PluginService {
 
     protected async getCurrentVersion(name: string): Promise<string|null> {
         try {
-            const {
-                dependencies: {
-                    [name]: {
-                        version
-                    }
-                }
-            } = JSON.parse(await exec(`npm ls --json -g ${name}`));
+            const packages = await this.pm.getPackages(),
+                  package1  = packages.find((p) => p.name === name);
 
-            return version;
+            if(package1) {
+                return package1.version;
+            }
         }
         catch(err) {
-            this.logService.error(`Failed to get current version of ${name}`);
+            this.logService.error(`Failed to get current version of "${name}"`);
         }
 
         return null;

@@ -2,7 +2,6 @@ import {describe, it, expect, beforeEach, afterEach, jest} from "@jest/globals";
 import {FileSystem, ApplicationContext} from "@wocker/core";
 import {Test, Fixtures, ModemMock} from "@wocker/testing";
 import {ROOT_DIR} from "../../../env";
-import {CoreModule} from "../../core";
 import {ModemService} from "./ModemService";
 import {ImageService} from "./ImageService";
 import {ProtoService} from "./ProtoService";
@@ -31,9 +30,6 @@ describe("ImageService", (): void => {
 
         context = await Test
             .createTestingModule({
-                imports: [
-                    CoreModule
-                ],
                 providers: [
                     ImageService,
                     ModemService,

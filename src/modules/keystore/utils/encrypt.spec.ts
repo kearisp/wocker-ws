@@ -3,8 +3,8 @@ import {encrypt} from "./encrypt";
 import crypto from "crypto";
 
 
-describe("encrypt", () => {
-    it("should encrypt a string value", () => {
+describe("encrypt", (): void => {
+    it("should encrypt a string value", (): void => {
         const encryptedKey = crypto.randomBytes(32); // 256-bit key
         const value = "test value";
 
@@ -15,7 +15,7 @@ describe("encrypt", () => {
         expect(encryptedValue.length).toBeGreaterThan(0);
     });
 
-    it("should return different encrypted values for the same input due to random IV", () => {
+    it("should return different encrypted values for the same input due to random IV", (): void => {
         const encryptedKey = crypto.randomBytes(32);
         const value = "same value";
 
@@ -25,28 +25,26 @@ describe("encrypt", () => {
         expect(encryptedValue1).not.toEqual(encryptedValue2);
     });
 
-    it("should return base64 encoded string", () => {
+    it("should return base64 encoded string", (): void => {
         const encryptedKey = crypto.randomBytes(32);
         const value = "test value";
 
         const encryptedValue = encrypt(encryptedKey, value);
 
-        // Перевіряємо, що це дійсно base64
         expect(() => Buffer.from(encryptedValue, "base64")).not.toThrow();
     });
 
-    it("should include IV (12 bytes) and auth tag (16 bytes) in the output", () => {
+    it("should include IV (12 bytes) and auth tag (16 bytes) in the output", (): void => {
         const encryptedKey = crypto.randomBytes(32);
         const value = "test value";
 
         const encryptedValue = encrypt(encryptedKey, value);
         const encryptedBuffer = Buffer.from(encryptedValue, "base64");
 
-        // Мінімальна довжина: IV (12) + auth tag (16) + хоча б 1 байт даних
         expect(encryptedBuffer.length).toBeGreaterThanOrEqual(12 + 16 + 1);
     });
 
-    it("should handle empty string", () => {
+    it("should handle empty string", (): void => {
         const encryptedKey = crypto.randomBytes(32);
         const value = "";
 
@@ -57,7 +55,7 @@ describe("encrypt", () => {
         expect(encryptedValue.length).toBeGreaterThan(0);
     });
 
-    it("should handle UTF-8 special characters", () => {
+    it("should handle UTF-8 special characters", (): void => {
         const encryptedKey = crypto.randomBytes(32);
         const value = "Спеціальні символи і емодзі 🔒 🔑";
 
@@ -67,8 +65,8 @@ describe("encrypt", () => {
         }).not.toThrow();
     });
 
-    it("should throw error with invalid key length", () => {
-        const invalidKey = crypto.randomBytes(24); // AES-256 потребує 32-байтовий ключ
+    it("should throw error with invalid key length", (): void => {
+        const invalidKey = crypto.randomBytes(24);
         const value = "test value";
 
         expect(() => {
@@ -76,7 +74,7 @@ describe("encrypt", () => {
         }).toThrow();
     });
 
-    it("should handle long values", () => {
+    it("should handle long values", (): void => {
         const encryptedKey = crypto.randomBytes(32);
         const longValue = "a".repeat(10000);
 
@@ -86,8 +84,7 @@ describe("encrypt", () => {
         }).not.toThrow();
     });
 
-    it("should encrypt with AES-256-GCM algorithm", () => {
-        // Мокаємо crypto.createCipheriv для перевірки параметрів
+    it("should encrypt with AES-256-GCM algorithm", (): void => {
         const mockCreateCipheriv = jest.spyOn(crypto, "createCipheriv");
         const encryptedKey = crypto.randomBytes(32);
         const value = "test value";
@@ -103,15 +100,16 @@ describe("encrypt", () => {
         mockCreateCipheriv.mockRestore();
     });
 
-    it("should use random IV for each encryption", () => {
-        // Мокаємо crypto.randomBytes для перевірки виклику
-        const mockRandomBytes = jest.spyOn(crypto, "randomBytes");
+    it("should use random IV for each encryption", (): void => {
         const encryptedKey = crypto.randomBytes(32);
         const value = "test value";
 
+        const mockRandomBytes = jest.spyOn(crypto, "randomBytes");
+
         encrypt(encryptedKey, value);
 
-        expect(mockRandomBytes).toHaveBeenCalledWith(12); // Перевіряємо, що IV має 12 байтів
+        // @ts-ignore
+        expect(mockRandomBytes).toHaveBeenCalledWith(12);
 
         mockRandomBytes.mockRestore();
     });

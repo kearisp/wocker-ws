@@ -1,7 +1,6 @@
 import {
     Controller,
     Command,
-    Option,
     Param,
     Completion,
     Description,
@@ -24,38 +23,39 @@ export class PluginController {
         return this.pluginService.getPluginsTable();
     }
 
-    @Command("plugin:add <name>")
-    @Command("plugin:install <name>")
+    @Command("plugin:install <...names>")
     @Description("Install a plugin by specifying its name")
     public async add(
-        @Param("name")
-        addName: string,
-        @Option("beta", {
-            type: "boolean",
-            alias: "d",
-            description: "Use the beta version of the plugin (if a beta version exists). Defaults to the latest stable version."
-        })
-        beta?: boolean
+        @Param("names")
+        @Description("Names of plugins to install")
+        names: string[]
     ): Promise<void> {
-        await this.pluginService.install(addName, beta);
+        for(const fullName of names) {
+            const [, name, version] = /^(@?[^@/\s]+(?:\/[^@/\s]+)?)(?:@([^@\s]+))?$/.exec(fullName) || [];
+
+            await this.pluginService.install(name, version);
+        }
     }
 
-    @Command("plugin:remove <name>")
+    @Command("plugin:remove <...names>")
+    @Description("Remove a plugin")
     public async remove(
-        @Param("name")
-        removeName: string
+        @Param("names")
+        @Description("Names of plugins to remove")
+        names: string[]
     ): Promise<void> {
-        await this.pluginService.uninstall(removeName);
+        for(const name of names) {
+            await this.pluginService.uninstall(name);
+        }
     }
 
-    @Command("plugin:update [name]")
+    @Command("plugin:update")
     public async update(): Promise<void> {
         await this.pluginService.update();
     }
 
-    @Completion("name", "plugin:update [name]")
-    @Completion("name", "plugin:remove <name>")
+    @Completion("names", "plugin:remove <...names>")
     public getInstalledPlugins(): string[] {
-        return this.appConfigService.config.plugins.map(p => p.name);
+        return this.appConfigService.plugins.map(pluginRef => pluginRef.name);
     }
 }

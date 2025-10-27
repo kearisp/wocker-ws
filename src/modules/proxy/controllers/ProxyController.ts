@@ -17,8 +17,6 @@ import {ProxyService} from "../services/ProxyService";
 @Controller()
 @Description("Proxy commands")
 export class ProxyController {
-    protected containerName = "proxy.workspace";
-
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly eventService: EventService,
@@ -44,7 +42,7 @@ export class ProxyController {
         await this.start();
     }
 
-    public async onProjectStop(project: Project): Promise<void> {
+    public async onProjectStop(_project: Project): Promise<void> {
         // TODO: Stop proxy if no containers needed
     }
 

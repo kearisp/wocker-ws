@@ -89,10 +89,6 @@ export class ComposeService {
             composefile
         } = options;
 
-        const config = this.getConfig(context, composefile);
-
-        console.log(config);
-
         await compose.exec(service, args, {
             configAsString: this.getConfigAsString(context, composefile),
             callback: (chunk, streamSource) => this.processChunk(chunk, streamSource)
@@ -130,7 +126,7 @@ export class ComposeService {
         return YAML.stringify(config);
     }
 
-    protected processChunk(chunk: Buffer<ArrayBuffer>, streamSource?: "stdout" | "stderr"): void {
+    protected processChunk(chunk: Buffer<ArrayBufferLike>, streamSource?: "stdout" | "stderr"): void {
         switch(streamSource) {
             case "stdout":
                 process.stdout.write(chunk);

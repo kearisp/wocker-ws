@@ -42,7 +42,7 @@ export class CertService {
 
         await this.proxyService.start();
 
-        const container = await this.dockerService.getContainer("proxy.workspace");
+        const container = await this.dockerService.getContainer("wocker-proxy");
 
         if(!container) {
             throw new Error("Proxy not started");
