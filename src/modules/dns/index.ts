@@ -3,8 +3,8 @@ import {
     DynamicModule,
     AppConfigService
 } from "@wocker/core";
+import DockerModule from "@wocker/docker-module";
 import {CoreModule} from "../core";
-import {DockerModule} from "../docker";
 import {DnsController} from "./controllers/DnsController";
 import {DnsService} from "./services/DnsService";
 

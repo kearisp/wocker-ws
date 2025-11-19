@@ -30,7 +30,35 @@ jobs:
                 registry-url: 'https://registry.npmjs.org'
 
           - name: Setup beta version
-            uses: ./.github/actions/beta-version
+            uses: kearisp/npm-version-action@latest
+            with:
+                tag: "beta"
+
+          - name: Setup @wocker/core beta version
+            uses: kearisp/npm-setup-deps-action@v0.0.7
+            with:
+                package: "@wocker/core"
+                tag: "beta"
+                overrides: "@wocker/testing"
+
+          - name: Setup @wocker/docker-module beta  version
+            uses: kearisp/npm-setup-deps-action@v0.0.7
+            with:
+                package: "@wocker/docker-module"
+                tag: "beta"
+                overrides: "@wocker/docker-mock-module"
+
+          - name: Setup @wocker/docker-mock-module version
+            uses: kearisp/npm-setup-deps-action@v0.0.7
+            with:
+                package: "@wocker/docker-mock-module"
+                tag: "beta"
+
+          - name: Setup @wocker/testing beta version
+            uses: kearisp/npm-setup-deps-action@v0.0.7
+            with:
+                package: "@wocker/testing"
+                tag: "beta"
 
           - name: Cache dependencies
             uses: actions/cache@v4

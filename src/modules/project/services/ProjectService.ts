@@ -13,8 +13,8 @@ import {
     ProjectService as CoreProjectService,
     ProjectRepositorySearchParams as SearchParams
 } from "@wocker/core";
+import {ComposeService, DockerService} from "@wocker/docker-module";
 import {Cli} from "@kearisp/cli";
-import {ComposeService, DockerService} from "../../docker";
 import {PresetRepository, PresetService} from "../../preset";
 import {ProjectRepository} from "../repositories/ProjectRepository";
 
@@ -228,7 +228,9 @@ export class ProjectService extends CoreProjectService {
                                 "org.wocker.preset": preset.name
                             },
                             buildArgs: project.buildArgs,
-                            context: preset.path,
+                            context: project.presetMode === "project"
+                                ? [preset.path, project.path]
+                                : preset.path,
                             dockerfile: preset.dockerfile
                         });
                     }

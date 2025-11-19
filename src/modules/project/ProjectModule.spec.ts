@@ -1,21 +1,24 @@
-import {describe, expect, it, beforeEach, afterEach, jest} from "@jest/globals";
+import {describe, expect, it, beforeEach, jest} from "@jest/globals";
 import {vol} from "memfs";
 import {
+    FileSystem,
     ProcessService,
-    Injectable,
     PROJECT_TYPE_IMAGE,
     WOCKER_DATA_DIR_KEY,
     FILE_SYSTEM_DRIVER_KEY
 } from "@wocker/core";
-import {Test, ModemMock, Fixtures} from "@wocker/testing";
+import DockerModule from "@wocker/docker-module";
+import DockerMockModule, {DockerService, ImageService, Fixtures} from "@wocker/docker-mock-module";
+import {Test} from "@wocker/testing";
 import {PresetModule} from "../preset";
 import {KeystoreModule} from "../keystore";
-import {DockerModule, DockerService, ImageService, ModemService} from "../docker";
 import {ProjectModule} from "./";
 import {WOCKER_DATA_DIR, ROOT_DIR} from "../../env";
 
 
 describe("ProjectModule", (): void => {
+    const fs = new FileSystem(`${ROOT_DIR}/fixtures`),
+          fixtures = Fixtures.fromFS(fs);
     const TEST_IMAGE_PROJECT_DIR = `${ROOT_DIR}/fixtures/projects/image-project`;
 
     beforeEach((): void => {
@@ -40,46 +43,25 @@ describe("ProjectModule", (): void => {
                 ]
             }, null, 4)
         }, WOCKER_DATA_DIR);
-
-        jest.spyOn(process, "cwd").mockImplementation((): string => {
-            return TEST_IMAGE_PROJECT_DIR;
-        });
-    });
-
-    afterEach((): void => {
-        jest.resetAllMocks();
     });
 
     const getContext = async () => {
-        const fixtures = Fixtures.fromPath(`${ROOT_DIR}/fixtures`);
-
-        @Injectable("DOCKER_MODEM_SERVICE")
-        class TestModemService extends ModemService {
-            protected _modem?: ModemMock;
-
-            public get modem(): ModemMock {
-                if(!this._modem) {
-                    this._modem = new ModemMock({
-                        mockFixtures: fixtures
-                    });
-                }
-
-                return this._modem;
-            }
-        }
-
         return Test
             .createTestingModule({
                 imports: [
+                    DockerModule,
                     PresetModule,
                     ProjectModule,
-                    KeystoreModule,
-                    DockerModule
+                    KeystoreModule
+                ],
+                exports: [
+                    ImageService,
+                    DockerService
                 ]
             })
             .overrideProvider(WOCKER_DATA_DIR_KEY).useValue(WOCKER_DATA_DIR)
             .overrideProvider(FILE_SYSTEM_DRIVER_KEY).useValue(vol)
-            .overrideProvider(ModemService).useProvider(TestModemService)
+            .overrideModule(DockerModule).useModule(DockerMockModule.withFixtures(fixtures))
             .build();
     };
 
@@ -87,8 +69,8 @@ describe("ProjectModule", (): void => {
         const context = await getContext();
 
         const imageService = context.get(ImageService),
-              processService = context.get(ProcessService),
-              dockerService = context.get<DockerService>(DockerService);
+              dockerService = context.get<DockerService>(DockerService),
+              processService = context.get(ProcessService);
 
         processService.chdir(TEST_IMAGE_PROJECT_DIR);
 
@@ -107,7 +89,7 @@ describe("ProjectModule", (): void => {
         await context.run(["/bin/node", "/bin/ws", "stop"]);
 
         // container = await dockerService.getContainer("test.workspace");
-        //
+
         // expect(container).toBeNull();
     });
 });

@@ -1,6 +1,6 @@
 import {Injectable, FileSystem} from "@wocker/core";
+import {DockerService} from "@wocker/docker-module";
 import Path from "path";
-import {DockerService} from "../../docker";
 import {ROOT_DIR} from "../../../env";
 
 

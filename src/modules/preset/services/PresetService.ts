@@ -1,6 +1,5 @@
 import {
     Injectable,
-    FileSystem,
     Project,
     Preset,
     PresetVariableConfig,
@@ -161,7 +160,7 @@ export class PresetService {
     }
 
     public async init(): Promise<void> {
-        const fs = new FileSystem(this.appConfigService.pwd());
+        const fs = this.fs.cd(this.appConfigService.pwd());
         let preset = this.presetRepository.searchOne({
             path: this.appConfigService.pwd()
         });

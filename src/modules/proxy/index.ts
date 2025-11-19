@@ -1,5 +1,5 @@
 import {Module} from "@wocker/core";
-import {DockerModule} from "../docker";
+import DockerModule from "@wocker/docker-module";
 import {ProjectModule} from "../project";
 import {CertController} from "./controllers/CertController";
 import {ProxyController} from "./controllers/ProxyController";

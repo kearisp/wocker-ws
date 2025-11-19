@@ -9,9 +9,9 @@ import {
     PRESET_SOURCE_EXTERNAL,
     AppConfigService
 } from "@wocker/core";
+import {DockerService} from "@wocker/docker-module";
 import CliTable from "cli-table3";
 import {promptConfirm} from "@wocker/utils";
-import {DockerService} from "../../docker";
 import {PresetRepository} from "../repositories/PresetRepository";
 import {PresetService} from "../services/PresetService";
 

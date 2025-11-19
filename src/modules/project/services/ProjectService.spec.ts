@@ -8,17 +8,18 @@ import {
     PROJECT_TYPE_IMAGE,
     PROJECT_TYPE_DOCKERFILE
 } from "@wocker/core";
+import DockerModule, {Fixtures} from "@wocker/docker-mock-module";
 import {Test} from "@wocker/testing";
 import {KeystoreModule} from "../../keystore";
-import {DockerModule} from "../../docker";
 import {PresetService, PresetRepository} from "../../preset";
 import {ProjectService} from "./ProjectService";
 import {ProjectRepository} from "../repositories/ProjectRepository";
-import {WOCKER_DATA_DIR} from "../../../env";
+import {ROOT_DIR, WOCKER_DATA_DIR} from "../../../env";
 import {CoreModule} from "../../core";
 
 
 describe("ProjectService", (): void => {
+    const fixtures = Fixtures.fromPath(`${ROOT_DIR}/fixtures`);
     const PROJECT_1_NAME = "project-1",
           PROJECT_1_PATH = `/home/wocker-test/projects/${PROJECT_1_NAME}`,
           PROJECT_2_NAME = "project-2",
@@ -86,7 +87,7 @@ describe("ProjectService", (): void => {
             .createTestingModule({
                 imports: [
                     CoreModule,
-                    DockerModule,
+                    DockerModule.withFixtures(fixtures),
                     KeystoreModule
                 ],
                 providers: [

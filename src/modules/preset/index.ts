@@ -1,5 +1,5 @@
 import {Module} from "@wocker/core";
-import {DockerModule} from "../docker";
+import DockerModule from "@wocker/docker-module";
 import {PresetController} from "./controllers/PresetController";
 import {PresetListener} from "./controllers/PresetListener";
 import {PresetRepository} from "./repositories/PresetRepository";

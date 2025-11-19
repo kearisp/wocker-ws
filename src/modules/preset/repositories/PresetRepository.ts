@@ -1,6 +1,7 @@
 import {
     AppConfig,
     Injectable,
+    Inject,
     FileSystem,
     PresetServiceSearchOptions as SearchOptions,
     Preset,
@@ -10,7 +11,9 @@ import {
     PRESET_SOURCE_EXTERNAL,
     PRESET_SOURCE_GITHUB,
     AppConfigService,
-    LogService
+    LogService,
+    FileSystemDriver,
+    FILE_SYSTEM_DRIVER_KEY
 } from "@wocker/core";
 import {PRESETS_DIR} from "../../../env";
 
@@ -25,12 +28,14 @@ type PresetData = {
 export class PresetRepository {
     public constructor(
         protected readonly appConfigService: AppConfigService,
-        protected readonly logService: LogService
+        protected readonly logService: LogService,
+        @Inject(FILE_SYSTEM_DRIVER_KEY)
+        protected readonly driver: FileSystemDriver
     ) {}
 
     protected load(data: PresetData): Preset {
         const _this = this,
-              fs = new FileSystem(data.path);
+              fs = new FileSystem(data.path, this.driver);
 
         const config = {
             ...fs.readJSON("config.json"),
@@ -73,8 +78,9 @@ export class PresetRepository {
     }
 
     protected configs(): AppConfig["presets"] {
-        const fs = new FileSystem(PRESETS_DIR),
+        const fs = new FileSystem(PRESETS_DIR, this.driver),
               dirs = fs.exists("") ? fs.readdir("") : [];
+
         const {
             presets = []
         } = this.appConfigService.config;
