@@ -85,4 +85,6 @@ jobs:
             shell: bash
             env:
                 NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
-            run: npm publish --provenance --tag beta
+            run: |
+                ls -la
+                npm publish --provenance --tag beta
