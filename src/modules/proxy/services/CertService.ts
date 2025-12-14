@@ -3,9 +3,9 @@ import {
     Project,
     AppFileSystemService
 } from "@wocker/core";
+import {DockerService} from "@wocker/docker-module";
 import * as Path from "path";
 import CliTable from "cli-table3";
-import {DockerService} from "../../docker";
 import {ProxyService} from "./ProxyService";
 
 

@@ -5,8 +5,8 @@ import {
     PROJECT_TYPE_PRESET,
     AppConfigService
 } from "@wocker/core";
+import {DockerService} from "@wocker/docker-module";
 import {promptInput, promptSelect, volumeFormat, volumeParse} from "@wocker/utils";
-import {DockerService} from "../../docker";
 import {PresetRepository} from "../repositories/PresetRepository";
 import {PresetService} from "../services/PresetService";
 import {injectVariables} from "../../../utils";

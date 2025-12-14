@@ -1,4 +1,4 @@
-import {describe, it, jest, expect, beforeAll, afterAll, beforeEach} from "@jest/globals";
+import {describe, it, expect, beforeEach} from "@jest/globals";
 import {
     PRESET_SOURCE_EXTERNAL,
     AppConfigService,
@@ -7,56 +7,34 @@ import {
     WOCKER_DATA_DIR_KEY,
     ProcessService
 } from "@wocker/core";
-import {Test} from "@wocker/testing";
+import DockerModule from "@wocker/docker-module";
+import DockerMockModule, {Fixtures} from "@wocker/docker-mock-module";
+import {Test, utilsMock} from "@wocker/testing";
 import {vol} from "memfs";
-import {WOCKER_DATA_DIR} from "../../../env";
+import {CoreModule} from "../../core";
+import {KeystoreModule} from "../../keystore";
+import {ProjectModule} from "../../project";
+import {PresetModule} from "../";
+import {ROOT_DIR, WOCKER_DATA_DIR} from "../../../env";
 
 
 describe("PresetController", (): void => {
-    let context: ApplicationContext,
-        promptMap: any = {};
-
-    beforeAll((): void => {
-        const prompt = ({message}) => {
-            return promptMap[message];
-        };
-
-        jest.mock("@wocker/utils", () => {
-            const utils: any = jest.requireActual("@wocker/utils");
-
-            return {
-                ...utils,
-                promptInput: prompt,
-                promptSelect: prompt,
-                promptConfirm: prompt
-            };
-        });
-    });
+    const fixtures = Fixtures.fromPath(`${ROOT_DIR}/fixtures`);
+    let context: ApplicationContext;
 
     beforeEach(async (): Promise<void> => {
-
-        const {CoreModule} = await import("../../core");
-        const {KeystoreModule} = await import("../../keystore");
-        const {DockerModule} = await import("../../docker");
-        const {ProjectModule} = await import("../../project");
-        const {PresetModule} = await import("../../preset");
-        const {PresetController} = await import("./PresetController");
-
         context = await Test
             .createTestingModule({
                 imports: [
                     CoreModule,
                     KeystoreModule,
-                    DockerModule,
                     ProjectModule,
                     PresetModule
-                ],
-                controllers: [
-                    PresetController
                 ]
             })
             .overrideProvider(FILE_SYSTEM_DRIVER_KEY).useValue(vol)
             .overrideProvider(WOCKER_DATA_DIR_KEY).useValue(WOCKER_DATA_DIR)
+            .overrideModule(DockerModule).useModule(DockerMockModule.withFixtures(fixtures))
             .build();
 
         const processService = context.get(ProcessService);
@@ -68,22 +46,18 @@ describe("PresetController", (): void => {
         processService.chdir("/home/wocker-test/preset");
     });
 
-    afterAll((): void => {
-        jest.unmock("@wocker/utils");
-    });
-
     it("preset:init", async (): Promise<void> => {
         vol.fromJSON({
             "Dockerfile": "FROM node:latest\n"
         }, "/home/wocker-test/preset");
 
-        promptMap = {
+        utilsMock.setPromptMock({
             "Preset name": "test",
             "Preset version": "1.0.0",
             "Preset type": "dockerfile",
             "Preset dockerfile": "Dockerfile",
             "Correct": true
-        };
+        });
 
         const appConfigService = context.get(AppConfigService);
 

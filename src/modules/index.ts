@@ -1,6 +1,5 @@
 export * from "./core";
 export * from "./dns";
-export * from "./docker";
 export * from "./keystore";
 export * from "./package-manager";
 export * from "./plugin";

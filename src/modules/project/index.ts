@@ -1,6 +1,6 @@
 import {Module} from "@wocker/core";
+import DockerModule from "@wocker/docker-module";
 import {KeystoreModule} from "../keystore";
-import {DockerModule} from "../docker";
 import {PresetModule} from "../preset";
 import {ProjectController} from "./controllers/ProjectController";
 import {SecretsController} from "./controllers/SecretsController";
@@ -10,9 +10,9 @@ import {ProjectService} from "./services/ProjectService";
 
 @Module({
     imports: [
-        PresetModule,
+        DockerModule,
         KeystoreModule,
-        DockerModule
+        PresetModule
     ],
     controllers: [
         ProjectController,

@@ -2,6 +2,7 @@ import {jest} from "@jest/globals";
 import * as fs from "fs";
 import {vol} from "memfs";
 import {Union} from "unionfs";
+import {utilsMock} from "@wocker/testing";
 
 
 const WOCKER_DATA_DIR = "/home/wocker-test/.workspace",
@@ -39,8 +40,10 @@ jest.mock("../src/env", () => {
         PRESETS_DIR
     };
 });
+
 jest.doMock("fs", () => ufs);
 jest.doMock("fs/promises", () => ufs.promises);
+
 jest.doMock("process", () => {
     const process: any = jest.requireActual("process");
 
@@ -71,4 +74,13 @@ jest.doMock(`${WOCKER_DATA_DIR}/wocker.config.js`, () => {
     };
 }, {
     virtual: true
+});
+
+jest.mock("@wocker/utils", () => {
+    const utils: any = jest.requireActual("@wocker/utils");
+
+    return {
+        ...utils,
+        ...utilsMock
+    };
 });

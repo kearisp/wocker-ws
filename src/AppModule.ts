@@ -3,11 +3,15 @@ import {
     Module,
     Global
 } from "@wocker/core";
+import DockerModule, {
+    DockerService,
+    ContainerService,
+    ImageService
+} from "@wocker/docker-module";
 import {
     CoreModule,
     DnsModule,
     ProjectModule, ProjectService, ProjectRepository,
-    DockerModule, DockerService, ContainerService, ImageService,
     PluginModule,
     PresetModule, PresetRepository, PresetService,
     ProxyModule, ProxyService, CertService,

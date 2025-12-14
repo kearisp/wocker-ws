@@ -5,18 +5,12 @@ import {
     PRESET_SOURCE_EXTERNAL,
     PRESET_SOURCE_GITHUB,
     FILE_SYSTEM_DRIVER_KEY,
-    AppConfigService,
-    LogService,
-    AppService,
-    AppFileSystemService,
-    ProcessService,
-    WOCKER_VERSION_KEY,
     WOCKER_DATA_DIR_KEY
 } from "@wocker/core";
 import {Test} from "@wocker/testing";
 import {vol} from "memfs";
 import {PresetRepository} from "./PresetRepository";
-import {WOCKER_DATA_DIR, PRESETS_DIR, WOCKER_VERSION} from "../../../env";
+import {WOCKER_DATA_DIR, PRESETS_DIR} from "../../../env";
 
 
 describe("PresetRepository", (): void => {
