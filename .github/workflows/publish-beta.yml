@@ -39,7 +39,7 @@ jobs:
             with:
                 package: "@wocker/core"
                 tag: "beta"
-                overrides: "@wocker/testing"
+                overrides: "@wocker/testing @wocker/docker-mock-module"
 
           - name: Setup @wocker/docker-module beta  version
             uses: kearisp/npm-setup-deps-action@v0.0.7
