@@ -12,7 +12,6 @@ import {
     EventService,
     FileSystem,
     Project,
-    DockerService,
     Completion,
     LogService,
     PROJECT_TYPE_IMAGE,
@@ -20,6 +19,7 @@ import {
     PROJECT_TYPE_PRESET,
     PROJECT_TYPE_COMPOSE
 } from "@wocker/core";
+import {DockerService} from "@wocker/docker-module";
 import {promptConfirm, promptSelect, promptInput} from "@wocker/utils";
 import Path from "path";
 import CliTable from "cli-table3";

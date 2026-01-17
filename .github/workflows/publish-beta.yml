@@ -39,9 +39,9 @@ jobs:
             with:
                 package: "@wocker/core"
                 tag: "beta"
-                overrides: "@wocker/testing @wocker/docker-mock-module"
+                overrides: "@wocker/testing @wocker/docker-module @wocker/docker-mock-module"
 
-          - name: Setup @wocker/docker-module beta  version
+          - name: Setup @wocker/docker-module beta version
             uses: kearisp/npm-setup-deps-action@v0.0.7
             with:
                 package: "@wocker/docker-module"
@@ -86,5 +86,4 @@ jobs:
             env:
                 NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
             run: |
-                ls -la
                 npm publish --provenance --tag beta
