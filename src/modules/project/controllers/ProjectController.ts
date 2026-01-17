@@ -12,7 +12,6 @@ import {
     EventService,
     FileSystem,
     Project,
-    DockerService,
     Completion,
     LogService,
     PROJECT_TYPE_IMAGE,
@@ -20,6 +19,7 @@ import {
     PROJECT_TYPE_PRESET,
     PROJECT_TYPE_COMPOSE
 } from "@wocker/core";
+import {DockerService} from "@wocker/docker-module";
 import {promptConfirm, promptSelect, promptInput} from "@wocker/utils";
 import Path from "path";
 import CliTable from "cli-table3";
@@ -344,6 +344,7 @@ export class ProjectController {
     }
 
     @Command("build-args:get [...buildArgs]")
+    @Description("Get build args")
     public async buildArgsGet(
         @Param("buildArgs")
         args: string[],
@@ -546,6 +547,7 @@ export class ProjectController {
     }
 
     @Command("ports")
+    @Description("List of ports")
     public async ports(
         @Option("name", "n")
         @Description("The name of the project")
@@ -567,6 +569,7 @@ export class ProjectController {
     }
 
     @Command("port:add <host-port>:<container-port>")
+    @Description("Add port")
     public async addPort(
         @Param("host-port")
         hostPort: string,
@@ -587,6 +590,7 @@ export class ProjectController {
     }
 
     @Command("port:remove <host-port>:<container-port>")
+    @Description("Remove port")
     public async removePort(
         @Param("host-port")
         hostPort: string,
@@ -607,6 +611,7 @@ export class ProjectController {
     }
 
     @Command("port:clear")
+    @Description("Clear ports")
     public async clearPorts(
         @Option("name", "n")
         @Description("The name of the project")
@@ -622,6 +627,7 @@ export class ProjectController {
     }
 
     @Command("config")
+    @Description("List of environment variables")
     public async configList(
         @Option("name", "n")
         @Description("The name of the project")
@@ -683,6 +689,7 @@ export class ProjectController {
     }
 
     @Command("config:get [...key]")
+    @Description("Get environment variable")
     public async configGet(
         @Param("key")
         keys: string[],
@@ -760,6 +767,7 @@ export class ProjectController {
     }
 
     @Command("config:unset [...configs]")
+    @Description("Unset environment variable")
     public async configUnset(
         @Param("configs")
         configs: string[],
@@ -800,6 +808,7 @@ export class ProjectController {
     }
 
     @Command("volumes")
+    @Description("List of volumes")
     public async volumeList(
         @Option("name", "n")
         @Description("The name of the project")
@@ -821,6 +830,7 @@ export class ProjectController {
     }
 
     @Command("volume:mount [...volumes]")
+    @Description("Mount volume")
     public async volumeMount(
         @Param("volumes")
         volumes: string[],
@@ -838,6 +848,7 @@ export class ProjectController {
     }
 
     @Command("volume:unmount [...volumes]")
+    @Description("Unmount volume")
     public async volumeUnmount(
         @Param("volumes")
         volumes: string[],
@@ -1000,6 +1011,7 @@ export class ProjectController {
 
     // noinspection BadExpressionStatementJS
     @Command("run <script> [...args]")
+    @Description("Run script")
     public async run(
         @Param("script")
         script: string,
@@ -1018,6 +1030,7 @@ export class ProjectController {
     }
 
     @Command("exec [...command]")
+    @Description("Execute command")
     public async exec(
         @Param("command")
         command?: string[],

@@ -1,7 +1,7 @@
 {
     "name": "@wocker/ws",
     "type": "commonjs",
-    "version": "1.0.27",
+    "version": "1.0.28",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Docker workspace for web projects",
     "license": "MIT",
@@ -35,7 +35,7 @@
         "make-coverage-badge": "make-coverage-badge"
     },
     "dependencies": {
-        "@wocker/core": "1.0.27",
+        "@wocker/core": "1.0.28",
         "@wocker/docker-module": "^0.0.1",
         "@wocker/utils": "^2.0.6",
         "async-mutex": "^0.4.0",
