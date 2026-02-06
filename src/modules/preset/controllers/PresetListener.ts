@@ -1,5 +1,6 @@
 import {
     Controller,
+    Event,
     EventService,
     Project,
     PROJECT_TYPE_PRESET,
@@ -26,6 +27,7 @@ export class PresetListener {
         this.eventService.on("project:rebuild", (project) => this.onRebuild(project));
     }
 
+    @Event("project:init")
     public async onInit(project: Project): Promise<void> {
         if(project.type !== PROJECT_TYPE_PRESET) {
             return;
@@ -114,6 +116,7 @@ export class PresetListener {
         }
     }
 
+    @Event("project:rebuild")
     protected async onRebuild(project: Project): Promise<void> {
         if(project.type !== PROJECT_TYPE_PRESET) {
             return;
@@ -135,6 +138,7 @@ export class PresetListener {
         }
     }
 
+    @Event("project:beforeStart")
     protected async onBeforeStart(project: Project): Promise<void> {
         if(project.type !== PROJECT_TYPE_PRESET) {
             return;
