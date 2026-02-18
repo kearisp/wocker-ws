@@ -26,14 +26,16 @@ export class KeystoreController {
     ): Promise<void> {
         if(!provider) {
             provider = await promptSelect({
+                required: true,
                 message: "Keystore provider",
                 type: "text",
-                options: ["file", "keytar"]
+                options: ["file", "keytar"],
+                default: this.appConfigService.config.keystore
             });
         }
 
         if(!this.keystoreService.hasProvider(provider)) {
-            return;
+            throw new Error(`Provider "${provider}" not found`);
         }
 
         this.appConfigService.config.keystore = provider;

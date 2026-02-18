@@ -1,7 +1,6 @@
 import {
     Controller,
     Event,
-    EventService,
     Project,
     PROJECT_TYPE_PRESET,
     AppConfigService
@@ -17,15 +16,10 @@ import {injectVariables} from "../../../utils";
 export class PresetListener {
     public constructor(
         protected readonly appConfigService: AppConfigService,
-        protected readonly eventService: EventService,
         protected readonly dockerService: DockerService,
         protected readonly presetRepository: PresetRepository,
         protected readonly presetService: PresetService
-    ) {
-        this.eventService.on("project:init", (project) => this.onInit(project));
-        this.eventService.on("project:beforeStart", (project) => this.onBeforeStart(project));
-        this.eventService.on("project:rebuild", (project) => this.onRebuild(project));
-    }
+    ) {}
 
     @Event("project:init")
     public async onInit(project: Project): Promise<void> {

@@ -81,15 +81,16 @@ describe("ProjectModule", (): void => {
 
         writeSpy.mockReset();
 
+        await expect(imageService.exists("php:8.3-apache")).resolves.toBeTruthy();
+
         let container = await dockerService.getContainer("test.workspace");
 
-        await expect(imageService.exists("php:8.3-apache")).resolves.toBeTruthy();
         expect(container).not.toBeNull();
 
         await context.run(["/bin/node", "/bin/ws", "stop"]);
 
-        // container = await dockerService.getContainer("test.workspace");
+        container = await dockerService.getContainer("test.workspace");
 
-        // expect(container).toBeNull();
+        expect(container).toBeNull();
     });
 });

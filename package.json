@@ -36,7 +36,7 @@
     },
     "dependencies": {
         "@wocker/core": "1.0.29",
-        "@wocker/docker-module": "^0.0.3",
+        "@wocker/docker-module": "^0.0.4",
         "@wocker/utils": "^2.0.6",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",
@@ -57,7 +57,7 @@
         "@types/mute-stream": "^0.0.4",
         "@types/node": "^24.5.2",
         "@types/unzipper": "^0.10.10",
-        "@wocker/docker-mock-module": "^0.0.1",
+        "@wocker/docker-mock-module": "^0.0.2",
         "@wocker/testing": "^1.0.4",
         "jest": "^30.1.3",
         "make-coverage-badge": "^1.2.0",

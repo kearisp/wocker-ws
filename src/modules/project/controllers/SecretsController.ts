@@ -22,7 +22,9 @@ export class SecretsController {
         @Param("secret")
         secret?: string,
         @Option("name", "n")
-        name?: string
+        name?: string,
+        @Option("global", "g")
+        global?: boolean
     ): Promise<void> {
         const project = this.projectService.get(name);
 
