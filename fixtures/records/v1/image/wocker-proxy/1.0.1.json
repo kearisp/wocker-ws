@@ -1,0 +1,97 @@
+{
+    "Id": "sha256:69f0fc5e427e2f209f605d2e4c2ef876bf3a3d725f864bcc90c0d3fa80ecae8e",
+    "RepoTags": [
+        "wocker-proxy:1.0.1"
+    ],
+    "RepoDigests": [
+        "wocker-proxy@sha256:69f0fc5e427e2f209f605d2e4c2ef876bf3a3d725f864bcc90c0d3fa80ecae8e"
+    ],
+    "Comment": "buildkit.dockerfile.v0",
+    "Created": "2026-03-08T15:25:03.10313049Z",
+    "Config": {
+        "ExposedPorts": {
+            "80/tcp": {}
+        },
+        "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "NGINX_VERSION=1.27.2",
+            "PKG_RELEASE=1",
+            "DYNPKG_RELEASE=1",
+            "NJS_VERSION=0.8.6",
+            "NJS_RELEASE=1",
+            "NGINX_PROXY_VERSION=1.6.4",
+            "DOCKER_GEN_VERSION=",
+            "DOCKER_HOST=unix:///tmp/docker.sock"
+        ],
+        "Entrypoint": [
+            "/app/docker-entrypoint.sh"
+        ],
+        "Cmd": [
+            "forego",
+            "start",
+            "-r"
+        ],
+        "WorkingDir": "/app/",
+        "Labels": {
+            "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>",
+            "org.opencontainers.image.authors": "Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder",
+            "org.opencontainers.image.created": "2024-11-24T21:29:47.542Z",
+            "org.opencontainers.image.description": "Automated nginx proxy for Docker containers using docker-gen",
+            "org.opencontainers.image.licenses": "MIT",
+            "org.opencontainers.image.revision": "d7acd931a3f14a14368ea08c9b55492217e5749f",
+            "org.opencontainers.image.source": "https://github.com/nginx-proxy/nginx-proxy",
+            "org.opencontainers.image.title": "nginx-proxy",
+            "org.opencontainers.image.url": "https://github.com/nginx-proxy/nginx-proxy",
+            "org.opencontainers.image.version": "1.6.4"
+        },
+        "StopSignal": "SIGQUIT",
+        "ArgsEscaped": true
+    },
+    "Architecture": "amd64",
+    "Os": "linux",
+    "Size": 34254978,
+    "RootFS": {
+        "Type": "layers",
+        "Layers": [
+            "sha256:75654b8eeebd3beae97271a102f57cdeb794cc91e442648544963a7e951e9558",
+            "sha256:df75bb36e265a5515e9d56559c253f3ad8ac65f67b120ac17dc5d39e3650c1f9",
+            "sha256:ffe4285e29068b1a6112d99b633535058b91344bb1eac41cbec3c319c908cc43",
+            "sha256:3ca5de8f08eb9b673db2fd9c591abd69b1caa3d98ac0ebe383b4701a3ac75f8b",
+            "sha256:19d3bde9037c77ff30ef945e663bbcfffcbca10e80b79f46c916ae0da7e60a07",
+            "sha256:8d94d71d4b48c71f9a76bca8dcdf9b752dd604a0276b2047d6c8f748229cbb4d",
+            "sha256:1ce97418c44e80dc0051e16deb9966ee8a1579bbbbef9f19ef2a33a45648d6e3",
+            "sha256:b67a2e28b4c8ca1857c558050b6d525c5946ffbeeec03c383e7a6bad37c6cd4c",
+            "sha256:ab1514673d3d23b4e45d0831052f88d9c485bfcc6f976d202a7a0140165d1b1e",
+            "sha256:b413f4b230423144bcad95e35f32fc0d2adfeed63a868a8ef6d09343cc542ac3",
+            "sha256:b7fad1a96e02317ab9507ba084d614d58243e82f97753f183310cc757ec774fa",
+            "sha256:9ef59188bf464ae104aa68f2b7593dde61518e404d050c4641f5feba30ba5d6a",
+            "sha256:f52d24b17f6bdd10b299d7789029604ef3f59b08dbfc8cf4f992b32e07d2007a",
+            "sha256:f44520f7fcb34ec8e6441936403a22dc03b1d16752234b3353f865db9e1d6b9f",
+            "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+            "sha256:6cea957faa3a4f0a3d7e7cc8328346edb16d8f739482b16501caed2d1a093347",
+            "sha256:976e8fb86863cd02c26b4e0de92a463b6568ec7086224217ebbff6da88532867",
+            "sha256:1c1a3ce892cb01892bb79ab82d71a11d94f47f7d048771eece5179cd804cd88b",
+            "sha256:e89608a93445cd28c0119f1bb2fb261fcaa8b194680605f4be5b1d863493dc3e",
+            "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+        ]
+    },
+    "Metadata": {
+        "LastTagTime": "2026-03-08T23:17:30.982385773Z"
+    },
+    "Descriptor": {
+        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+        "digest": "sha256:69f0fc5e427e2f209f605d2e4c2ef876bf3a3d725f864bcc90c0d3fa80ecae8e",
+        "size": 4212,
+        "annotations": {
+            "config.digest": "sha256:87da73412c87d6f074dc36257f3d952b312208066d95ecc4c1274abe4cf06b73"
+        }
+    },
+    "Identity": {
+        "Build": [
+            {
+                "Ref": "ltbfcx4ysq4uxlul49zjmds1l",
+                "CreatedAt": "2026-03-08T23:17:31.086504843Z"
+            }
+        ]
+    }
+}

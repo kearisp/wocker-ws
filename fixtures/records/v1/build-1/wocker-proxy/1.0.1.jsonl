@@ -1,0 +1,30 @@
+{"stream":"Step 1/7 : FROM nginxproxy/nginx-proxy:1.6.4-alpine"}
+{"stream":"\n"}
+{"stream":" ---\u003e a84172706def\n"}
+{"stream":"Step 2/7 : ARG SSH_PASSWORD=''"}
+{"stream":"\n"}
+{"stream":" ---\u003e Running in 5051e29dd3cc\n"}
+{"stream":" ---\u003e Removed intermediate container 5051e29dd3cc\n"}
+{"stream":" ---\u003e 874e938363aa\n"}
+{"stream":"Step 3/7 : COPY ./bin/wocker-create-ca /usr/local/bin/wocker-create-ca"}
+{"stream":"\n"}
+{"stream":" ---\u003e b48757a7cea7\n"}
+{"stream":"Step 4/7 : COPY ./bin/wocker-create-cert /usr/local/bin/wocker-create-cert"}
+{"stream":"\n"}
+{"stream":" ---\u003e 5489aa3cc6a4\n"}
+{"stream":"Step 5/7 : COPY ./bin/wocker-create-domains /usr/local/bin/wocker-create-domains"}
+{"stream":"\n"}
+{"stream":" ---\u003e 18cd0f4466f8\n"}
+{"stream":"Step 6/7 : RUN chmod +x /usr/local/bin/wocker-create-ca \u0026\u0026     chmod +x /usr/local/bin/wocker-create-cert \u0026\u0026     chmod +x /usr/local/bin/wocker-create-domains"}
+{"stream":"\n"}
+{"stream":" ---\u003e Running in cf265f8b031a\n"}
+{"stream":" ---\u003e Removed intermediate container cf265f8b031a\n"}
+{"stream":" ---\u003e 26ddde1550ef\n"}
+{"stream":"Step 7/7 : RUN if [ -n \"$SSH_PASSWORD\" ]; then         apk update \u0026\u0026 apk add --no-cache openssh;         mkdir -p /var/run/sshd;         echo \"root:$SSH_PASSWORD\" | chpasswd;         sed -i 's/AllowTcpForwarding no/AllowTcpForwarding yes/' /etc/ssh/sshd_config;         sed -i 's/GatewayPorts no/GatewayPorts yes/' /etc/ssh/sshd_config;         sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config;         sed -i 's/#UsePAM yes/UsePAM no/' /etc/ssh/sshd_config;         ssh-keygen -A;         echo \"sshd: /usr/sbin/sshd -D\" \u003e\u003e /app/Procfile;     fi"}
+{"stream":"\n"}
+{"stream":" ---\u003e Running in 5455da6804d9\n"}
+{"stream":" ---\u003e Removed intermediate container 5455da6804d9\n"}
+{"stream":" ---\u003e 6ce79a67c93d\n"}
+{"aux":{"ID":"sha256:6ce79a67c93dff38147b9d02df09ad6ced9d4defbeb73124f3d1fc94ec1fffac"}}
+{"stream":"Successfully built 6ce79a67c93d\n"}
+{"stream":"Successfully tagged wocker-proxy:1.0.1\n"}

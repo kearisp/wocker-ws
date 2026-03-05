@@ -142,8 +142,8 @@ export class ProxyService extends CoreProxyService {
         }
 
         await this.dockerService.buildImage({
-            version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
             tag: this.imageName,
+            version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
             buildArgs: {
                 SSH_PASSWORD: this.appConfigService.getMeta("PROXY_SSH_PASSWORD")
             },

@@ -7,6 +7,14 @@ import {KEYTAR_SERVICE} from "../../../env";
 export class KeytarKeystoreProvider extends KeystoreProvider {
     protected _keytar?: any;
 
+    protected async getKeytar(): Promise<Keytar> {
+        if(!this._keytar) {
+            this._keytar = await import("keytar");
+        }
+
+        return this._keytar;
+    }
+
     public async get(key: string, defaultValue?: string): Promise<string | undefined> {
         const keytar = await this.getKeytar();
 
@@ -30,13 +38,5 @@ export class KeytarKeystoreProvider extends KeystoreProvider {
         const keytar = await this.getKeytar();
 
         await keytar.deletePassword(KEYTAR_SERVICE, key);
-    }
-
-    protected async getKeytar(): Promise<Keytar> {
-        if(!this._keytar) {
-            this._keytar = await import("keytar");
-        }
-
-        return this._keytar;
     }
 }
