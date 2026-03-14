@@ -36,7 +36,7 @@
     },
     "dependencies": {
         "@wocker/core": "1.0.31",
-        "@wocker/docker-module": "^0.0.4",
+        "@wocker/docker-module": "^0.0.6",
         "@wocker/utils": "^2.0.6",
         "async-mutex": "^0.4.0",
         "axios": "^1.6.7",
