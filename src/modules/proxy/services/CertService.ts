@@ -65,6 +65,8 @@ export class CertService {
             user: "1000",
             cmd: ["wocker-create-cert", certName]
         });
+
+        await this.proxyService.start(true);
     }
 
     public getCertsMap(): CertMap {
