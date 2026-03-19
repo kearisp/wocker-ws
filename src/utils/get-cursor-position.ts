@@ -1,5 +1,6 @@
 const code = "\x1b[6n";
 
+
 export const getCursorPosition = async () => {
     process.stdin.resume();
     process.stdin.setRawMode(true);
