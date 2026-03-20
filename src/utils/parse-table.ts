@@ -1,4 +1,4 @@
-const parseTable = (string, pos) => {
+export const parseTable = (string, pos) => {
     return string.split("\n").filter((line) => {
         return line.split(new RegExp("\\s\\s+")).filter((item) => {
             return item !== "";
@@ -23,6 +23,3 @@ const parseTable = (string, pos) => {
         return !!line;
     });
 };
-
-
-export {parseTable};

@@ -3,7 +3,7 @@ import {exec as processExec, ExecOptions} from "child_process";
 
 type Options = Omit<ExecOptions, "maxBuffer">;
 
-const exec = async (command: string, options?: Options): Promise<string> => {
+export const exec = async (command: string, options?: Options): Promise<string> => {
     const worker = processExec(command, {
         ...options || {},
         maxBuffer: Infinity
@@ -35,6 +35,3 @@ const exec = async (command: string, options?: Options): Promise<string> => {
         });
     });
 };
-
-
-export {exec};

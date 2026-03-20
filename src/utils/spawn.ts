@@ -1,7 +1,7 @@
 import {spawn as processSpawn} from "child_process";
 
 
-const spawn = async (command: string, args: string[]): Promise<void> => {
+export const spawn = async (command: string, args: string[]): Promise<void> => {
     const abortController = new AbortController();
 
     const child = processSpawn(command, args, {
@@ -32,6 +32,3 @@ const spawn = async (command: string, args: string[]): Promise<void> => {
         });
     });
 };
-
-
-export {spawn};

@@ -2,15 +2,10 @@ type Data = {
     [key: string]: string;
 };
 
-export const injectVariables = (str: string, data: Data) => {
-    let res = str;
+export const injectVariables = (pattern: string, data: Data) => {
+    return Object.entries(data).reduce((res, [key, value]) => {
+        const regex = new RegExp(`\\$\\{${key}\\}`, "g");
 
-    Object.keys(data).forEach((key) => {
-        const variableName = `\\$\\{${key}\\}`;
-        const variableValue = data[key];
-        const regex = new RegExp(variableName, "g");
-        res = res.replace(regex, variableValue);
-    });
-
-    return res;
+        return res.replace(regex, value);
+    }, pattern);
 };

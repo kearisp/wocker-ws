@@ -1,20 +1,11 @@
 // import {createConnection} from "mysql";
 
 
-type Options = string | {
-    ssl?: boolean;
-    host?: string;
-    port?: number;
-    user?: string;
-    password?: string;
-    database?: string;
-};
-
 export class MySQL {
     protected connection;
-    protected options: Options;
+    protected options: MySQL.ConstructorOptions;
 
-    constructor(options: Options) {
+    constructor(options: MySQL.ConstructorOptions) {
         // this.connection = createConnection(options);
     }
 
@@ -35,4 +26,15 @@ export class MySQL {
         //
         // return res;
     }
+}
+
+export namespace MySQL {
+    export type ConstructorOptions = string | {
+        ssl?: boolean;
+        host?: string;
+        port?: number;
+        user?: string;
+        password?: string;
+        database?: string;
+    };
 }

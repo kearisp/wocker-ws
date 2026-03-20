@@ -1,12 +1,12 @@
 import {
     Command,
     Completion,
+    Event,
     Controller,
     Description,
     Option,
     Project,
-    AppConfigService,
-    EventService
+    AppConfigService
 } from "@wocker/core";
 import {promptConfirm, promptInput} from "@wocker/utils";
 import colors from "yoctocolors-cjs";
@@ -19,15 +19,16 @@ import {ProxyService} from "../services/ProxyService";
 export class ProxyController {
     public constructor(
         protected readonly appConfigService: AppConfigService,
-        protected readonly eventService: EventService,
         protected readonly projectService: ProjectService,
         protected readonly proxyService: ProxyService
-    ) {
-        this.eventService.on("project:init", (project: Project): Promise<void> => this.proxyService.init(project));
-        this.eventService.on("project:start", (project: Project): Promise<void> => this.onProjectStart(project));
-        this.eventService.on("project:stop", (project: Project): Promise<void> => this.onProjectStop(project));
+    ) {}
+
+    @Event("project:inti")
+    public async onProjectInit(project: Project) {
+        return this.proxyService.init(project);
     }
 
+    @Event("project:start")
     public async onProjectStart(project: Project): Promise<void> {
         if(project.domains.length === 0) {
             return;
@@ -42,6 +43,7 @@ export class ProxyController {
         await this.start();
     }
 
+    @Event("project:stop")
     public async onProjectStop(_project: Project): Promise<void> {
         // TODO: Stop proxy if no containers needed
     }
