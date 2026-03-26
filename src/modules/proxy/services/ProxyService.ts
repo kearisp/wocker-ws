@@ -3,6 +3,7 @@ import {
     Project,
     AppConfigService,
     AppFileSystemService,
+    ProcessService,
     ProxyService as CoreProxyService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
@@ -15,13 +16,15 @@ import {PLUGINS_DIR} from "../../../env";
 export class ProxyService extends CoreProxyService {
     protected containerName = "wocker-proxy";
     protected oldContainerNames = ["proxy.workspace"];
-    protected imageName = "wocker-proxy:1.0.1";
+    protected imageName = "wocker-proxy:1.0.2";
     protected oldImages = [
-        "wocker-proxy:1.0.0"
+        "wocker-proxy:1.0.0",
+        "wocker-proxy:1.0.1"
     ];
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
+        protected readonly processService: ProcessService,
         protected readonly fs: AppFileSystemService,
         protected readonly dockerService: DockerService
     ) {
@@ -55,8 +58,6 @@ export class ProxyService extends CoreProxyService {
 
             await this.build(rebuild);
 
-            const fs = this.fs;
-
             if(!this.fs.exists("certs/ca")) {
                 this.fs.mkdir("certs/ca", {
                     recursive: true,
@@ -71,22 +72,34 @@ export class ProxyService extends CoreProxyService {
                 });
             }
 
-            if(!fs.exists("nginx/vhost.d")) {
-                fs.mkdir("nginx/vhost.d", {
+            if(!this.fs.exists("nginx/vhost.d")) {
+                this.fs.mkdir("nginx/vhost.d", {
                     recursive: true,
                     mode: 0o700
                 });
             }
 
-            const httpPort = this.appConfigService.getMeta("PROXY_HTTP_PORT", "80");
-            const httpsPort = this.appConfigService.getMeta("PROXY_HTTPS_PORT", "443");
-            const sshPort = this.appConfigService.getMeta("PROXY_SSH_PORT", "22");
+            if(!this.fs.exists("nginx/htpasswd")) {
+                this.fs.mkdir("nginx/htpasswd", {
+                    recursive: true,
+                    mode: 0o764
+                });
+            }
+            else {
+                this.fs.chmod("nginx/htpasswd", 0o764);
+            }
+
+            const httpPort = this.appConfigService.getMeta("PROXY_HTTP_PORT", "80"),
+                  httpsPort = this.appConfigService.getMeta("PROXY_HTTPS_PORT", "443"),
+                  sshPort = this.appConfigService.getMeta("PROXY_SSH_PORT", "22");
 
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: this.imageName,
                 restart: "always",
                 env: {
+                    UID: this.processService.UID,
+                    GID: this.processService.GID,
                     DEFAULT_HOST: "localhost",
                     TRUST_DOWNSTREAM_PROXY: "true"
                 },
@@ -99,9 +112,10 @@ export class ProxyService extends CoreProxyService {
                 ],
                 volumes: [
                     "/var/run/docker.sock:/tmp/docker.sock:ro",
-                    `${fs.path("certs/projects")}:/etc/nginx/certs`,
-                    `${fs.path("certs/ca")}:/etc/nginx/ca-certs`,
-                    `${fs.path("nginx/vhost.d")}:/etc/nginx/vhost.d`
+                    `${this.fs.path("certs/projects")}:/etc/nginx/certs`,
+                    `${this.fs.path("certs/ca")}:/etc/nginx/ca-certs`,
+                    `${this.fs.path("nginx/vhost.d")}:/etc/nginx/vhost.d`,
+                    `${this.fs.path("nginx/htpasswd")}:/etc/nginx/htpasswd`
                 ],
                 network: "workspace"
             });

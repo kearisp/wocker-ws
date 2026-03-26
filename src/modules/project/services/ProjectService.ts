@@ -10,8 +10,7 @@ import {
     PROJECT_TYPE_DOCKERFILE,
     PROJECT_TYPE_IMAGE,
     PROJECT_TYPE_PRESET,
-    ProjectService as CoreProjectService,
-    ProjectRepositorySearchParams as SearchParams
+    ProjectService as CoreProjectService
 } from "@wocker/core";
 import {ComposeService, DockerService} from "@wocker/docker-module";
 import {Cli} from "@kearisp/cli";
@@ -59,11 +58,11 @@ export class ProjectService extends CoreProjectService {
         return project;
     }
 
-    public search(params: SearchParams = {}): Project[] {
+    public search(params: ProjectRepository.SearchParams = {}): Project[] {
         return this.projectRepository.search(params);
     }
 
-    public searchOne(params: SearchParams = {}): Project | null {
+    public searchOne(params: ProjectRepository.SearchParams = {}): Project | null {
         return this.projectRepository.searchOne(params);
     }
 

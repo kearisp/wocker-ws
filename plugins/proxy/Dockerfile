@@ -1,14 +1,21 @@
-FROM nginxproxy/nginx-proxy:1.6.4-alpine
+FROM nginxproxy/nginx-proxy:1.10.1-alpine
 
-ARG SSH_PASSWORD=''
+ENV UID=1000 \
+    GID=1000
 
+COPY ./wocker-entrypoint.sh /app/wocker-entrypoint.sh
 COPY ./bin/wocker-create-ca /usr/local/bin/wocker-create-ca
 COPY ./bin/wocker-create-cert /usr/local/bin/wocker-create-cert
 COPY ./bin/wocker-create-domains /usr/local/bin/wocker-create-domains
 
-RUN chmod +x /usr/local/bin/wocker-create-ca && \
+RUN chmod +x /app/wocker-entrypoint.sh && \
+    chown root:root /app/wocker-entrypoint.sh && \
+    chmod +x /usr/local/bin/wocker-create-ca && \
     chmod +x /usr/local/bin/wocker-create-cert && \
-    chmod +x /usr/local/bin/wocker-create-domains
+    chmod +x /usr/local/bin/wocker-create-domains && \
+    apk add --no-cache apache2-utils shadow
+
+ARG SSH_PASSWORD=''
 
 RUN if [ -n "$SSH_PASSWORD" ]; then \
         apk update && apk add --no-cache openssh; \
@@ -21,3 +28,6 @@ RUN if [ -n "$SSH_PASSWORD" ]; then \
         ssh-keygen -A; \
         echo "sshd: /usr/sbin/sshd -D" >> /app/Procfile; \
     fi
+
+ENTRYPOINT ["/app/wocker-entrypoint.sh"]
+CMD ["forego", "start", "-r"]
