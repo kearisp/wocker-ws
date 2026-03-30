@@ -15,16 +15,16 @@ jobs:
             id-token: write
         steps:
           - name: Checkout code
-            uses: actions/checkout@v4
+            uses: actions/checkout@v6
 
           - name: Setup Node.js
-            uses: actions/setup-node@v4
+            uses: actions/setup-node@v6
             with:
                 node-version: 24
                 registry-url: 'https://registry.npmjs.org'
 
           - name: Cache dependencies
-            uses: actions/cache@v4
+            uses: actions/cache@v5
             with:
                 path: ~/.npm
                 key: ${{ runner.os }}-npm-${{ hashFiles('**/package.json') }}
@@ -57,10 +57,10 @@ jobs:
         needs: publish
         steps:
           - name: Checkout code
-            uses: actions/checkout@v4
+            uses: actions/checkout@v6
 
           - name: Setup Node.js
-            uses: actions/setup-node@v4
+            uses: actions/setup-node@v6
             with:
                 node-version: 24
                 registry-url: 'https://registry.npmjs.org'
@@ -75,6 +75,10 @@ jobs:
                 VERSIONS=$(npm view $PACKAGE_NAME versions --json | jq -r '.[]')
                 BETA_VERSIONS=$(echo $VERSIONS | grep -E "$PACKAGE_VERSION-beta\.[0-9]+$" || echo "")
 
+                echo "VERSIONS: $VERSIONS"
+                echo "BETA_VERSIONS: $BETA_VERSIONS"
+
                 for VERSION in $BETA_VERSIONS; do
-                    npm unpublish $PACKAGE_NAME@$VERSION --force 2>/dev/null || npm deprecate $PACKAGE_NAME@$VERSION "This is the beta version. Why can't it be deleted?"
+                    npm deprecate $PACKAGE_NAME@$VERSION "This is the beta version. Why can't it be deleted?"
+                    npm unpublish $PACKAGE_NAME@$VERSION --force || true
                 done
