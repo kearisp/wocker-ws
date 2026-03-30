@@ -1,5 +1,6 @@
 import {
     Controller,
+    Description,
     Completion,
     Command,
     Param,
@@ -10,6 +11,7 @@ import {ProjectService} from "../../project";
 
 
 @Controller()
+@Description("Cert commands")
 export class CertController {
     public constructor(
         protected readonly projectService: ProjectService,
@@ -17,11 +19,13 @@ export class CertController {
     ) {}
 
     @Command("certs")
+    @Description("Show certs")
     public async list(): Promise<string> {
         return this.certService.list();
     }
 
     @Command("cert:generate [cert]")
+    @Description("Generate cert")
     public async createCert(
         @Param("cert")
         certName?: string,
@@ -36,6 +40,7 @@ export class CertController {
     }
 
     @Command("cert:use [cert]")
+    @Description("Use cert")
     public async use(
         @Param("cert")
         certName?: string,
@@ -52,6 +57,7 @@ export class CertController {
     }
 
     @Command("cert:remove")
+    @Description("Remove cert")
     public async remove(
         @Option("name", {
             type: "string",
@@ -66,6 +72,7 @@ export class CertController {
     }
 
     @Command("cert:delete <cert>")
+    @Description("Delete cert")
     public async delete(
         @Param("cert")
         cert: string

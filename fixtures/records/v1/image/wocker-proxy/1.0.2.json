@@ -1,0 +1,88 @@
+{
+    "Architecture": "amd64",
+    "Config": {
+        "Cmd": [
+            "forego",
+            "start",
+            "-r"
+        ],
+        "Entrypoint": [
+            "/app/wocker-entrypoint.sh"
+        ],
+        "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "NGINX_VERSION=1.29.6",
+            "PKG_RELEASE=1",
+            "DYNPKG_RELEASE=1",
+            "NJS_VERSION=0.9.6",
+            "NJS_RELEASE=1",
+            "ACME_VERSION=0.3.1",
+            "NGINX_PROXY_VERSION=1.10.1",
+            "DOCKER_GEN_VERSION=0.16.2",
+            "DOCKER_HOST=unix:///tmp/docker.sock",
+            "UID=1000",
+            "GID=1000"
+        ],
+        "ExposedPorts": {
+            "80/tcp": {}
+        },
+        "Labels": {
+            "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>",
+            "org.opencontainers.image.authors": "Nicolas Duchon <nicolas.duchon@gmail.com> (@buchdag), Jason Wilder",
+            "org.opencontainers.image.created": "2026-03-13T19:42:23.978Z",
+            "org.opencontainers.image.description": "Automated nginx proxy for Docker containers using docker-gen",
+            "org.opencontainers.image.licenses": "MIT",
+            "org.opencontainers.image.revision": "b7a11c5e35fa6844d54d34aed692d5362ac9f239",
+            "org.opencontainers.image.source": "https://github.com/nginx-proxy/nginx-proxy",
+            "org.opencontainers.image.title": "nginx-proxy",
+            "org.opencontainers.image.url": "https://github.com/nginx-proxy/nginx-proxy",
+            "org.opencontainers.image.version": "1.10.1"
+        },
+        "StopSignal": "SIGQUIT",
+        "WorkingDir": "/app/"
+    },
+    "Created": "2026-03-26T17:42:33.783872671Z",
+    "Descriptor": {
+        "digest": "sha256:57304f639007cc84a0e90c26602ecfa8b2e1b74bccd017a57b03a2e38cae6eb9",
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "size": 4650
+    },
+    "Id": "sha256:57304f639007cc84a0e90c26602ecfa8b2e1b74bccd017a57b03a2e38cae6eb9",
+    "Metadata": {
+        "LastTagTime": "2026-03-26T17:42:33.951120624Z"
+    },
+    "Os": "linux",
+    "Parent": "sha256:700e44abad43064b565c55dffe2081917b8ca527fb24a5bf4738bee82bb52a79",
+    "RepoDigests": [
+        "wocker-proxy@sha256:57304f639007cc84a0e90c26602ecfa8b2e1b74bccd017a57b03a2e38cae6eb9"
+    ],
+    "RepoTags": [
+        "wocker-proxy:1.0.2"
+    ],
+    "RootFS": {
+        "Layers": [
+            "sha256:989e799e634906e94dc9a5ee2ee26fc92ad260522990f26e707861a5f52bf64e",
+            "sha256:5bb518009c83d498f71263ffc016f9f447251adbd2529289ead569af6f8e70e6",
+            "sha256:ea6528e5378341e48a761c0bac1ad6c3974d87fb870aaba005c4cd50817dbdff",
+            "sha256:09c3b60a3926ba8b1f23fddac881831a17ed7e803aee91e59c86f25f131e87c5",
+            "sha256:e0fe744d26d4e1c18fc24961038c30992ebc3399f9b3d7f136fad15d6db08db4",
+            "sha256:04297a721e7f464d1c7e35294c019010fd7fd20ec1b3891ee207e7dd39c4fcff",
+            "sha256:5693fac86db4876970e0bbdd63d9b50ed650051457225e9377d8b72a35aba7bd",
+            "sha256:d408059e7553020f3caf3f88b3d1f012c7a0528299b077a5b8ee2ea70e29f109",
+            "sha256:f27c3d747b10214ad675a8ceb0b67b805d63060c9a73442eadbb6cd633b12c8a",
+            "sha256:8cd4c1f1628bea3828fe5f1a17463844a290535fdb7c0c4c2b6ac77a46d1c126",
+            "sha256:006157412c7b2fab7387e3482d3df857b7909860267608e3c6f8ac6a1565eb99",
+            "sha256:f70777f347cc185044db80c5bdc1b2326781b8d98010a3acfe869ed224e8423b",
+            "sha256:c1bf71934167a7ca9abb6da06ff8d9d92f1d23cc26a348d1370b7bf402c5e870",
+            "sha256:e33e93a9c3d3dc84bc271d0008e920117f9ec4a673e515f4c0f9462dd3b71572",
+            "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+            "sha256:dcdbbf1006ce6fb29414cdcfd57b523aa975cebd05033b9cfe44a06629d86e27",
+            "sha256:6fffc32f3701b1884ae8e627c2541a4feaf0372b4f04280ba5d1521113472b7a",
+            "sha256:cf9592d2190a68dd351fd6a857d720d9f2da9a9b6562be9c649bebfe6b994bf4",
+            "sha256:e93080ab069ff786429caa39c7a401df83938c289b0b2fefd7112c2fe3954d48",
+            "sha256:7ccfbbf7bbf8a6dc02b2e6e7eb03cff383f742b68219105049e45d783525375f"
+        ],
+        "Type": "layers"
+    },
+    "Size": 38870145
+}

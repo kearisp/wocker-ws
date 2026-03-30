@@ -1,0 +1,60 @@
+{"stream":"Step 1/11 : FROM nginxproxy/nginx-proxy:1.10.1-alpine"}
+{"stream":"\n"}
+{"status":"Pulling from nginxproxy/nginx-proxy","id":"1.10.1-alpine"}
+{"status":"Digest: sha256:b8b215454139886b8d366663fbcc4e69bb0a807262a615f7e8491dbd7fb23a29"}
+{"status":"Status: Downloaded newer image for nginxproxy/nginx-proxy:1.10.1-alpine"}
+{"stream":" ---\u003e b8b215454139\n"}
+{"stream":"Step 2/11 : ENV UID=1000     GID=1000"}
+{"stream":"\n"}
+{"stream":" ---\u003e Running in fe93499011c5\n"}
+{"stream":" ---\u003e Removed intermediate container fe93499011c5\n"}
+{"stream":" ---\u003e a63a8e49bd7f\n"}
+{"stream":"Step 3/11 : COPY ./wocker-entrypoint.sh /app/wocker-entrypoint.sh"}
+{"stream":"\n"}
+{"stream":" ---\u003e cc88baf95ad8\n"}
+{"stream":"Step 4/11 : COPY ./bin/wocker-create-ca /usr/local/bin/wocker-create-ca"}
+{"stream":"\n"}
+{"stream":" ---\u003e c0a59be5bedc\n"}
+{"stream":"Step 5/11 : COPY ./bin/wocker-create-cert /usr/local/bin/wocker-create-cert"}
+{"stream":"\n"}
+{"stream":" ---\u003e c5855e77940f\n"}
+{"stream":"Step 6/11 : COPY ./bin/wocker-create-domains /usr/local/bin/wocker-create-domains"}
+{"stream":"\n"}
+{"stream":" ---\u003e 62374b6a395e\n"}
+{"stream":"Step 7/11 : RUN chmod +x /app/wocker-entrypoint.sh \u0026\u0026     chown root:root /app/wocker-entrypoint.sh \u0026\u0026     chmod +x /usr/local/bin/wocker-create-ca \u0026\u0026     chmod +x /usr/local/bin/wocker-create-cert \u0026\u0026     chmod +x /usr/local/bin/wocker-create-domains \u0026\u0026     apk add --no-cache apache2-utils shadow"}
+{"stream":"\n"}
+{"stream":" ---\u003e Running in eb130b984000\n"}
+{"stream":"(1/7) Installing apr (1.7.6-r0)\n"}
+{"stream":"(2/7) Installing apr-util (1.6.3-r2)\n"}
+{"stream":"(3/7) Installing apache2-utils (2.4.66-r0)\n"}
+{"stream":"(4/7) Installing skalibs-libs (2.14.4.0-r0)\n"}
+{"stream":"(5/7) Installing utmps-libs (0.1.3.1-r0)\n"}
+{"stream":"(6/7) Installing linux-pam (1.7.1-r2)\n"}
+{"stream":"(7/7) Installing shadow (4.18.0-r0)\n"}
+{"stream":"Executing busybox-1.37.0-r30.trigger\n"}
+{"stream":"OK: 64.1 MiB in 83 packages\n"}
+{"stream":" ---\u003e Removed intermediate container eb130b984000\n"}
+{"stream":" ---\u003e 6c689fd5d299\n"}
+{"stream":"Step 8/11 : ARG SSH_PASSWORD=''"}
+{"stream":"\n"}
+{"stream":" ---\u003e Running in 9d8c95694284\n"}
+{"stream":" ---\u003e Removed intermediate container 9d8c95694284\n"}
+{"stream":" ---\u003e 03c2c750ec9a\n"}
+{"stream":"Step 9/11 : RUN if [ -n \"$SSH_PASSWORD\" ]; then         apk update \u0026\u0026 apk add --no-cache openssh;         mkdir -p /var/run/sshd;         echo \"root:$SSH_PASSWORD\" | chpasswd;         sed -i 's/AllowTcpForwarding no/AllowTcpForwarding yes/' /etc/ssh/sshd_config;         sed -i 's/GatewayPorts no/GatewayPorts yes/' /etc/ssh/sshd_config;         sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config;         sed -i 's/#UsePAM yes/UsePAM no/' /etc/ssh/sshd_config;         ssh-keygen -A;         echo \"sshd: /usr/sbin/sshd -D\" \u003e\u003e /app/Procfile;     fi"}
+{"stream":"\n"}
+{"stream":" ---\u003e Running in 469443fec22b\n"}
+{"stream":" ---\u003e Removed intermediate container 469443fec22b\n"}
+{"stream":" ---\u003e d6803d6d7010\n"}
+{"stream":"Step 10/11 : ENTRYPOINT [\"/app/wocker-entrypoint.sh\"]"}
+{"stream":"\n"}
+{"stream":" ---\u003e Running in ce62652f4bfe\n"}
+{"stream":" ---\u003e Removed intermediate container ce62652f4bfe\n"}
+{"stream":" ---\u003e 700e44abad43\n"}
+{"stream":"Step 11/11 : CMD [\"forego\", \"start\", \"-r\"]"}
+{"stream":"\n"}
+{"stream":" ---\u003e Running in a6beebc91e2f\n"}
+{"stream":" ---\u003e Removed intermediate container a6beebc91e2f\n"}
+{"stream":" ---\u003e 57304f639007\n"}
+{"aux":{"ID":"sha256:57304f639007cc84a0e90c26602ecfa8b2e1b74bccd017a57b03a2e38cae6eb9"}}
+{"stream":"Successfully built 57304f639007\n"}
+{"stream":"Successfully tagged wocker-proxy:1.0.2\n"}

@@ -9,10 +9,6 @@ import CliTable from "cli-table3";
 import {ProxyService} from "./ProxyService";
 
 
-type CertMap = {
-    [name: string]: string[];
-};
-
 @Injectable()
 export class CertService {
     public constructor(
@@ -69,12 +65,12 @@ export class CertService {
         await this.proxyService.start(true);
     }
 
-    public getCertsMap(): CertMap {
+    public getCertsMap(): CertService.CertMap {
         const files = this.fs.readdir("certs/projects");
 
         return files.reduce((res, file) => {
-            const ext = Path.extname(file);
-            const name = Path.basename(file, ext);
+            const ext = Path.extname(file),
+                  name = Path.basename(file, ext);
 
             if(!res[name]) {
                 res[name] = [];
@@ -134,4 +130,10 @@ export class CertService {
 
         console.info(`Cert ${name} deleted`);
     }
+}
+
+export namespace CertService {
+    export type CertMap = {
+        [name: string]: string[];
+    };
 }

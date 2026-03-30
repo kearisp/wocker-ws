@@ -3,13 +3,12 @@ import {
     AppConfigService,
     AppFileSystemService,
     Project,
-    ProjectRepository as CoreProjectRepository,
-    ProjectRepositorySearchParams as SearchParams
+    ProjectRepository as CoreProjectRepository
 } from "@wocker/core";
 
 
 @Injectable()
-export class ProjectRepository extends CoreProjectRepository{
+export class ProjectRepository extends CoreProjectRepository {
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly fs: AppFileSystemService
@@ -56,7 +55,7 @@ export class ProjectRepository extends CoreProjectRepository{
         this.appConfigService.save();
     }
 
-    public search(params: SearchParams = {}): Project[] {
+    public search(params: ProjectRepository.SearchParams = {}): Project[] {
         const {name, path} = params,
               projects: Project[] = [];
 
@@ -77,9 +76,13 @@ export class ProjectRepository extends CoreProjectRepository{
         return projects;
     }
 
-    public searchOne(params: SearchParams = {}): Project | null {
+    public searchOne(params: ProjectRepository.SearchParams = {}): Project | null {
         const [project] = this.search(params);
 
         return project || null;
     }
+}
+
+export namespace ProjectRepository {
+    export type SearchParams = CoreProjectRepository.SearchParams;
 }

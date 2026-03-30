@@ -472,8 +472,10 @@ export class ProjectController {
 
         project.save();
 
+        await this.eventService.emit("project:add-domain", project, addDomains);
+
         // const container = await this.dockerService.getContainer(`${project.name}.workspace`);
-        //
+
         // if(container) {
         //     await this.projectService.stop(project);
         //     await this.projectService.start(project);
