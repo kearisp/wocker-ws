@@ -27,31 +27,50 @@ export class HttpAuthController {
         console.log("New domains:", domains);
     }
 
+    @Command("http-auth")
+    @Description("")
+    public async users() {
+        await this.httpAuthService.usersForProject(
+            this.projectService.get()
+        );
+    }
+
     @Command("http-auth:enable")
     public async enable(
         @Option("domain", "d")
         @Description("Domain to apply authentication to.")
-        domain?: string
+        domain?: string,
+        @Option("no-restart")
+        @Description("")
+        noRestart?: boolean
     ) {
         await this.httpAuthService.enableForProject(
             this.projectService.get(),
             domain
         );
 
-        await this.proxyService.start(true);
+        if(!noRestart) {
+            await this.proxyService.start(true);
+        }
     }
 
     @Command("http-auth:disable")
     public async disable(
         @Option("domain", "d")
-        domain?: string
+        @Description("")
+        domain?: string,
+        @Option("no-restart")
+        @Description("")
+        noRestart?: boolean
     ) {
         await this.httpAuthService.disableForProject(
             this.projectService.get(),
             domain
         );
 
-        await this.proxyService.start(true);
+        if(!noRestart) {
+            await this.proxyService.start(true);
+        }
     }
 
     @Command("http-auth:add-user")
@@ -99,11 +118,10 @@ export class HttpAuthController {
                 algorithm
             );
         }
-
-        await this.proxyService.start(true);
     }
 
-    @Command("http-auth:remove [user]")
+    @Command("http-auth:remove-user [user]")
+    @Description("")
     public async remove(
         @Param("user")
         user?: string
@@ -115,7 +133,10 @@ export class HttpAuthController {
     }
 
     @Command("http-auth:clear")
+    @Description("Remove all users for the project.")
     public async clear() {
-        //
+        await this.httpAuthService.clearForProject(
+            this.projectService.get()
+        );
     }
 }

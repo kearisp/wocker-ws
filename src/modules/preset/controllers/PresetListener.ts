@@ -2,8 +2,8 @@ import {
     Controller,
     Event,
     Project,
-    PROJECT_TYPE_PRESET,
-    AppConfigService
+    ProjectType,
+    AppService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
 import {promptInput, promptSelect, volumeFormat, volumeParse} from "@wocker/utils";
@@ -15,7 +15,7 @@ import {injectVariables} from "../../../utils";
 @Controller()
 export class PresetListener {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly dockerService: DockerService,
         protected readonly presetRepository: PresetRepository,
         protected readonly presetService: PresetService
@@ -23,7 +23,7 @@ export class PresetListener {
 
     @Event("project:init")
     public async onInit(project: Project): Promise<void> {
-        if(project.type !== PROJECT_TYPE_PRESET) {
+        if(project.type !== ProjectType.PRESET) {
             return;
         }
 
@@ -112,7 +112,7 @@ export class PresetListener {
 
     @Event("project:rebuild")
     protected async onRebuild(project: Project): Promise<void> {
-        if(project.type !== PROJECT_TYPE_PRESET) {
+        if(project.type !== ProjectType.PRESET) {
             return;
         }
 
@@ -134,7 +134,7 @@ export class PresetListener {
 
     @Event("project:beforeStart")
     protected async onBeforeStart(project: Project): Promise<void> {
-        if(project.type !== PROJECT_TYPE_PRESET) {
+        if(project.type !== ProjectType.PRESET) {
             return;
         }
 
@@ -145,7 +145,7 @@ export class PresetListener {
 
             if(!await this.dockerService.imageExists(project.imageName)) {
                 await this.dockerService.buildImage({
-                    version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
+                    version: this.appService.isExperimentalEnabled("buildKit") ? "2" : "1",
                     tag: project.imageName,
                     labels: {
                         presetName: preset.name

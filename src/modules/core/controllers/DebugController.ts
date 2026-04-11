@@ -1,24 +1,23 @@
 import {
     Command,
-    Description,
     Param,
     Completion,
     Controller,
     LogService,
-    AppConfigService
+    AppService
 } from "@wocker/core";
 
 
 @Controller()
 export class DebugController {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly logService: LogService
     ) {}
 
     @Command("debug")
     public async debug(): Promise<string> {
-        return this.appConfigService.debug ? "on" : "off";
+        return this.appService.debug ? "on" : "off";
     }
 
     @Command("debug:<status>")
@@ -27,24 +26,7 @@ export class DebugController {
         @Param("status")
         status: string
     ): Promise<void> {
-        this.appConfigService.debug = status === "on";
-        this.appConfigService.save();
-    }
-
-    @Description("Set the log level (options: debug, log, info, warn, error)")
-    @Command("loglevel <level>")
-    public async setLog(
-        @Param("level")
-        level: string
-    ): Promise<void> {
-        const validLevels = this.getLevels();
-
-        if(!validLevels.includes(level)) {
-            throw new Error(`Invalid log level: ${level}. Valid options are ${validLevels.join(', ')}`);
-        }
-
-        this.appConfigService.config.logLevel = level as any;
-        this.appConfigService.save();
+        this.appService.debug = status === "on";
     }
 
     @Command("log:<level> [...args]")

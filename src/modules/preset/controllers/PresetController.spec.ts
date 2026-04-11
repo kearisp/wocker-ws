@@ -1,7 +1,7 @@
 import {describe, it, expect, beforeEach} from "@jest/globals";
 import {
     PRESET_SOURCE_EXTERNAL,
-    AppConfigService,
+    AppService,
     ApplicationContext,
     FILE_SYSTEM_DRIVER_KEY,
     WOCKER_DATA_DIR_KEY,
@@ -59,7 +59,7 @@ describe("PresetController", (): void => {
             "Correct": true
         });
 
-        const appConfigService = context.get(AppConfigService);
+        const appService = context.get(AppService);
 
         await context.run(["node", "ws", "preset:init"]);
 
@@ -71,7 +71,7 @@ describe("PresetController", (): void => {
             type: "dockerfile",
             dockerfile: "Dockerfile"
         })
-        expect(appConfigService.config.presets).toEqual([
+        expect(appService.config.presets).toEqual([
             {
                 name: "test",
                 source: PRESET_SOURCE_EXTERNAL,

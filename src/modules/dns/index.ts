@@ -1,7 +1,7 @@
 import {
     Module,
     DynamicModule,
-    AppConfigService
+    AppService
 } from "@wocker/core";
 import DockerModule from "@wocker/docker-module";
 import {CoreModule} from "../core";
@@ -18,9 +18,9 @@ export class DnsModule {
     public static register(): DynamicModule {
         return {
             module: DnsModule,
-            inject: [AppConfigService],
-            useFactory: (appConfigService: AppConfigService) => {
-                if(!appConfigService.isExperimentalEnabled("dns")) {
+            inject: [AppService],
+            useFactory: (appService: AppService) => {
+                if(!appService.isExperimentalEnabled("dns")) {
                     return {};
                 }
 

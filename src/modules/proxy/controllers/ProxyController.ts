@@ -6,7 +6,7 @@ import {
     Description,
     Option,
     Project,
-    AppConfigService
+    AppService
 } from "@wocker/core";
 import {promptConfirm, promptInput} from "@wocker/utils";
 import colors from "yoctocolors-cjs";
@@ -18,7 +18,7 @@ import {ProxyService} from "../services/ProxyService";
 @Description("Proxy commands")
 export class ProxyController {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly projectService: ProjectService,
         protected readonly proxyService: ProxyService
     ) {}
@@ -79,7 +79,7 @@ export class ProxyController {
         })
         sshPassword?: string
     ): Promise<void> {
-        const config = this.appConfigService.config;
+        const config = this.appService.config;
 
         if(httpPort === null || typeof httpPort === "undefined" || isNaN(httpPort)) {
             httpPort = await promptInput({
@@ -136,7 +136,7 @@ export class ProxyController {
             config.unsetMeta("PROXY_SSH_PORT");
         }
 
-        this.appConfigService.save();
+        this.appService.save();
     }
 
     @Command("proxy:start")

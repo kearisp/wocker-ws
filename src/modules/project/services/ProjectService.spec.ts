@@ -1,12 +1,13 @@
 import {describe, it, expect, beforeAll, beforeEach} from "@jest/globals";
 import {vol} from "memfs";
 import {
+    AsyncStorage,
+    Container,
     ApplicationContext,
     ProcessService,
+    ProjectType,
     FILE_SYSTEM_DRIVER_KEY,
-    WOCKER_DATA_DIR_KEY,
-    PROJECT_TYPE_IMAGE,
-    PROJECT_TYPE_DOCKERFILE
+    WOCKER_DATA_DIR_KEY
 } from "@wocker/core";
 import DockerModule, {Fixtures} from "@wocker/docker-mock-module";
 import {Test} from "@wocker/testing";
@@ -36,19 +37,19 @@ describe("ProjectService", (): void => {
             [`projects/${PROJECT_1_NAME}/config.json`]: JSON.stringify({
                 id: PROJECT_1_NAME,
                 name: PROJECT_1_NAME,
-                type: PROJECT_TYPE_IMAGE,
+                type: ProjectType.IMAGE,
                 image: "node:latest"
             }),
             [`projects/${PROJECT_2_NAME}/config.json`]: JSON.stringify({
                 id: PROJECT_2_NAME,
                 name: PROJECT_2_NAME,
-                type: PROJECT_TYPE_DOCKERFILE,
+                type: ProjectType.DOCKERFILE,
                 dockerfile: "./Dockerfile"
             }),
             [`projects/${PROJECT_3_NAME}/config.json`]: JSON.stringify({
                 id: PROJECT_3_NAME,
                 name: PROJECT_3_NAME,
-                type: PROJECT_TYPE_DOCKERFILE,
+                type: ProjectType.DOCKERFILE,
                 dockerfile: "./Dockerfile"
             }),
             "wocker.config.json": JSON.stringify({
@@ -95,26 +96,34 @@ describe("ProjectService", (): void => {
                     ProjectRepository,
                     PresetService,
                     PresetRepository
+                ],
+                exports: [
+                    ProjectRepository
                 ]
             })
             .overrideProvider(FILE_SYSTEM_DRIVER_KEY).useValue(vol)
             .overrideProvider(WOCKER_DATA_DIR_KEY).useValue(WOCKER_DATA_DIR)
             .build();
+
+        AsyncStorage.enterWith(context.get(Container));
     });
 
     it("should get project by name", async (): Promise<void> => {
+        AsyncStorage.enterWith(context.get(Container));
+
         const projectService = context.get(ProjectService);
 
         const project1 = projectService.get(PROJECT_1_NAME);
 
         expect(project1).not.toBeNull();
-        expect(project1.id).toBe(PROJECT_1_NAME);
         expect(project1.name).toBe(PROJECT_1_NAME);
         expect(project1.path).toBe(PROJECT_1_PATH);
-        expect(project1.type).toBe(PROJECT_TYPE_IMAGE);
+        expect(project1.type).toBe(ProjectType.IMAGE);
     });
 
     it("should get project from dir", async (): Promise<void> => {
+        AsyncStorage.enterWith(context.get(Container));
+
         const projectService = context.get(ProjectService),
               processService = context.get(ProcessService);
 
@@ -123,13 +132,14 @@ describe("ProjectService", (): void => {
         const project2 = projectService.get();
 
         expect(project2).not.toBeNull();
-        expect(project2.id).toBe(PROJECT_2_NAME);
         expect(project2.name).toBe(PROJECT_2_NAME);
         expect(project2.path).toBe(PROJECT_2_PATH);
-        expect(project2.type).toBe(PROJECT_TYPE_DOCKERFILE);
+        expect(project2.type).toBe(ProjectType.DOCKERFILE);
     });
 
     it("should throw error when project not found", async (): Promise<void> => {
+        AsyncStorage.enterWith(context.get(Container));
+
         const processService = context.get(ProcessService),
               projectService = context.get(ProjectService);
 

@@ -5,7 +5,6 @@ import {
     ProcessService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
-import {demuxOutput} from "@wocker/utils";
 import {ProxyService} from "./ProxyService";
 
 
@@ -17,6 +16,14 @@ export class HttpAuthService {
         protected readonly dockerService: DockerService,
         protected readonly proxyService: ProxyService
     ) {}
+
+    public async users(path: string) {
+        await this.dockerService.exec("wocker-proxy", {
+            tty: true,
+            user: "nginx",
+            cmd: ["cut", "-d:", "-f1", `/etc/${path}`]
+        });
+    }
 
     public async add(path: string, user: string, password: string, algorithm: HttpAuthService.Algorithm = "md5") {
         const alMap = {
@@ -37,18 +44,10 @@ export class HttpAuthService {
             });
         }
 
-        const stream = await this.dockerService.exec("wocker-proxy", {
+        await this.dockerService.exec("wocker-proxy", {
             user: "nginx",
-            cmd: ["htpasswd", "-b", alMap[algorithm], `/etc/${path}`, user, password]
-        });
-
-        await new Promise((resolve, reject) => {
-            stream.on("data", (chunk) => {
-                this.processService.stdout.write(demuxOutput(chunk));
-            });
-
-            stream.on("end", resolve);
-            stream.on("error", reject);
+            cmd: ["htpasswd", "-b", alMap[algorithm], `/etc/${path}`, user, password],
+            tty: true
         });
     }
 
@@ -72,7 +71,21 @@ export class HttpAuthService {
     }
 
     public async removeUser(path: string, user: string) {
+        await this.dockerService.exec("wocker-proxy", {
+            cmd: ["htpasswd", "-D", `/etc/${path}`, user],
+            user: "nginx",
+            tty: true
+        });
+    }
 
+    public async usersForProject(project: Project) {
+        if(!this.fs.exists("nginx/htpasswd/projects")) {
+            return;
+        }
+
+        await this.users(
+            `nginx/htpasswd/projects/${project.name}`
+        )
     }
 
     public async removeForProject(project: Project, user: string) {
@@ -84,6 +97,16 @@ export class HttpAuthService {
             `nginx/htpasswd/projects/${project.name}`,
             user
         );
+    }
+
+    public async clearForProject(project: Project) {
+        const filePath = `nginx/htpasswd/projects/${project.name}`;
+
+        if(this.fs.exists(filePath)) {
+            this.fs.writeFile(filePath, "", {
+                mode: 0o640
+            });
+        }
     }
 
     public async enableForProject(project: Project, domain?: string) {

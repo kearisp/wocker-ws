@@ -4,7 +4,7 @@ import {
     Param,
     Completion,
     Description,
-    AppConfigService
+    AppService
 } from "@wocker/core";
 import {PluginService} from "../services/PluginService";
 
@@ -13,7 +13,7 @@ import {PluginService} from "../services/PluginService";
 @Description("Plugin commands")
 export class PluginController {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly pluginService: PluginService
     ) {}
 
@@ -56,6 +56,6 @@ export class PluginController {
 
     @Completion("names", "plugin:remove <...names>")
     public getInstalledPlugins(): string[] {
-        return this.appConfigService.plugins.map(pluginRef => pluginRef.name);
+        return this.appService.plugins.map(pluginRef => pluginRef.name);
     }
 }

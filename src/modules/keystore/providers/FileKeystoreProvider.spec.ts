@@ -4,8 +4,8 @@ import {FileKeystoreProvider} from "./FileKeystoreProvider";
 
 describe("FileKeystoreProvider", () => {
     it("", () => {
-        // const appConfigService = new AppConfigService(),
-        //       fileKeystoreProvider = new FileKeystoreProvider(appConfigService);
+        // const appService = new AppService(),
+        //       fileKeystoreProvider = new FileKeystoreProvider(appService);
 
         expect(1).toEqual(1);
     });

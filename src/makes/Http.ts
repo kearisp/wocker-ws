@@ -9,7 +9,7 @@ export class Http {
     private constructor(
         public readonly method: HttpMethod = "GET",
         public readonly url: string,
-        public body?: any,
+        public body?: any
     ) {
         this.headers = new AxiosHeaders();
     }

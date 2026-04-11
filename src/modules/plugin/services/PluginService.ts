@@ -1,13 +1,15 @@
 import {
     Cli,
     Injectable,
-    AppConfigService,
-    LogService
+    AppService,
+    LogService,
+    Version,
+    VersionRule
 } from "@wocker/core";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
 import {PackageManager, RegistryService} from "../../package-manager";
-import {Plugin, Version, VersionRule} from "../../../makes";
+import {Plugin} from "../../../makes";
 
 
 @Injectable()
@@ -15,7 +17,7 @@ export class PluginService {
     protected rule = "1.x.x";
 
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly pm: PackageManager,
         protected readonly registryService: RegistryService,
         protected readonly logService: LogService,
@@ -28,11 +30,11 @@ export class PluginService {
             colWidths: [30]
         });
 
-        if(this.appConfigService.plugins.length === 0) {
+        if(this.appService.plugins.length === 0) {
             return colors.gray("No plugins installed");
         }
 
-        for(const plugin of this.appConfigService.plugins) {
+        for(const plugin of this.appService.plugins) {
             table.push([plugin.name, plugin.env]);
         }
 
@@ -89,8 +91,7 @@ export class PluginService {
             await this.pm.install(fullName, bestSatisfyingVersion);
         }
 
-        this.appConfigService.addPlugin(fullName, version);
-        this.appConfigService.save();
+        this.appService.addPlugin(fullName, version);
 
         console.info(`Plugin ${fullName} activated`);
     }
@@ -108,8 +109,7 @@ export class PluginService {
             await this.pm.uninstall(fullName);
         }
 
-        this.appConfigService.removePlugin(fullName);
-        this.appConfigService.save();
+        this.appService.removePlugin(fullName);
 
         console.info(`Plugin ${fullName} deactivated`);
     }
@@ -121,12 +121,12 @@ export class PluginService {
     }
 
     public async update(): Promise<void> {
-        if(this.appConfigService.plugins.length === 0) {
+        if(this.appService.plugins.length === 0) {
             console.info("No plugins installed");
             return;
         }
 
-        for(const plugin of this.appConfigService.plugins) {
+        for(const plugin of this.appService.plugins) {
             console.info(`Checking ${plugin.name}...`);
 
             try {

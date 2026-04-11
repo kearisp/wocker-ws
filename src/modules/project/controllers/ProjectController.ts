@@ -4,20 +4,16 @@ import {
     Description,
     Option,
     Param,
-    AppConfigService,
+    AppService,
     AppFileSystemService,
     FileSystemManager,
     ProcessService,
-    ProjectType,
     EventService,
     FileSystem,
     Project,
+    ProjectType,
     Completion,
-    LogService,
-    PROJECT_TYPE_IMAGE,
-    PROJECT_TYPE_DOCKERFILE,
-    PROJECT_TYPE_PRESET,
-    PROJECT_TYPE_COMPOSE
+    LogService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
 import {promptConfirm, promptSelect, promptInput} from "@wocker/utils";
@@ -33,7 +29,7 @@ import {ProjectService} from "../services/ProjectService";
 @Description("Project commands")
 export class ProjectController {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly fs: AppFileSystemService,
         protected readonly processService: ProcessService,
         protected readonly projectService: ProjectService,
@@ -81,11 +77,10 @@ export class ProjectController {
         });
 
         if(!project) {
-            project = new Project({
-                type: PROJECT_TYPE_IMAGE,
-                name: fs.basename(),
-                path: fs.path()
-            });
+            project = new Project(
+                fs.basename(),
+                fs.path()
+            );
         }
 
         project.path = fs.path();
@@ -124,7 +119,7 @@ export class ProjectController {
             project.type = type;
         }
 
-        const mapTypes = this.appConfigService.getProjectTypes();
+        const mapTypes = this.appService.getProjectTypes();
 
         if(!type || !project.type || !mapTypes[project.type]) {
             project.type = await promptSelect<ProjectType>({
@@ -136,7 +131,7 @@ export class ProjectController {
         }
 
         switch(project.type) {
-            case PROJECT_TYPE_DOCKERFILE: {
+            case ProjectType.DOCKERFILE: {
                 const files = fs.readdir();
 
                 const dockerfiles = files.filter((fileName: string) => {
@@ -164,7 +159,7 @@ export class ProjectController {
                 break;
             }
 
-            case PROJECT_TYPE_IMAGE: {
+            case ProjectType.IMAGE: {
                 project.imageName = await promptInput({
                     message: "Image name",
                     required: true,
@@ -173,7 +168,7 @@ export class ProjectController {
                 break;
             }
 
-            case PROJECT_TYPE_COMPOSE: {
+            case ProjectType.COMPOSE: {
                 const composeFiles = fs.readdir().filter((file: string) => {
                     return /docker-compose\./.test(file);
                 });
@@ -191,7 +186,7 @@ export class ProjectController {
                 break;
             }
 
-            case PROJECT_TYPE_PRESET:
+            case ProjectType.PRESET:
                 break;
 
             default:
@@ -214,8 +209,7 @@ export class ProjectController {
 
         await this.projectService.stop(project);
 
-        this.appConfigService.removeProject(project.name);
-        this.appConfigService.save();
+        this.appService.removeProject(project.name);
         this.fs.rm(`projects/${project.name}`, {
             recursive: true
         });
@@ -622,7 +616,7 @@ export class ProjectController {
         const project = this.projectService.get(name);
 
         if(project.ports) {
-            delete project.ports;
+            project.ports = [];
 
             project.save();
         }
@@ -645,10 +639,10 @@ export class ProjectController {
         });
 
         if(global) {
-            for(const i in this.appConfigService.config.env) {
+            for(const i in this.appService.config.env) {
                 table.push([
                     i,
-                    this.appConfigService.config.env[i]
+                    this.appService.config.env[i]
                 ]);
             }
         }
@@ -702,7 +696,7 @@ export class ProjectController {
         global: boolean
     ): Promise<string> {
         let config = global
-            ? this.appConfigService.config
+            ? this.appService.config
             : this.projectService.get(name);
 
         const table = new CliTable({
@@ -745,10 +739,8 @@ export class ProjectController {
                     continue;
                 }
 
-                this.appConfigService.setEnv(key.trim(), value.trim());
+                this.appService.setEnv(key.trim(), value.trim());
             }
-
-            this.appConfigService.save();
             return;
         }
 
@@ -792,11 +784,8 @@ export class ProjectController {
 
         if(global) {
             for(const i in env) {
-                this.appConfigService.unsetEnv(i);
+                this.appService.unsetEnv(i);
             }
-
-            this.appConfigService.save();
-
             return;
         }
 
@@ -960,7 +949,7 @@ export class ProjectController {
                 copier.copy(preset.dockerfile);
             }
 
-            project.type = "dockerfile";
+            project.type = ProjectType.DOCKERFILE;
             project.dockerfile = preset.dockerfile;
         }
 
