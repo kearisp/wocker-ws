@@ -723,6 +723,8 @@ export class ProjectController {
         variables: string[],
         @Option("global", "g")
         global: boolean,
+        @Option("local", "l")
+        local: boolean,
         @Option("name", "n")
         @Description("The name of the project")
         name: string,
@@ -754,7 +756,9 @@ export class ProjectController {
                 continue;
             }
 
-            project.setEnv(key, value, service);
+            const config = !local ? project.configs.app : project.configs.project;
+
+            config.setEnv(key, value, service);
         }
 
         project.save();
@@ -767,6 +771,8 @@ export class ProjectController {
         configs: string[],
         @Option("global", "g")
         global?: boolean,
+        @Option("local", "l")
+        local?: boolean,
         @Option("name", "n")
         @Description("The name of the project")
         name?: string,
@@ -792,7 +798,11 @@ export class ProjectController {
         const project = this.projectService.get(name);
 
         for(const i in env) {
-            project.unsetEnv(i, service);
+            const config = !local
+                ? project.configs.app
+                : project.configs.project;
+
+            config.unsetEnv(i, service)
         }
 
         project.save();

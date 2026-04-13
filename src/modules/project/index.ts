@@ -4,7 +4,6 @@ import {KeystoreModule} from "../keystore";
 import {PresetModule} from "../preset";
 import {ProjectController} from "./controllers/ProjectController";
 import {SecretsController} from "./controllers/SecretsController";
-import {ProjectRepository} from "./repositories/ProjectRepository";
 import {ProjectService} from "./services/ProjectService";
 
 
@@ -19,16 +18,13 @@ import {ProjectService} from "./services/ProjectService";
         SecretsController
     ],
     providers: [
-        ProjectRepository,
         ProjectService
     ],
     exports: [
-        ProjectRepository,
         ProjectService
     ]
 })
 export class ProjectModule {}
 export {
-    ProjectRepository,
     ProjectService
 };

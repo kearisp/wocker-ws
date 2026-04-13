@@ -7,12 +7,12 @@ import {
     ProcessService,
     Project,
     ProjectType,
+    ProjectRepository,
     ProjectService as CoreProjectService
 } from "@wocker/core";
 import {ComposeService, DockerService} from "@wocker/docker-module";
 import {Cli} from "@kearisp/cli";
 import {PresetRepository, PresetService} from "../../preset";
-import {ProjectRepository} from "../repositories/ProjectRepository";
 
 
 class PublicCli extends Cli {

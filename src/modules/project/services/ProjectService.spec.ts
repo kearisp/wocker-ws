@@ -6,6 +6,7 @@ import {
     ApplicationContext,
     ProcessService,
     ProjectType,
+    ProjectRepository,
     FILE_SYSTEM_DRIVER_KEY,
     WOCKER_DATA_DIR_KEY
 } from "@wocker/core";
@@ -14,7 +15,6 @@ import {Test} from "@wocker/testing";
 import {KeystoreModule} from "../../keystore";
 import {PresetService, PresetRepository} from "../../preset";
 import {ProjectService} from "./ProjectService";
-import {ProjectRepository} from "../repositories/ProjectRepository";
 import {ROOT_DIR, WOCKER_DATA_DIR} from "../../../env";
 import {CoreModule} from "../../core";
 
