@@ -6,7 +6,7 @@ import {
     AppService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
-import {promptInput, promptSelect, volumeFormat, volumeParse} from "@wocker/utils";
+import {promptInput, promptSelect, Volume} from "@wocker/utils";
 import {PresetRepository} from "../repositories/PresetRepository";
 import {PresetService} from "../services/PresetService";
 import {injectVariables} from "../../../utils";
@@ -84,7 +84,7 @@ export class PresetListener {
                     source,
                     destination,
                     options
-                } = volumeParse(volume);
+                } = Volume.parse(volume);
 
                 let projectVolume = project.getVolumeByDestination(destination);
 
@@ -92,14 +92,14 @@ export class PresetListener {
                     message: "Volume",
                     required: true,
                     suffix: `:${destination}`,
-                    default: projectVolume ? volumeParse(projectVolume).source : source
+                    default: projectVolume ? Volume.parse(projectVolume).source : source
                 });
 
-                projectVolume = volumeFormat({
-                    source: newSource,
+                projectVolume = new Volume(
+                    newSource,
                     destination,
                     options
-                });
+                ).toString();
 
                 project.volumeMount(projectVolume);
             }

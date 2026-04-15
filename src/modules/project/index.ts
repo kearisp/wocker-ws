@@ -3,6 +3,7 @@ import DockerModule from "@wocker/docker-module";
 import {KeystoreModule} from "../keystore";
 import {PresetModule} from "../preset";
 import {ProjectController} from "./controllers/ProjectController";
+import {MetadataController} from "./controllers/MetadataController";
 import {SecretsController} from "./controllers/SecretsController";
 import {ProjectService} from "./services/ProjectService";
 
@@ -15,7 +16,8 @@ import {ProjectService} from "./services/ProjectService";
     ],
     controllers: [
         ProjectController,
-        SecretsController
+        SecretsController,
+        MetadataController
     ],
     providers: [
         ProjectService

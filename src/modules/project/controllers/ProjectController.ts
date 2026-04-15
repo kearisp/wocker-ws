@@ -203,9 +203,23 @@ export class ProjectController {
     public async destroy(
         @Option("name", "n")
         @Description("The name of the project")
-        name?: string
+        name?: string,
+        @Option("yes", "y")
+        @Description("Skip confirmation prompt")
+        yes?: boolean
     ): Promise<void> {
         const project = this.projectService.get(name);
+
+        if(!yes) {
+            const confirm = await promptConfirm({
+                message: `Are you sure you want to ${colors.red(`delete "${colors.bold(project.name)}"`)}? This action cannot be undone.`,
+                default: false
+            });
+
+            if(!confirm) {
+                throw new Error("Aborted");
+            }
+        }
 
         await this.projectService.stop(project);
 
@@ -743,13 +757,18 @@ export class ProjectController {
 
                 this.appService.setEnv(key.trim(), value.trim());
             }
+
             return;
         }
 
         const project = this.projectService.get(name);
 
         for(const variable of variables) {
-            const [key, value] = variable.split("=");
+            const [, key, value] = /^([^=]+)=(.*)$/.exec(variable) || [];
+
+            if(!key) {
+                continue;
+            }
 
             if(!value) {
                 console.info(colors.yellow(`No value for "${key}"`));
