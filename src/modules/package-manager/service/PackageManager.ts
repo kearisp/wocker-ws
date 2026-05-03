@@ -2,7 +2,7 @@ import {
     AppService,
     Injectable
 } from "@wocker/core";
-import {promptSelect} from "@wocker/utils";
+import {promptSelect} from "@wocker/prompts";
 import {NpmProvider} from "../providers/NpmProvider";
 import {PnpmProvider} from "../providers/PnpmProvider";
 import {YarnProvider} from "../providers/YarnProvider";

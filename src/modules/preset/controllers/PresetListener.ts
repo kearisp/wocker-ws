@@ -3,13 +3,15 @@ import {
     Event,
     Project,
     ProjectType,
-    AppService
+    AppService,
+    PresetMode
 } from "@wocker/core";
+import {Interpolator} from "@wocker/utils";
 import {DockerService} from "@wocker/docker-module";
-import {promptInput, promptSelect, Volume} from "@wocker/utils";
+import {promptInput, promptSelect} from "@wocker/prompts";
+import {Volume} from "@wocker/utils";
 import {PresetRepository} from "../repositories/PresetRepository";
 import {PresetService} from "../services/PresetService";
-import {injectVariables} from "../../../utils";
 
 
 @Controller()
@@ -20,6 +22,10 @@ export class PresetListener {
         protected readonly presetRepository: PresetRepository,
         protected readonly presetService: PresetService
     ) {}
+
+    protected get interpolator() {
+        return new Interpolator();
+    }
 
     @Event("project:init")
     public async onInit(project: Project): Promise<void> {
@@ -46,16 +52,7 @@ export class PresetListener {
 
         project.presetMode = await promptSelect({
             message: "Preset mode",
-            options: [
-                {
-                    label: "For project only",
-                    value: "project"
-                },
-                {
-                    label: "Global usage",
-                    value: "global"
-                }
-            ],
+            options: PresetMode.options(),
             default: project.presetMode
         });
 
@@ -75,7 +72,7 @@ export class PresetListener {
 
         if(preset.volumeOptions) {
             for(let volume of preset.volumeOptions) {
-                volume = injectVariables(volume, {
+                volume = this.interpolator.interpolate(volume, {
                     ...project.buildArgs || {},
                     ...project.env || {}
                 });

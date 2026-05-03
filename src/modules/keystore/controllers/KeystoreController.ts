@@ -5,7 +5,7 @@ import {
     Option,
     AppService
 } from "@wocker/core";
-import {promptSelect} from "@wocker/utils";
+import {promptSelect} from "@wocker/prompts";
 import {KeystoreService} from "../services/KeystoreService";
 
 

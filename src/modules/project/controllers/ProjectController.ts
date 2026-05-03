@@ -16,7 +16,7 @@ import {
     LogService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
-import {promptConfirm, promptSelect, promptInput} from "@wocker/utils";
+import {promptConfirm, promptSelect, promptInput} from "@wocker/prompts";
 import Path from "path";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";

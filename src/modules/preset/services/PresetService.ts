@@ -12,8 +12,8 @@ import {
     Version,
     VersionRule
 } from "@wocker/core";
-import {promptSelect, promptInput, promptConfirm, normalizeOptions} from "@wocker/utils";
-import md5 from "md5";
+import {promptSelect, promptInput, promptConfirm, normalizeOptions} from "@wocker/prompts";
+import crypto from "crypto";
 import {PresetRepository} from "../repositories/PresetRepository";
 import {GithubBranch, GithubClient, GithubTag} from "../../../makes/GithubClient";
 
@@ -142,7 +142,7 @@ export class PresetService {
 
         const version = [
             ...rawValues,
-            (md5(hashValues.join(",")) as string).substring(0, 6)
+            crypto.createHash("md5").update(hashValues.join(","), "utf8").digest("hex").substring(0, 6)
         ].filter((value) => {
             return !!value;
         }).join("-");

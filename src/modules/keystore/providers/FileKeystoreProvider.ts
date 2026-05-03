@@ -3,7 +3,7 @@ import {
     AppFileSystemService,
     KeystoreProvider
 } from "@wocker/core";
-import {promptInput} from "@wocker/utils";
+import {promptInput} from "@wocker/prompts";
 // noinspection ES6PreferShortImport
 import {FileKeystore} from "../types/FileKeystore";
 import {encrypt, decrypt, verifyPasswordHash, createPasswordHash, createEncryptionKey} from "../utils";

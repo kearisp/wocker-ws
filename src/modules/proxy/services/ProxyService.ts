@@ -7,7 +7,7 @@ import {
     ProxyService as CoreProxyService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
-import {promptInput} from "@wocker/utils";
+import {promptInput} from "@wocker/prompts";
 import * as Path from "path";
 import {PLUGINS_DIR} from "../../../env";
 

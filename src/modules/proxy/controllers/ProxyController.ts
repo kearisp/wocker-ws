@@ -8,7 +8,7 @@ import {
     Project,
     AppService
 } from "@wocker/core";
-import {promptConfirm, promptInput} from "@wocker/utils";
+import {promptConfirm, promptInput} from "@wocker/prompts";
 import colors from "yoctocolors-cjs";
 import {ProjectService} from "../../project";
 import {ProxyService} from "../services/ProxyService";

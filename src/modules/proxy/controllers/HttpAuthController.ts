@@ -7,7 +7,7 @@ import {
     Event,
     Project
 } from "@wocker/core";
-import {promptInput} from "@wocker/utils";
+import {promptInput} from "@wocker/prompts";
 import {ProjectService} from "../../project";
 import {HttpAuthService} from "../services/HttpAuthService";
 import {ProxyService} from "../services/ProxyService";
@@ -21,11 +21,6 @@ export class HttpAuthController {
         protected readonly httpAuthService: HttpAuthService,
         protected readonly proxyService: ProxyService
     ) {}
-
-    @Event("project:add-domain")
-    public async onAddDomain(project: Project, ...domains: string[]) {
-        console.log("New domains:", domains);
-    }
 
     @Command("http-auth")
     @Description("")
