@@ -160,10 +160,10 @@ export class ProjectController {
             }
 
             case ProjectType.IMAGE: {
-                project.imageName = await promptInput({
+                project.image = await promptInput({
                     message: "Image name",
                     required: true,
-                    default: project.imageName
+                    default: project.image
                 });
                 break;
             }
