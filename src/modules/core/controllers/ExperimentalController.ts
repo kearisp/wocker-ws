@@ -5,7 +5,7 @@ import {
     Command,
     Param,
     UsageException,
-    AppConfigService
+    AppService
 } from "@wocker/core";
 
 
@@ -13,7 +13,7 @@ import {
 @Description("Manage experimental features")
 export class ExperimentalController {
     public constructor(
-        protected readonly appService: AppConfigService
+        protected readonly appService: AppService
     ) {}
 
     @Command("experimental:enable [feature]")

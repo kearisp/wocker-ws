@@ -3,9 +3,9 @@ import {
     Command,
     Description,
     Option,
-    AppConfigService
+    AppService
 } from "@wocker/core";
-import {promptSelect} from "@wocker/utils";
+import {promptSelect} from "@wocker/prompts";
 import {KeystoreService} from "../services/KeystoreService";
 
 
@@ -13,7 +13,7 @@ import {KeystoreService} from "../services/KeystoreService";
 @Description("Keystore commands")
 export class KeystoreController {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly keystoreService: KeystoreService
     ) {}
 
@@ -30,7 +30,7 @@ export class KeystoreController {
                 message: "Keystore provider",
                 type: "text",
                 options: ["file", "keytar"],
-                default: this.appConfigService.config.keystore
+                default: this.appService.config.keystore
             });
         }
 
@@ -38,7 +38,7 @@ export class KeystoreController {
             throw new Error(`Provider "${provider}" not found`);
         }
 
-        this.appConfigService.config.keystore = provider;
-        this.appConfigService.save();
+        this.appService.config.keystore = provider;
+        this.appService.save();
     }
 }

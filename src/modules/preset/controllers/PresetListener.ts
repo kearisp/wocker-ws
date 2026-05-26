@@ -2,28 +2,34 @@ import {
     Controller,
     Event,
     Project,
-    PROJECT_TYPE_PRESET,
-    AppConfigService
+    ProjectType,
+    AppService,
+    PresetMode
 } from "@wocker/core";
+import {Interpolator} from "@wocker/utils";
 import {DockerService} from "@wocker/docker-module";
-import {promptInput, promptSelect, volumeFormat, volumeParse} from "@wocker/utils";
+import {promptInput, promptSelect} from "@wocker/prompts";
+import {Volume} from "@wocker/utils";
 import {PresetRepository} from "../repositories/PresetRepository";
 import {PresetService} from "../services/PresetService";
-import {injectVariables} from "../../../utils";
 
 
 @Controller()
 export class PresetListener {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly dockerService: DockerService,
         protected readonly presetRepository: PresetRepository,
         protected readonly presetService: PresetService
     ) {}
 
+    protected get interpolator() {
+        return new Interpolator();
+    }
+
     @Event("project:init")
     public async onInit(project: Project): Promise<void> {
-        if(project.type !== PROJECT_TYPE_PRESET) {
+        if(project.type !== ProjectType.PRESET) {
             return;
         }
 
@@ -46,16 +52,7 @@ export class PresetListener {
 
         project.presetMode = await promptSelect({
             message: "Preset mode",
-            options: [
-                {
-                    label: "For project only",
-                    value: "project"
-                },
-                {
-                    label: "Global usage",
-                    value: "global"
-                }
-            ],
+            options: PresetMode.options(),
             default: project.presetMode
         });
 
@@ -75,7 +72,7 @@ export class PresetListener {
 
         if(preset.volumeOptions) {
             for(let volume of preset.volumeOptions) {
-                volume = injectVariables(volume, {
+                volume = this.interpolator.interpolate(volume, {
                     ...project.buildArgs || {},
                     ...project.env || {}
                 });
@@ -84,7 +81,7 @@ export class PresetListener {
                     source,
                     destination,
                     options
-                } = volumeParse(volume);
+                } = Volume.parse(volume);
 
                 let projectVolume = project.getVolumeByDestination(destination);
 
@@ -92,14 +89,14 @@ export class PresetListener {
                     message: "Volume",
                     required: true,
                     suffix: `:${destination}`,
-                    default: projectVolume ? volumeParse(projectVolume).source : source
+                    default: projectVolume ? Volume.parse(projectVolume).source : source
                 });
 
-                projectVolume = volumeFormat({
-                    source: newSource,
+                projectVolume = new Volume(
+                    newSource,
                     destination,
                     options
-                });
+                ).toString();
 
                 project.volumeMount(projectVolume);
             }
@@ -112,7 +109,7 @@ export class PresetListener {
 
     @Event("project:rebuild")
     protected async onRebuild(project: Project): Promise<void> {
-        if(project.type !== PROJECT_TYPE_PRESET) {
+        if(project.type !== ProjectType.PRESET) {
             return;
         }
 
@@ -134,7 +131,7 @@ export class PresetListener {
 
     @Event("project:beforeStart")
     protected async onBeforeStart(project: Project): Promise<void> {
-        if(project.type !== PROJECT_TYPE_PRESET) {
+        if(project.type !== ProjectType.PRESET) {
             return;
         }
 
@@ -145,7 +142,7 @@ export class PresetListener {
 
             if(!await this.dockerService.imageExists(project.imageName)) {
                 await this.dockerService.buildImage({
-                    version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
+                    version: this.appService.isExperimentalEnabled("buildKit") ? "2" : "1",
                     tag: project.imageName,
                     labels: {
                         presetName: preset.name

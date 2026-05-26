@@ -1,13 +1,13 @@
 import {
     Injectable,
     Project,
-    AppConfigService,
+    AppService,
     AppFileSystemService,
     ProcessService,
     ProxyService as CoreProxyService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
-import {promptInput} from "@wocker/utils";
+import {promptInput} from "@wocker/prompts";
 import * as Path from "path";
 import {PLUGINS_DIR} from "../../../env";
 
@@ -23,7 +23,7 @@ export class ProxyService extends CoreProxyService {
     ];
 
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly processService: ProcessService,
         protected readonly fs: AppFileSystemService,
         protected readonly dockerService: DockerService
@@ -89,9 +89,9 @@ export class ProxyService extends CoreProxyService {
                 this.fs.chmod("nginx/htpasswd", 0o764);
             }
 
-            const httpPort = this.appConfigService.getMeta("PROXY_HTTP_PORT", "80"),
-                  httpsPort = this.appConfigService.getMeta("PROXY_HTTPS_PORT", "443"),
-                  sshPort = this.appConfigService.getMeta("PROXY_SSH_PORT", "22");
+            const httpPort = this.appService.getMeta("PROXY_HTTP_PORT", "80"),
+                  httpsPort = this.appService.getMeta("PROXY_HTTPS_PORT", "443"),
+                  sshPort = this.appService.getMeta("PROXY_SSH_PORT", "22");
 
             container = await this.dockerService.createContainer({
                 name: this.containerName,
@@ -106,7 +106,7 @@ export class ProxyService extends CoreProxyService {
                 ports: [
                     `${httpPort}:80`,
                     `${httpsPort}:443`,
-                    ...this.appConfigService.getMeta("PROXY_SSH_PASSWORD") ? [
+                    ...this.appService.getMeta("PROXY_SSH_PASSWORD") ? [
                         `${sshPort}:22`
                     ] : []
                 ],
@@ -157,9 +157,9 @@ export class ProxyService extends CoreProxyService {
 
         await this.dockerService.buildImage({
             tag: this.imageName,
-            version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
+            version: this.appService.isExperimentalEnabled("buildKit") ? "2" : "1",
             buildArgs: {
-                SSH_PASSWORD: this.appConfigService.getMeta("PROXY_SSH_PASSWORD")
+                SSH_PASSWORD: this.appService.getMeta("PROXY_SSH_PASSWORD")
             },
             context: Path.join(PLUGINS_DIR, "proxy"),
             dockerfile: "./Dockerfile"

@@ -7,11 +7,11 @@ import {
     Option,
     Description,
     PRESET_SOURCE_EXTERNAL,
-    AppConfigService
+    AppService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
 import CliTable from "cli-table3";
-import {promptConfirm} from "@wocker/utils";
+import {promptConfirm} from "@wocker/prompts";
 import {PresetRepository} from "../repositories/PresetRepository";
 import {PresetService} from "../services/PresetService";
 
@@ -20,7 +20,7 @@ import {PresetService} from "../services/PresetService";
 @Description("Preset commands")
 export class PresetController {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly dockerService: DockerService,
         protected readonly presetRepository: PresetRepository,
         protected readonly presetService: PresetService,
@@ -124,7 +124,7 @@ export class PresetController {
         }
 
         await this.dockerService.buildImage({
-            version: this.appConfigService.isExperimentalEnabled("buildKit") ? "2" : "1",
+            version: this.appService.isExperimentalEnabled("buildKit") ? "2" : "1",
             tag: imageName,
             labels: {
                 presetName: preset.name

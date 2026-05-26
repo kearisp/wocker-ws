@@ -2,7 +2,7 @@ import {
     Module,
     Type,
     DynamicModule,
-    AppConfigService,
+    AppService,
     AppFileSystemService,
     LogService,
     PLUGIN_DIR_KEY
@@ -26,20 +26,20 @@ export class PluginModule {
         return {
             module: PluginModule,
             inject: [
-                AppConfigService,
+                AppService,
                 AppFileSystemService,
                 LogService,
                 PluginService
             ],
             useFactory: async (
-                appConfigService: AppConfigService,
+                appService: AppService,
                 fs: AppFileSystemService,
                 logService: LogService,
                 pluginService: PluginService
             ) => {
                 const imports: (Type | DynamicModule)[] = [];
 
-                for(const pluginData of appConfigService.plugins) {
+                for(const pluginData of appService.plugins) {
                     try {
                         const plugin = await pluginService.import(pluginData.name);
 
@@ -59,8 +59,7 @@ export class PluginModule {
                             pluginEnv: pluginData.env
                         });
 
-                        appConfigService.removePlugin(pluginData.name);
-                        appConfigService.save();
+                        appService.removePlugin(pluginData.name);
                     }
                 }
 

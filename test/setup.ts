@@ -2,7 +2,7 @@ import {jest} from "@jest/globals";
 import * as fs from "fs";
 import {vol} from "memfs";
 import {Union} from "unionfs";
-import {utilsMock} from "@wocker/testing";
+import {promptsMock} from "@wocker/testing";
 
 
 const WOCKER_DATA_DIR = "/home/wocker-test/.workspace",
@@ -76,11 +76,11 @@ jest.doMock(`${WOCKER_DATA_DIR}/wocker.config.js`, () => {
     virtual: true
 });
 
-jest.mock("@wocker/utils", () => {
-    const utils: any = jest.requireActual("@wocker/utils");
+jest.mock("@wocker/prompts", () => {
+    const prompts: any = jest.requireActual("@wocker/prompts");
 
     return {
-        ...utils,
-        ...utilsMock
+        ...prompts,
+        ...promptsMock
     };
 });

@@ -1,6 +1,6 @@
-import axios, {AxiosInstance} from "axios";
 import type {Entry} from "unzipper";
 import {FileSystem} from "@wocker/core";
+import {Http} from "@wocker/utils";
 
 
 type RepositoryInfo = {
@@ -33,54 +33,53 @@ export class GithubClient {
         public readonly repository: string
     ) {}
 
-    public get axios(): AxiosInstance {
-        return axios.create({
+    public get client() {
+        return Http.base("https://api.github.com", {
             headers: {
                 "User-Agent": "Wocker"
             }
-        });
+        })
+    }
+
+    public get contentClient() {
+        return Http.base("https://raw.githubusercontent.com", {
+            headers: {
+                "User-Agent": "Wocker"
+            }
+        })
     }
 
     public async getInfo(): Promise<RepositoryInfo> {
-        const response = await this.axios.get<RepositoryInfo>(`https://api.github.com/repos/${this.owner}/${this.repository}`, {
-            headers: {
-                "Accept": "application/vnd.github+json"
-            }
-        });
-
-        return response.data;
+        return this.contentClient.get(`/repos/${this.owner}/${this.repository}`)
+            .withHeader("Accept", "application/vnd.github+json")
+            .expectStatus(200)
+            .json();
     }
 
-    public async getBranches(): Promise<GithubBranch[]>{
-        const response = await this.axios
-            .get<GithubBranch[]>(`https://api.github.com/repos/${this.owner}/${this.repository}/branches`);
-
-        return response.data;
+    public async getBranches(): Promise<GithubBranch[]> {
+        return this.client
+            .get(`/repos/${this.owner}/${this.repository}/branches`)
+            .expectStatus(200)
+            .json();
     }
 
     public async getTags(): Promise<GithubTag[]> {
-        const response = await this.axios
-            .get<GithubTag[]>(`https://api.github.com/repos/${this.owner}/${this.repository}/tags`);
-
-        return response.data;
+        return this.client
+            .get(`/repos/${this.owner}/${this.repository}/tags`)
+            .expectStatus(200)
+            .json();
     }
 
     public async getFile(ref: string, path: string): Promise<any> {
-        const res = await this.axios
-            .get(`https://raw.githubusercontent.com/${this.owner}/${this.repository}/${ref}/${path}`, {
-                headers: {
-                    "Accept": "application/vnd.github+json"
-                }
-            });
-
-        return res.data;
+        return this.contentClient
+            .get(`/${this.owner}/${this.repository}/${ref}/${path}`)
+            .withHeader("Accept", "application/vnd.github+json")
+            .expectStatus(200)
+            .json();
     }
 
     public async downloadZipByUrl(url: string, dirPath: string): Promise<void> {
-        const res = await this.axios.get(url, {
-            responseType: "stream"
-        });
-
+        const res = await Http.base(url).expectStatus(200).send();
         const fs = new FileSystem(dirPath);
 
         if(!fs.exists()) {
@@ -91,7 +90,7 @@ export class GithubClient {
 
         return new Promise((resolve, reject) => {
             const {Parse} = require("unzipper"),
-                  pipe = res.data.pipe(Parse());
+                  pipe = res.pipe(Parse());
 
             pipe.on("entry", (entry: Entry): void => {
                 const path = entry.path.replace(/^[^\/]+\//, "");

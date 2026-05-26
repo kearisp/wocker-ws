@@ -6,13 +6,15 @@ import {
     EnvConfig,
     PRESET_SOURCE_EXTERNAL,
     PRESET_SOURCE_GITHUB,
-    AppConfigService,
-    AppFileSystemService
+    AppService,
+    ProcessService,
+    AppFileSystemService,
+    Version,
+    VersionRule
 } from "@wocker/core";
-import {promptSelect, promptInput, promptConfirm, normalizeOptions} from "@wocker/utils";
-import md5 from "md5";
+import {promptSelect, promptInput, promptConfirm, normalizeOptions} from "@wocker/prompts";
+import crypto from "crypto";
 import {PresetRepository} from "../repositories/PresetRepository";
-import {Version, VersionRule} from "../../../makes";
 import {GithubBranch, GithubClient, GithubTag} from "../../../makes/GithubClient";
 
 
@@ -21,7 +23,8 @@ export class PresetService {
     protected range = "1.x.x";
 
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
+        protected readonly processService: ProcessService,
         protected readonly fs: AppFileSystemService,
         protected readonly presetRepository: PresetRepository
     ) {}
@@ -139,7 +142,7 @@ export class PresetService {
 
         const version = [
             ...rawValues,
-            (md5(hashValues.join(",")) as string).substring(0, 6)
+            crypto.createHash("md5").update(hashValues.join(","), "utf8").digest("hex").substring(0, 6)
         ].filter((value) => {
             return !!value;
         }).join("-");
@@ -150,7 +153,7 @@ export class PresetService {
     public get(name?: string): Preset {
         const preset = name
             ? this.presetRepository.searchOne({name})
-            : this.presetRepository.searchOne({path: this.appConfigService.pwd()});
+            : this.presetRepository.searchOne({path: this.processService.pwd()});
 
         if(!preset) {
             throw new Error(name ? `Preset "${name}" not found` : "Preset not found");
@@ -160,9 +163,9 @@ export class PresetService {
     }
 
     public async init(): Promise<void> {
-        const fs = this.fs.cd(this.appConfigService.pwd());
+        const fs = this.fs.cd(this.processService.pwd());
         let preset = this.presetRepository.searchOne({
-            path: this.appConfigService.pwd()
+            path: this.processService.pwd()
         });
 
         if(preset) {
@@ -172,7 +175,7 @@ export class PresetService {
         if(fs.exists("config.json")) {
             const config = fs.readJSON("config.json");
 
-            this.appConfigService.registerPreset(config.name, PRESET_SOURCE_EXTERNAL, fs.path());
+            this.appService.registerPreset(config.name, PRESET_SOURCE_EXTERNAL, fs.path());
             return;
         }
 
@@ -259,20 +262,19 @@ export class PresetService {
 
         fs.writeJSON("config.json", config);
 
-        this.appConfigService.registerPreset(config.name, PRESET_SOURCE_EXTERNAL, fs.path());
+        this.appService.registerPreset(config.name, PRESET_SOURCE_EXTERNAL, fs.path());
     }
 
     public async deinit(): Promise<void> {
         const preset = this.presetRepository.searchOne({
-            path: this.appConfigService.pwd()
+            path: this.processService.pwd()
         });
 
         if(!preset) {
             return;
         }
 
-        this.appConfigService.config.unregisterPreset(preset.name);
-        this.appConfigService.save();
+        this.appService.unregisterPreset(preset.name);
     }
 
     public async install(repository: string, version?: string): Promise<void> {
@@ -360,7 +362,7 @@ export class PresetService {
 
             this.fs.mv(`presets/.tmp/${config.name}`, `presets/${config.name}`);
 
-            this.appConfigService.registerPreset(config.name, PRESET_SOURCE_GITHUB);
+            this.appService.registerPreset(config.name, PRESET_SOURCE_GITHUB);
 
             console.info("Preset installed successfully");
         }

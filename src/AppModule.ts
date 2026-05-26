@@ -11,7 +11,7 @@ import DockerModule, {
 import {
     CoreModule,
     DnsModule,
-    ProjectModule, ProjectService, ProjectRepository,
+    ProjectModule, ProjectService,
     PluginModule,
     PresetModule, PresetRepository, PresetService,
     ProxyModule, ProxyService, CertService,
@@ -41,8 +41,7 @@ import {
         PresetRepository,
         PresetService,
         ProjectService,
-        ProcessService,
-        ProjectRepository
+        ProcessService
     ]
 })
 export class AppModule {}

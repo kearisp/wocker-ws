@@ -1,13 +1,14 @@
 import {Injectable} from "@wocker/core";
-import {Http} from "../../../makes";
+import {Http} from "@wocker/utils";
 import {PackageInfo} from "../types/PackageInfo";
 
 
 @Injectable()
 export class RegistryService {
     public async getPackageInfo(name: string): Promise<PackageInfo> {
-        const res = await Http.get("https://registry.npmjs.org")
-            .send(name);
+        const res = await Http.base("https://registry.npmjs.org")
+            .get(name)
+            .send<PackageInfo>();
 
         if(res.status === 404) {
             throw new Error("Package not found");
@@ -17,6 +18,6 @@ export class RegistryService {
             throw new Error("Network error");
         }
 
-        return res.data;
+        return res.json();
     }
 }

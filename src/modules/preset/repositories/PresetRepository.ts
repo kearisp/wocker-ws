@@ -10,7 +10,7 @@ import {
     PRESET_SOURCE_INTERNAL,
     PRESET_SOURCE_EXTERNAL,
     PRESET_SOURCE_GITHUB,
-    AppConfigService,
+    AppService,
     LogService,
     FileSystemDriver,
     FILE_SYSTEM_DRIVER_KEY
@@ -27,7 +27,7 @@ type PresetData = {
 @Injectable()
 export class PresetRepository {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly logService: LogService,
         @Inject(FILE_SYSTEM_DRIVER_KEY)
         protected readonly driver: FileSystemDriver
@@ -57,7 +57,7 @@ export class PresetRepository {
                         break;
                 }
 
-                _this.appConfigService.registerPreset(this.name, this.source, data.path);
+                _this.appService.registerPreset(this.name, this.source, data.path);
             }
 
             // noinspection JSUnusedGlobalSymbols
@@ -72,7 +72,7 @@ export class PresetRepository {
                         break;
                 }
 
-                _this.appConfigService.unregisterPreset(this.name);
+                _this.appService.unregisterPreset(this.name);
             }
         }(config);
     }
@@ -83,7 +83,7 @@ export class PresetRepository {
 
         const {
             presets = []
-        } = this.appConfigService.config;
+        } = this.appService.config;
 
         return [
             ...dirs.map((name) => {
@@ -97,7 +97,7 @@ export class PresetRepository {
                 if(item.source === PRESET_SOURCE_GITHUB) {
                     return {
                         ...item,
-                        path: this.appConfigService.fs.path("presets", item.name)
+                        path: this.appService.fs.path("presets", item.name)
                     };
                 }
 

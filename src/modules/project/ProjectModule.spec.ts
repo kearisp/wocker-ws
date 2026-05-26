@@ -3,7 +3,8 @@ import {vol} from "memfs";
 import {
     FileSystem,
     ProcessService,
-    PROJECT_TYPE_IMAGE,
+    ProjectType,
+    ProjectRepository,
     WOCKER_DATA_DIR_KEY,
     FILE_SYSTEM_DRIVER_KEY
 } from "@wocker/core";
@@ -31,7 +32,7 @@ describe("ProjectModule", (): void => {
         vol.fromJSON({
             "projects/test/config.json": JSON.stringify({
                 name: "test",
-                type: PROJECT_TYPE_IMAGE,
+                type: ProjectType.IMAGE,
                 imageName: "php:8.3-apache"
             }, null, 4),
             "wocker.config.json": JSON.stringify({
@@ -56,7 +57,8 @@ describe("ProjectModule", (): void => {
                 ],
                 exports: [
                     ImageService,
-                    DockerService
+                    DockerService,
+                    ProjectRepository
                 ]
             })
             .overrideProvider(WOCKER_DATA_DIR_KEY).useValue(WOCKER_DATA_DIR)
@@ -74,12 +76,12 @@ describe("ProjectModule", (): void => {
 
         processService.chdir(TEST_IMAGE_PROJECT_DIR);
 
-        const writeSpy = jest.spyOn(process.stdout, "write")
-            .mockImplementation(() => true);
+        // const writeSpy = jest.spyOn(process.stdout, "write")
+        //     .mockImplementation(() => true);
 
         await context.run(["/bin/node", "/bin/ws", "start"]);
 
-        writeSpy.mockReset();
+        // writeSpy.mockReset();
 
         await expect(imageService.exists("php:8.3-apache")).resolves.toBeTruthy();
 

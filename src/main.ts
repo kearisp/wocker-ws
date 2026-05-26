@@ -2,7 +2,7 @@
 
 import {
     Factory,
-    AppConfigService,
+    AppService,
     CommandNotFoundError,
     UsageException,
     LogService
@@ -13,7 +13,7 @@ import {AppModule} from "./AppModule";
 
 (async (): Promise<void> => {
     const context = await Factory.create(AppModule),
-          appConfigService = context.get(AppConfigService),
+          appService = context.get(AppService),
           logService = context.get(LogService);
 
     try {
@@ -39,7 +39,7 @@ import {AppModule} from "./AppModule";
             return;
         }
 
-        if(appConfigService.debug) {
+        if(appService.debug) {
             logService.error(err.stack || err.toString());
         }
     }

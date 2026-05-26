@@ -4,23 +4,19 @@ import {
     Description,
     Option,
     Param,
-    AppConfigService,
+    AppService,
     AppFileSystemService,
     FileSystemManager,
     ProcessService,
-    ProjectType,
     EventService,
     FileSystem,
     Project,
+    ProjectType,
     Completion,
-    LogService,
-    PROJECT_TYPE_IMAGE,
-    PROJECT_TYPE_DOCKERFILE,
-    PROJECT_TYPE_PRESET,
-    PROJECT_TYPE_COMPOSE
+    LogService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
-import {promptConfirm, promptSelect, promptInput} from "@wocker/utils";
+import {promptConfirm, promptSelect, promptInput} from "@wocker/prompts";
 import Path from "path";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
@@ -33,7 +29,7 @@ import {ProjectService} from "../services/ProjectService";
 @Description("Project commands")
 export class ProjectController {
     public constructor(
-        protected readonly appConfigService: AppConfigService,
+        protected readonly appService: AppService,
         protected readonly fs: AppFileSystemService,
         protected readonly processService: ProcessService,
         protected readonly projectService: ProjectService,
@@ -81,11 +77,10 @@ export class ProjectController {
         });
 
         if(!project) {
-            project = new Project({
-                type: PROJECT_TYPE_IMAGE,
-                name: fs.basename(),
-                path: fs.path()
-            });
+            project = new Project(
+                fs.basename(),
+                fs.path()
+            );
         }
 
         project.path = fs.path();
@@ -124,7 +119,7 @@ export class ProjectController {
             project.type = type;
         }
 
-        const mapTypes = this.appConfigService.getProjectTypes();
+        const mapTypes = this.appService.getProjectTypes();
 
         if(!type || !project.type || !mapTypes[project.type]) {
             project.type = await promptSelect<ProjectType>({
@@ -136,7 +131,7 @@ export class ProjectController {
         }
 
         switch(project.type) {
-            case PROJECT_TYPE_DOCKERFILE: {
+            case ProjectType.DOCKERFILE: {
                 const files = fs.readdir();
 
                 const dockerfiles = files.filter((fileName: string) => {
@@ -164,16 +159,16 @@ export class ProjectController {
                 break;
             }
 
-            case PROJECT_TYPE_IMAGE: {
-                project.imageName = await promptInput({
+            case ProjectType.IMAGE: {
+                project.image = await promptInput({
                     message: "Image name",
                     required: true,
-                    default: project.imageName
+                    default: project.image
                 });
                 break;
             }
 
-            case PROJECT_TYPE_COMPOSE: {
+            case ProjectType.COMPOSE: {
                 const composeFiles = fs.readdir().filter((file: string) => {
                     return /docker-compose\./.test(file);
                 });
@@ -191,7 +186,7 @@ export class ProjectController {
                 break;
             }
 
-            case PROJECT_TYPE_PRESET:
+            case ProjectType.PRESET:
                 break;
 
             default:
@@ -208,14 +203,27 @@ export class ProjectController {
     public async destroy(
         @Option("name", "n")
         @Description("The name of the project")
-        name?: string
+        name?: string,
+        @Option("yes", "y")
+        @Description("Skip confirmation prompt")
+        yes?: boolean
     ): Promise<void> {
         const project = this.projectService.get(name);
 
+        if(!yes) {
+            const confirm = await promptConfirm({
+                message: `Are you sure you want to ${colors.red(`delete "${colors.bold(project.name)}"`)}? This action cannot be undone.`,
+                default: false
+            });
+
+            if(!confirm) {
+                throw new Error("Aborted");
+            }
+        }
+
         await this.projectService.stop(project);
 
-        this.appConfigService.removeProject(project.name);
-        this.appConfigService.save();
+        this.appService.removeProject(project.name);
         this.fs.rm(`projects/${project.name}`, {
             recursive: true
         });
@@ -622,7 +630,7 @@ export class ProjectController {
         const project = this.projectService.get(name);
 
         if(project.ports) {
-            delete project.ports;
+            project.ports = [];
 
             project.save();
         }
@@ -645,10 +653,10 @@ export class ProjectController {
         });
 
         if(global) {
-            for(const i in this.appConfigService.config.env) {
+            for(const i in this.appService.config.env) {
                 table.push([
                     i,
-                    this.appConfigService.config.env[i]
+                    this.appService.config.env[i]
                 ]);
             }
         }
@@ -702,7 +710,7 @@ export class ProjectController {
         global: boolean
     ): Promise<string> {
         let config = global
-            ? this.appConfigService.config
+            ? this.appService.config
             : this.projectService.get(name);
 
         const table = new CliTable({
@@ -729,6 +737,8 @@ export class ProjectController {
         variables: string[],
         @Option("global", "g")
         global: boolean,
+        @Option("local", "l")
+        local: boolean,
         @Option("name", "n")
         @Description("The name of the project")
         name: string,
@@ -745,24 +755,29 @@ export class ProjectController {
                     continue;
                 }
 
-                this.appConfigService.setEnv(key.trim(), value.trim());
+                this.appService.setEnv(key.trim(), value.trim());
             }
 
-            this.appConfigService.save();
             return;
         }
 
         const project = this.projectService.get(name);
 
         for(const variable of variables) {
-            const [key, value] = variable.split("=");
+            const [, key, value] = /^([^=]+)=(.*)$/.exec(variable) || [];
+
+            if(!key) {
+                continue;
+            }
 
             if(!value) {
                 console.info(colors.yellow(`No value for "${key}"`));
                 continue;
             }
 
-            project.setEnv(key, value, service);
+            const config = !local ? project.configs.app : project.configs.project;
+
+            config.setEnv(key, value, service);
         }
 
         project.save();
@@ -775,6 +790,8 @@ export class ProjectController {
         configs: string[],
         @Option("global", "g")
         global?: boolean,
+        @Option("local", "l")
+        local?: boolean,
         @Option("name", "n")
         @Description("The name of the project")
         name?: string,
@@ -792,18 +809,19 @@ export class ProjectController {
 
         if(global) {
             for(const i in env) {
-                this.appConfigService.unsetEnv(i);
+                this.appService.unsetEnv(i);
             }
-
-            this.appConfigService.save();
-
             return;
         }
 
         const project = this.projectService.get(name);
 
         for(const i in env) {
-            project.unsetEnv(i, service);
+            const config = !local
+                ? project.configs.app
+                : project.configs.project;
+
+            config.unsetEnv(i, service)
         }
 
         project.save();
@@ -960,7 +978,7 @@ export class ProjectController {
                 copier.copy(preset.dockerfile);
             }
 
-            project.type = "dockerfile";
+            project.type = ProjectType.DOCKERFILE;
             project.dockerfile = preset.dockerfile;
         }
 

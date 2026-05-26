@@ -3,8 +3,8 @@ import DockerModule from "@wocker/docker-module";
 import {KeystoreModule} from "../keystore";
 import {PresetModule} from "../preset";
 import {ProjectController} from "./controllers/ProjectController";
+import {MetadataController} from "./controllers/MetadataController";
 import {SecretsController} from "./controllers/SecretsController";
-import {ProjectRepository} from "./repositories/ProjectRepository";
 import {ProjectService} from "./services/ProjectService";
 
 
@@ -16,19 +16,17 @@ import {ProjectService} from "./services/ProjectService";
     ],
     controllers: [
         ProjectController,
-        SecretsController
+        SecretsController,
+        MetadataController
     ],
     providers: [
-        ProjectRepository,
         ProjectService
     ],
     exports: [
-        ProjectRepository,
         ProjectService
     ]
 })
 export class ProjectModule {}
 export {
-    ProjectRepository,
     ProjectService
 };
