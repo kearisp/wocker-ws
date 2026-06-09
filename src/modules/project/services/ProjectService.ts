@@ -87,7 +87,7 @@ export class ProjectService extends CoreProjectService {
                 if(!container) {
                     container = await this.dockerService.createContainer({
                         name: project.containerName,
-                        image: project.imageName,
+                        image: project.image,
                         cmd: project.cmd,
                         env: {
                             ...this.appService.config.env || {},
@@ -173,21 +173,21 @@ export class ProjectService extends CoreProjectService {
     public async build(project: Project, rebuild?: boolean): Promise<void> {
         switch(project.type) {
             case ProjectType.IMAGE:
-                await this.dockerService.pullImage(project.imageName);
+                await this.dockerService.pullImage(project.image);
                 break;
 
             case ProjectType.DOCKERFILE: {
-                project.imageName = `project-${project.name}:develop`;
+                project.image = `project-${project.name}:develop`;
                 project.save();
 
                 if(rebuild) {
-                    await this.dockerService.imageRm(project.imageName);
+                    await this.dockerService.imageRm(project.image);
                 }
 
-                if(!await this.dockerService.imageExists(project.imageName)) {
+                if(!await this.dockerService.imageExists(project.image)) {
                     await this.dockerService.buildImage({
                         version: this.appService.isExperimentalEnabled("buildKit") ? "2" : "1",
-                        tag: project.imageName,
+                        tag: project.image,
                         buildArgs: project.buildArgs,
                         context: project.path,
                         dockerfile: project.dockerfile
@@ -204,22 +204,22 @@ export class ProjectService extends CoreProjectService {
                 if(preset.image) {
                     await this.dockerService.pullImage(preset.image);
 
-                    project.imageName = preset.image;
+                    project.image = preset.image;
                     project.save();
                 }
 
                 if(preset.dockerfile) {
-                    project.imageName = this.presetService.getImageNameForProject(project, preset);
+                    project.image = this.presetService.getImageNameForProject(project, preset);
                     project.save();
 
                     if(rebuild) {
-                        await this.dockerService.imageRm(project.imageName);
+                        await this.dockerService.imageRm(project.image);
                     }
 
-                    if(!await this.dockerService.imageExists(project.imageName)) {
+                    if(!await this.dockerService.imageExists(project.image)) {
                         await this.dockerService.buildImage({
                             version: this.appService.isExperimentalEnabled("buildKit") ? "2" : "1",
-                            tag: project.imageName,
+                            tag: project.image,
                             labels: {
                                 "org.wocker.preset": preset.name
                             },
