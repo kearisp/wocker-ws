@@ -128,30 +128,4 @@ export class PresetListener {
             await this.dockerService.imageRm(imageName);
         }
     }
-
-    @Event("project:beforeStart")
-    protected async onBeforeStart(project: Project): Promise<void> {
-        if(project.type !== ProjectType.PRESET) {
-            return;
-        }
-
-        const preset = this.presetService.get(project.preset);
-
-        if(preset.dockerfile) {
-            project.imageName = this.presetService.getImageNameForProject(project, preset);
-
-            if(!await this.dockerService.imageExists(project.imageName)) {
-                await this.dockerService.buildImage({
-                    version: this.appService.isExperimentalEnabled("buildKit") ? "2" : "1",
-                    tag: project.imageName,
-                    labels: {
-                        presetName: preset.name
-                    },
-                    buildArgs: project.buildArgs,
-                    context: preset.path,
-                    dockerfile: preset.dockerfile
-                });
-            }
-        }
-    }
 }
