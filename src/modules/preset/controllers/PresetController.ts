@@ -6,7 +6,7 @@ import {
     Project,
     Option,
     Description,
-    PRESET_SOURCE_EXTERNAL,
+    PresetSource,
     AppService
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
@@ -50,7 +50,7 @@ export class PresetController {
             table.push([
                 preset.name,
                 preset.source,
-                preset.source === PRESET_SOURCE_EXTERNAL ? preset.path : ""
+                preset.source === PresetSource.EXTERNAL ? preset.path : ""
             ]);
         }
 

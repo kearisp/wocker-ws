@@ -1,4 +1,5 @@
 import {
+    AppService,
     Controller,
     Description,
     Command,
@@ -13,6 +14,7 @@ import {ProjectService} from "../services/ProjectService";
 @Description("Metadata commands")
 export class MetadataController {
     public constructor(
+        protected readonly appService: AppService,
         protected readonly projectService: ProjectService
     ) {}
 

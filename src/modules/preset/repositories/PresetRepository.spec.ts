@@ -1,9 +1,6 @@
 import {describe, it, expect, beforeEach} from "@jest/globals";
 import {
     PresetSource,
-    PRESET_SOURCE_INTERNAL,
-    PRESET_SOURCE_EXTERNAL,
-    PRESET_SOURCE_GITHUB,
     FILE_SYSTEM_DRIVER_KEY,
     WOCKER_DATA_DIR_KEY
 } from "@wocker/core";
@@ -30,12 +27,12 @@ describe("PresetRepository", (): void => {
                 presets: [
                     {
                         name: EXTERNAL_1_NAME,
-                        source: PRESET_SOURCE_EXTERNAL,
+                        source: PresetSource.EXTERNAL,
                         path: EXTERNAL_1_PATH
                     },
                     {
                         name: GITHUB_1_NAME,
-                        source: PRESET_SOURCE_GITHUB
+                        source: PresetSource.GITHUB
                     }
                 ]
             }),
@@ -74,7 +71,7 @@ describe("PresetRepository", (): void => {
             .build();
     };
 
-    it(`should search ${PRESET_SOURCE_INTERNAL} preset`, async () => {
+    it(`should search ${PresetSource.INTERNAL} preset`, async () => {
         const context = await getContext(),
               presetRepository = context.get(PresetRepository);
 
@@ -87,7 +84,7 @@ describe("PresetRepository", (): void => {
         expect(preset.version).toBe("1.0.1");
     });
 
-    it(`should load ${PRESET_SOURCE_EXTERNAL} preset`, async () => {
+    it(`should load ${PresetSource.EXTERNAL} preset`, async () => {
         const context = await getContext(),
               presetRepository = context.get(PresetRepository);
 
@@ -97,10 +94,10 @@ describe("PresetRepository", (): void => {
 
         expect(preset).not.toBeNull();
         expect(preset.name).toBe(EXTERNAL_1_NAME);
-        expect(preset.source).toBe(PRESET_SOURCE_EXTERNAL);
+        expect(preset.source).toBe(PresetSource.EXTERNAL);
     });
 
-    it(`should load ${PRESET_SOURCE_GITHUB} preset`, async () => {
+    it(`should load ${PresetSource.GITHUB} preset`, async () => {
         const context = await getContext(),
               presetRepository = context.get(PresetRepository);
 
@@ -154,7 +151,7 @@ describe("PresetRepository", (): void => {
         expect(presetWithBrokenConfig).toBeNull();
     });
 
-    it(`should be updatable ${PRESET_SOURCE_EXTERNAL} preset`, async () => {
+    it(`should be updatable ${PresetSource.EXTERNAL} preset`, async () => {
         const context = await getContext(),
               presetRepository = context.get(PresetRepository);
 

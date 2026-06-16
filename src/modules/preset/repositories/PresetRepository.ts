@@ -7,9 +7,6 @@ import {
     Preset,
     PresetProperties,
     PresetSource,
-    PRESET_SOURCE_INTERNAL,
-    PRESET_SOURCE_EXTERNAL,
-    PRESET_SOURCE_GITHUB,
     AppService,
     LogService,
     FileSystemDriver,
@@ -52,7 +49,7 @@ export class PresetRepository {
             // noinspection JSUnusedGlobalSymbols
             public save(): void {
                 switch(this.source) {
-                    case PRESET_SOURCE_EXTERNAL:
+                    case PresetSource.EXTERNAL:
                         fs.writeJSON("config.json", this.toObject());
                         break;
                 }
@@ -63,7 +60,7 @@ export class PresetRepository {
             // noinspection JSUnusedGlobalSymbols
             public delete(): void {
                 switch(this.source) {
-                    case PRESET_SOURCE_GITHUB:
+                    case PresetSource.GITHUB:
                         if(fs.exists()) {
                             fs.rm("", {
                                 recursive: true
@@ -89,12 +86,12 @@ export class PresetRepository {
             ...dirs.map((name) => {
                 return {
                     name,
-                    source: PRESET_SOURCE_INTERNAL,
+                    source: PresetSource.INTERNAL,
                     path: fs.path(name)
                 };
             }),
             ...presets.map((item) => {
-                if(item.source === PRESET_SOURCE_GITHUB) {
+                if(item.source === PresetSource.GITHUB) {
                     return {
                         ...item,
                         path: this.appService.fs.path("presets", item.name)
