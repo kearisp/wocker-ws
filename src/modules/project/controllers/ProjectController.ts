@@ -243,11 +243,14 @@ export class ProjectController {
         build?: boolean,
         @Option("attach", "a")
         @Description("Attach")
-        attach?: boolean
+        attach?: boolean,
+        @Option("detach", "d")
+        @Description("Detach")
+        detach?: boolean
     ): Promise<void> {
         const project = this.projectService.get(name);
 
-        await this.projectService.start(project, restart, build, attach);
+        await this.projectService.start(project, restart, build, attach, detach);
     }
 
     @Command("stop")

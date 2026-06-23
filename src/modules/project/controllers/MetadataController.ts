@@ -4,7 +4,8 @@ import {
     Description,
     Command,
     Param,
-    Option
+    Option,
+    EnvConfig
 } from "@wocker/core";
 import CliTable from "cli-table3";
 import {ProjectService} from "../services/ProjectService";
@@ -23,8 +24,20 @@ export class MetadataController {
     public list(
         @Option("name", "n")
         @Description("The name of the project")
-        projectName?: string
+        projectName?: string,
+        @Option("global", "g")
+        global?: boolean
     ) {
+        if(global) {
+            const table = new CliTable();
+
+            for(const key in this.appService.config.meta) {
+                table.push([key, this.appService.config.meta[key]]);
+            }
+
+            return table.toString();
+        }
+
         const project = this.projectService.get(projectName);
 
         const table = new CliTable();
@@ -42,21 +55,40 @@ export class MetadataController {
         meta: string[],
         @Option("name", "n")
         @Description("The name of the project")
-        projectName?: string
+        projectName?: string,
+        @Option("global", "g")
+        global?: boolean
     ) {
-        const project = this.projectService.get(projectName);
-
-        for(const field of meta) {
+        const fields: EnvConfig = meta.reduce((res, field) => {
             let [, key = "", value = ""] = field.split(/^([^=]+)=(.*)$/);
 
             key = key.trim();
             value = value.trim();
 
             if(!key) {
-                continue;
+                return res;
             }
 
-            project.setMeta(key, value);
+            return {
+                ...res,
+                [key]: value
+            };
+        }, {});
+
+        if(global) {
+            for(const key in fields) {
+                this.appService.config.setMeta(key, fields[key]);
+            }
+
+            this.appService.save();
+
+            return;
+        }
+
+        const project = this.projectService.get(projectName);
+
+        for(const key in fields) {
+            project.setMeta(key, fields[key]);
         }
 
         project.save();
