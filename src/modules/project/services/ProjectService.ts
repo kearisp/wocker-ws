@@ -67,7 +67,7 @@ export class ProjectService extends CoreProjectService {
         this.projectRepository.save(project);
     }
 
-    public async start(project: Project, restart?: boolean, rebuild?: boolean, attach?: boolean): Promise<void> {
+    public async start(project: Project, restart?: boolean, rebuild?: boolean, attach?: boolean, detach?: boolean): Promise<void> {
         if(restart || rebuild) {
             await this.stop(project);
         }
@@ -134,7 +134,17 @@ export class ProjectService extends CoreProjectService {
         await this.eventService.emit("project:start", project);
         await this.eventService.emit("project:afterStart", project);
 
-        if(attach) {
+        let shouldAttach = (project.getMeta("start.mode") || this.appService.getMeta("start.mode")) === "attach";
+
+        if(typeof attach === "boolean") {
+            shouldAttach = attach;
+        }
+
+        if(typeof detach === "boolean") {
+            shouldAttach = !detach;
+        }
+
+        if(shouldAttach) {
             switch(project.type) {
                 case ProjectType.IMAGE:
                 case ProjectType.DOCKERFILE:
@@ -308,7 +318,7 @@ export class ProjectService extends CoreProjectService {
             case ProjectType.IMAGE:
             case ProjectType.DOCKERFILE:
             case ProjectType.PRESET:
-                await this.dockerService.exec(project.containerName, command, true);
+                await this.dockerService.exec(project.containerName, command, this.processService.stdout.isTTY ?? false);
                 break;
 
             case ProjectType.COMPOSE: {

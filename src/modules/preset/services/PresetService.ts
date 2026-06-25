@@ -4,8 +4,7 @@ import {
     Preset,
     PresetVariableConfig,
     EnvConfig,
-    PRESET_SOURCE_EXTERNAL,
-    PRESET_SOURCE_GITHUB,
+    PresetSource,
     AppService,
     ProcessService,
     AppFileSystemService,
@@ -175,7 +174,7 @@ export class PresetService {
         if(fs.exists("config.json")) {
             const config = fs.readJSON("config.json");
 
-            this.appService.registerPreset(config.name, PRESET_SOURCE_EXTERNAL, fs.path());
+            this.appService.registerPreset(config.name, PresetSource.EXTERNAL, fs.path());
             return;
         }
 
@@ -262,7 +261,7 @@ export class PresetService {
 
         fs.writeJSON("config.json", config);
 
-        this.appService.registerPreset(config.name, PRESET_SOURCE_EXTERNAL, fs.path());
+        this.appService.registerPreset(config.name, PresetSource.EXTERNAL, fs.path());
     }
 
     public async deinit(): Promise<void> {
@@ -341,7 +340,7 @@ export class PresetService {
                 name: config.name
             });
 
-            if(preset && satisfyingTag && preset.source === PRESET_SOURCE_GITHUB && Version.parse(ref).compare(preset.version) === 0) {
+            if(preset && satisfyingTag && preset.source === PresetSource.GITHUB && Version.parse(ref).compare(preset.version) === 0) {
                 console.info("Preset already installed");
                 return;
             }
@@ -362,7 +361,7 @@ export class PresetService {
 
             this.fs.mv(`presets/.tmp/${config.name}`, `presets/${config.name}`);
 
-            this.appService.registerPreset(config.name, PRESET_SOURCE_GITHUB);
+            this.appService.registerPreset(config.name, PresetSource.GITHUB);
 
             console.info("Preset installed successfully");
         }
