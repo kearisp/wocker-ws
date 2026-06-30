@@ -318,7 +318,11 @@ export class ProjectService extends CoreProjectService {
             case ProjectType.IMAGE:
             case ProjectType.DOCKERFILE:
             case ProjectType.PRESET:
-                await this.dockerService.exec(project.containerName, command, this.processService.stdout.isTTY ?? false);
+                await this.dockerService.exec(project.containerName, {
+                    tty: this.processService.stdout.isTTY ?? false,
+                    attach: true,
+                    cmd: command
+                });
                 break;
 
             case ProjectType.COMPOSE: {
@@ -356,7 +360,7 @@ export class ProjectService extends CoreProjectService {
                         follow: false
                     });
 
-                    process.stdout.write(data);
+                    this.processService.write(data);
                 }
 
                 break;
