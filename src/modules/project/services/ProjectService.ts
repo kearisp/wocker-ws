@@ -288,21 +288,11 @@ export class ProjectService extends CoreProjectService {
 
                 this.logService.debug(cmd);
 
-                const exec = await container.exec({
-                    AttachStdin: true,
-                    AttachStdout: true,
-                    AttachStderr: true,
-                    Tty: process.stdin.isTTY,
-                    Cmd: [...cmd, ...args || []]
+                await this.dockerService.exec(project.containerName, {
+                    tty: process.stdin.isTTY,
+                    attach: true,
+                    cmd: [...cmd, ...args || []]
                 });
-
-                const stream = await exec.start({
-                    hijack: true,
-                    stdin: true,
-                    Tty: process.stdin.isTTY
-                });
-
-                await this.dockerService.attachStream(stream);
                 break;
             }
 
