@@ -3,13 +3,14 @@ import {
     Project,
     Preset,
     PresetVariableConfig,
+    PresetSelectMode,
     EnvConfig,
     PresetSource,
     AppService,
     ProcessService,
     AppFileSystemService,
     Version,
-    VersionRule
+    VersionRange
 } from "@wocker/core";
 import {promptSelect, promptInput, promptConfirm, normalizeOptions} from "@wocker/prompts";
 import crypto from "crypto";
@@ -19,8 +20,6 @@ import {GithubBranch, GithubClient, GithubTag} from "../../../makes/GithubClient
 
 @Injectable()
 export class PresetService {
-    protected range = "1.x.x";
-
     public constructor(
         protected readonly appService: AppService,
         protected readonly processService: ProcessService,
@@ -28,9 +27,64 @@ export class PresetService {
         protected readonly presetRepository: PresetRepository
     ) {}
 
-    public async prompt(configMap: {[name: string]: PresetVariableConfig;}, values: EnvConfig = {}) {
+    protected get range(): string {
+        if(this.appService.isExperimentalEnabled("presetV2")) {
+            return "1.x.x || 2.x.x"
+        }
+
+        return "1.x.x";
+    }
+
+    protected getSelectMode(preset: Preset, config: PresetVariableConfig): PresetSelectMode | undefined {
+        if(config.type !== "select") {
+            return undefined;
+        }
+
+        return config.mode || (Version.parse(preset.version).major >= 2 ? "variable" : "flags");
+    }
+
+    protected getSelectDelimiter(config: PresetVariableConfig): string {
+        return config.type === "select" && config.delimiter || ";";
+    }
+
+    public async prompt(preset: Preset, configMap: {[name: string]: PresetVariableConfig;}, values: EnvConfig = {}) {
         for(const name in configMap) {
             const config = configMap[name];
+
+            if(config.when) {
+                const {
+                    variable,
+                    equals,
+                    notEquals,
+                    in: inList,
+                    notIn,
+                    contains,
+                    includes
+                } = config.when;
+
+                const value = values[variable];
+
+                const variableConfig = configMap[variable];
+                const isMultipleSelect = variableConfig?.type === "select"
+                    && variableConfig.multiple
+                    && this.getSelectMode(preset, variableConfig) === "variable";
+                const valueList = isMultipleSelect
+                    ? (value ? value.split(this.getSelectDelimiter(variableConfig)) : [])
+                    : [value];
+                const includesList = Array.isArray(includes) ? includes : [includes];
+
+                if(
+                    (typeof equals !== "undefined" && value !== equals) ||
+                    (typeof notEquals !== "undefined" && value === notEquals) ||
+                    (typeof inList !== "undefined" && !inList.includes(value)) ||
+                    (typeof notIn !== "undefined" && notIn.includes(value)) ||
+                    (typeof contains !== "undefined" && !(value || "").includes(contains)) ||
+                    (typeof includes !== "undefined" && !includesList.every((item) => valueList.includes(item)))
+                ) {
+                    delete values[name];
+                    continue;
+                }
+            }
 
             switch(config.type) {
                 case "boolean": {
@@ -47,37 +101,59 @@ export class PresetService {
                 }
 
                 case "select": {
-                    const options = normalizeOptions(config.options);
+                    if(this.getSelectMode(preset, config) === "variable") {
+                        const delimiter = this.getSelectDelimiter(config);
 
-                    const defaultValue = config.multiple ? options.reduce((defaultValue, option) => {
-                        if(values[option.value] === "true") {
-                            return [
-                                ...defaultValue,
-                                option.value
-                            ];
-                        }
+                        const defaultValue = config.multiple
+                            ? values[name]?.split(delimiter) || []
+                            : values[name];
 
-                        return defaultValue;
-                    }, []) : values[name];
+                        const result = await promptSelect({
+                            message: config.message,
+                            multiple: config.multiple,
+                            options: config.options,
+                            default: defaultValue as any
+                        });
 
-                    const result = await promptSelect({
-                        required: config.required,
-                        multiple: config.multiple,
-                        message: config.message,
-                        options: config.options,
-                        default: defaultValue
-                    });
-
-                    if(!config.multiple) {
-                        values[name] = result;
+                        values[name] = config.multiple
+                            ? (result as unknown as string[]).join(delimiter)
+                            : result as string;
                     }
                     else {
-                        for(const option of options) {
-                            if(result.includes(option.value)) {
-                                values[option.value] = "true";
-                            }
-                            else if(option.value in values) {
-                                delete values[option.value];
+                        const options = normalizeOptions(config.options);
+
+                        const defaultValue = config.multiple
+                            ? options.reduce((defaultValue, option) => {
+                                if(values[option.value] === "true") {
+                                    return [
+                                        ...defaultValue,
+                                        option.value
+                                    ];
+                                }
+
+                                return defaultValue;
+                            }, [])
+                            : values[name];
+
+                        const result = await promptSelect({
+                            required: config.required,
+                            multiple: config.multiple,
+                            message: config.message,
+                            options: config.options,
+                            default: defaultValue
+                        });
+
+                        if(!config.multiple) {
+                            values[name] = result;
+                        }
+                        else {
+                            for(const option of options) {
+                                if(result.includes(option.value)) {
+                                    values[option.value] = "true";
+                                }
+                                else if(option.value in values) {
+                                    delete values[option.value];
+                                }
                             }
                         }
                     }
@@ -150,8 +226,19 @@ export class PresetService {
     }
 
     public get(name?: string): Preset {
+        let version: string | undefined;
+
+        if(name) {
+            const at = name.lastIndexOf("@");
+
+            if(at > 0) {
+                version = name.slice(at + 1);
+                name = name.slice(0, at);
+            }
+        }
+
         const preset = name
-            ? this.presetRepository.searchOne({name})
+            ? this.presetRepository.searchOne({name, version})
             : this.presetRepository.searchOne({path: this.processService.pwd()});
 
         if(!preset) {
@@ -174,7 +261,11 @@ export class PresetService {
         if(fs.exists("config.json")) {
             const config = fs.readJSON("config.json");
 
-            this.appService.registerPreset(config.name, PresetSource.EXTERNAL, fs.path());
+            this.appService.registerPreset({
+                name: config.name,
+                source: PresetSource.EXTERNAL,
+                path: fs.path()
+            });
             return;
         }
 
@@ -261,7 +352,11 @@ export class PresetService {
 
         fs.writeJSON("config.json", config);
 
-        this.appService.registerPreset(config.name, PresetSource.EXTERNAL, fs.path());
+        this.appService.registerPreset({
+            name: config.name,
+            source: PresetSource.EXTERNAL,
+            path: fs.path()
+        });
     }
 
     public async deinit(): Promise<void> {
@@ -273,7 +368,7 @@ export class PresetService {
             return;
         }
 
-        this.appService.unregisterPreset(preset.name);
+        this.appService.unregisterPreset(preset.path);
     }
 
     public async install(repository: string, version?: string): Promise<void> {
@@ -287,8 +382,8 @@ export class PresetService {
         let satisfyingBranch: GithubBranch;
 
         const github = new GithubClient(owner, name),
-              wRule = VersionRule.parse(this.range),
-              rule = VersionRule.parse(["latest", "beta"].includes(version) ? "x" : version ?? this.range);
+              wRule = VersionRange.parse(this.range),
+              rule = VersionRange.parse(["latest", "beta"].includes(version) ? "x" : version ?? this.range);
 
         if(version !== "beta") {
             satisfyingTag = (await github.getTags())
@@ -297,7 +392,7 @@ export class PresetService {
                         return false;
                     }
 
-                    return wRule.match(tag.name) || rule.match(tag.name);
+                    return wRule.match(tag.name) && rule.match(tag.name);
                 })
                 .reduce((tag: GithubTag | null, nextTag: GithubTag) => {
                     if(!tag) {
@@ -315,7 +410,7 @@ export class PresetService {
                         return false;
                     }
 
-                    return wRule.match(branch.name) || rule.match(branch.name);
+                    return wRule.match(branch.name) && rule.match(branch.name);
                 })
                 .reduce((branch: GithubBranch | null, nextBranch) => {
                     if(!branch) {
@@ -334,15 +429,32 @@ export class PresetService {
             const ref = satisfyingTag ? satisfyingTag.name : satisfyingBranch.name,
                   config = await github.getFile(ref, "config.json");
 
-            console.info(`Loading "${ref}"...`);
+            this.processService.write(`Loading "${ref}"...\n`);
 
-            let preset = this.presetRepository.searchOne({
-                name: config.name
+            const legacyDir = `presets/${config.name}`,
+                  targetDir = `presets/${config.name}@${config.version}`;
+
+            const installed = this.presetRepository.search({
+                name: config.name,
+                source: PresetSource.GITHUB
             });
 
-            if(preset && satisfyingTag && preset.source === PresetSource.GITHUB && Version.parse(ref).compare(preset.version) === 0) {
-                console.info("Preset already installed");
+            const alreadyInstalled = installed.some((preset) => {
+                return Version.valid(preset.version) && Version.parse(preset.version).compare(ref) === 0;
+            });
+
+            if(satisfyingTag && alreadyInstalled) {
+                this.processService.write("Preset already installed\n");
                 return;
+            }
+
+            if(this.fs.exists(`${legacyDir}/config.json`)) {
+                const legacyConfig = this.fs.readJSON(`${legacyDir}/config.json`),
+                      migratedDir = `presets/${config.name}@${legacyConfig.version}`;
+
+                if(!this.fs.exists(migratedDir)) {
+                    this.fs.mv(legacyDir, migratedDir);
+                }
             }
 
             if(this.fs.exists(`presets/.tmp/${config.name}`)) {
@@ -353,17 +465,15 @@ export class PresetService {
 
             await github.download(ref, this.fs.path(`presets/.tmp/${config.name}`));
 
-            if(this.fs.exists(`presets/${config.name}`)) {
-                this.fs.rm(`presets/${config.name}`, {
+            if(this.fs.exists(targetDir)) {
+                this.fs.rm(targetDir, {
                     recursive: true
                 });
             }
 
-            this.fs.mv(`presets/.tmp/${config.name}`, `presets/${config.name}`);
+            this.fs.mv(`presets/.tmp/${config.name}`, targetDir);
 
-            this.appService.registerPreset(config.name, PresetSource.GITHUB);
-
-            console.info("Preset installed successfully");
+            this.processService.write("Preset installed successfully\n");
         }
         finally {
             if(this.fs.exists("presets/.tmp")) {
@@ -372,5 +482,21 @@ export class PresetService {
                 });
             }
         }
+    }
+
+    public async uninstall(name: string, version?: string): Promise<void> {
+        const preset = this.presetRepository.searchOne({
+            name,
+            version,
+            source: PresetSource.GITHUB
+        });
+
+        if(!preset) {
+            throw new Error("Preset not found");
+        }
+
+        this.fs.rm(`presets/${preset.name}@${preset.version}`, {
+            recursive: true
+        });
     }
 }

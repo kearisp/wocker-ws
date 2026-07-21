@@ -23,8 +23,7 @@ export class PresetController {
         protected readonly appService: AppService,
         protected readonly dockerService: DockerService,
         protected readonly presetRepository: PresetRepository,
-        protected readonly presetService: PresetService,
-        // protected readonly projectService: ProjectService
+        protected readonly presetService: PresetService
     ) {}
 
     @Command("preset:init")
@@ -41,6 +40,7 @@ export class PresetController {
         const table = new CliTable({
             head: [
                 "Name",
+                "Version",
                 "Source",
                 "Path"
             ]
@@ -49,6 +49,7 @@ export class PresetController {
         for(const preset of presets) {
             table.push([
                 preset.name,
+                preset.version || "",
                 preset.source,
                 preset.source === PresetSource.EXTERNAL ? preset.path : ""
             ]);
@@ -100,6 +101,17 @@ export class PresetController {
         preset.delete();
     }
 
+    @Command("preset:uninstall <preset>")
+    @Command("preset:uninstall <preset>@<version>")
+    public async uninstall(
+        @Param("preset")
+        presetName: string,
+        @Param("version")
+        version?: string
+    ) {
+        return this.presetService.uninstall(presetName, version);
+    }
+
     @Command("preset:build <preset>")
     @Description("Build docker image form a preset")
     public async build(
@@ -114,7 +126,7 @@ export class PresetController {
         let buildArgs: Project["buildArgs"] = {};
 
         if(preset.buildArgsOptions) {
-            buildArgs = await this.presetService.prompt(preset.buildArgsOptions);
+            buildArgs = await this.presetService.prompt(preset, preset.buildArgsOptions);
         }
 
         const imageName = this.presetService.getImageName(preset, buildArgs);

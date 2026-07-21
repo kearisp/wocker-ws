@@ -329,7 +329,7 @@ export class ProjectService extends CoreProjectService {
         }
     }
 
-    public async logs(project: Project, detach?: boolean): Promise<void> {
+    public async logs(project: Project, detach?: boolean, tail?: number): Promise<void> {
         switch(project.type) {
             case ProjectType.IMAGE:
             case ProjectType.DOCKERFILE:
@@ -341,13 +341,14 @@ export class ProjectService extends CoreProjectService {
                 }
 
                 if(!detach) {
-                    await this.dockerService.logs(container);
+                    await this.dockerService.logs(container, {tail});
                 }
                 else {
                     const data = await container.logs({
                         stdout: true,
                         stderr: true,
-                        follow: false
+                        follow: false,
+                        tail
                     });
 
                     this.processService.write(data);

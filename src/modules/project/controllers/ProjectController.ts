@@ -12,15 +12,13 @@ import {
     FileSystem,
     Project,
     ProjectType,
-    Completion,
-    LogService
+    Completion
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
 import {promptConfirm, promptSelect, promptInput} from "@wocker/prompts";
 import Path from "path";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
-import {Mutex} from "async-mutex";
 import {PresetService} from "../../preset";
 import {ProjectService} from "../services/ProjectService";
 
@@ -35,8 +33,7 @@ export class ProjectController {
         protected readonly projectService: ProjectService,
         protected readonly presetService: PresetService,
         protected readonly eventService: EventService,
-        protected readonly dockerService: DockerService,
-        protected readonly logService: LogService
+        protected readonly dockerService: DockerService
     ) {}
 
     @Completion("name")
@@ -440,7 +437,8 @@ export class ProjectController {
         }, {});
 
         for(const key in buildArgs) {
-            project.unsetBuildArg(key, service);
+            project.configs.app.unsetBuildArg(key, service);
+            project.configs.project.unsetBuildArg(key, service);
         }
 
         project.save();
@@ -1072,96 +1070,15 @@ export class ProjectController {
         @Option("name", "n")
         @Description("The name of the project")
         name?: string,
-        @Option("global", "g")
-        @Description("Global")
-        global?: boolean,
         @Option("detach", "d")
         @Description("Detach")
         detach?: boolean,
-        @Option("follow", "f")
-        @Description("Follow")
-        follow?: boolean,
-        @Option("clear", "c")
-        @Description("Clear log file (works only with --global)")
-        clear?: boolean
+        @Option("tail", "t")
+        @Description("Number of lines to show from the end of the logs")
+        tail?: number
     ): Promise<void> {
-        if(global) {
-            if(clear) {
-                this.logService.clear();
-            }
-
-            const prepareLog = (str: string) => {
-                return str.replace(/^\[.*]\s([^:]+):\s.*$/gm, (substring, type) => {
-                    switch(type) {
-                        case "debug":
-                            return colors.gray(substring);
-
-                        case "log":
-                            return colors.white(substring);
-
-                        case "info":
-                            return colors.green(substring);
-
-                        case "warn":
-                        case "warning":
-                            return colors.yellow(substring);
-
-                        case "error":
-                            return colors.red(substring);
-
-                        default:
-                            return substring;
-                    }
-                });
-            };
-
-            const file = this.fs.open("ws.log", "r");
-
-            const stream = file.createReadlineStream({
-                start: -10
-            });
-
-            stream.on("data", (line: string): void => {
-                process.stdout.write(prepareLog(line));
-                process.stdout.write("\n");
-            });
-
-            if(follow) {
-                const stats = file.stat();
-
-                const watcher = this.fs.watch("ws.log");
-                const mutex = new Mutex();
-
-                let position = stats.size;
-
-                watcher.on("change", async () => {
-                    await mutex.acquire();
-
-                    try {
-                        const stats = file.stat();
-
-                        if(stats.size < position) {
-                            console.info("file truncated");
-
-                            position = 0;
-                        }
-
-                        const buffer = file.readBytes(position);
-
-                        position += buffer.length;
-
-                        process.stdout.write(prepareLog(buffer.toString("utf-8")));
-                    }
-                    finally {
-                        mutex.release();
-                    }
-                });
-            }
-            return;
-        }
-
         const project = this.projectService.get(name);
 
-        await this.projectService.logs(project, detach);
+        await this.projectService.logs(project, detach, tail);
     }
 }
