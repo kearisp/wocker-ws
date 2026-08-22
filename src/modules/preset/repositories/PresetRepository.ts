@@ -1,5 +1,4 @@
 import {
-    AppConfig,
     Injectable,
     Inject,
     FileSystem,
@@ -10,13 +9,16 @@ import {
     AppService,
     LogService,
     FileSystemDriver,
-    FILE_SYSTEM_DRIVER_KEY
+    FILE_SYSTEM_DRIVER_KEY,
+    Version,
+    VersionRange
 } from "@wocker/core";
 import {PRESETS_DIR} from "../../../env";
 
 
 type PresetData = {
     name: string;
+    version?: string;
     source: PresetSource;
     path?: string;
 };
@@ -51,10 +53,14 @@ export class PresetRepository {
                 switch(this.source) {
                     case PresetSource.EXTERNAL:
                         fs.writeJSON("config.json", this.toObject());
+
+                        _this.appService.registerPreset({
+                            name: this.name,
+                            source: this.source,
+                            path: data.path
+                        });
                         break;
                 }
-
-                _this.appService.registerPreset(this.name, this.source, data.path);
             }
 
             // noinspection JSUnusedGlobalSymbols
@@ -67,16 +73,23 @@ export class PresetRepository {
                             });
                         }
                         break;
-                }
 
-                _this.appService.unregisterPreset(this.name);
+                    case PresetSource.EXTERNAL:
+                        _this.appService.unregisterPreset(this.path);
+                        break;
+                }
             }
         }(config);
     }
 
-    protected configs(): AppConfig["presets"] {
+    protected configs(): PresetData[] {
         const fs = new FileSystem(PRESETS_DIR, this.driver),
               dirs = fs.exists("") ? fs.readdir("") : [];
+
+        const githubFs = this.appService.fs,
+              githubDirs = githubFs.exists("presets")
+                  ? githubFs.readdir("presets").filter((dirName) => dirName !== ".tmp")
+                  : [];
 
         const {
             presets = []
@@ -90,15 +103,22 @@ export class PresetRepository {
                     path: fs.path(name)
                 };
             }),
-            ...presets.map((item) => {
-                if(item.source === PresetSource.GITHUB) {
-                    return {
-                        ...item,
-                        path: this.appService.fs.path("presets", item.name)
-                    };
-                }
+            ...githubDirs.map((dirName) => {
+                const at = dirName.lastIndexOf("@");
 
-                return item;
+                return {
+                    name: at > 0 ? dirName.slice(0, at) : dirName,
+                    version: at > 0 ? dirName.slice(at + 1) : undefined,
+                    source: PresetSource.GITHUB,
+                    path: githubFs.path("presets", dirName)
+                };
+            }),
+            ...presets.filter((item) => !!item.path).map((ref) => {
+                return {
+                    name: ref.name,
+                    source: PresetSource.EXTERNAL,
+                    path: ref.path
+                };
             })
         ];
     }
@@ -107,7 +127,8 @@ export class PresetRepository {
         const {
             name,
             source,
-            path
+            path,
+            version
         } = options;
 
         const presets: Preset[] = [],
@@ -123,6 +144,10 @@ export class PresetRepository {
             }
 
             if(path && path !== config.path) {
+                continue;
+            }
+
+            if(version && (!Version.valid(config.version) || !VersionRange.parse(version).match(config.version))) {
                 continue;
             }
 
@@ -144,8 +169,18 @@ export class PresetRepository {
     }
 
     public searchOne(options: SearchOptions = {}): Preset | null {
-        const [preset] = this.search(options);
+        const presets = this.search(options);
 
-        return preset || null;
+        if(presets.length === 0) {
+            return null;
+        }
+
+        return presets.reduce((best, preset) => {
+            if(!Version.valid(preset.version) || !Version.valid(best.version)) {
+                return best;
+            }
+
+            return Version.parse(preset.version).compare(best.version) > 0 ? preset : best;
+        });
     }
 }

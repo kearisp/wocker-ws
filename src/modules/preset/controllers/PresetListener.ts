@@ -63,11 +63,11 @@ export class PresetListener {
         }
 
         if(preset.buildArgsOptions) {
-            project.buildArgs = await this.presetService.prompt(preset.buildArgsOptions, project.buildArgs);
+            project.buildArgs = await this.presetService.prompt(preset, preset.buildArgsOptions, project.buildArgs);
         }
 
         if(preset.envOptions) {
-            project.env = await this.presetService.prompt(preset.envOptions, project.env);
+            project.env = await this.presetService.prompt(preset, preset.envOptions, project.env);
         }
 
         if(preset.volumeOptions) {

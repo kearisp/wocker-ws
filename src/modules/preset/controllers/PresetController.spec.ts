@@ -1,6 +1,5 @@
 import {describe, it, expect, beforeEach} from "@jest/globals";
 import {
-    PresetSource,
     AppService,
     ApplicationContext,
     FILE_SYSTEM_DRIVER_KEY,
@@ -9,7 +8,7 @@ import {
 } from "@wocker/core";
 import DockerModule from "@wocker/docker-module";
 import DockerMockModule, {Fixtures} from "@wocker/docker-mock-module";
-import {Test, utilsMock} from "@wocker/testing";
+import {Test, promptsMock} from "@wocker/testing";
 import {vol} from "memfs";
 import {CoreModule} from "../../core";
 import {KeystoreModule} from "../../keystore";
@@ -51,7 +50,7 @@ describe("PresetController", (): void => {
             "Dockerfile": "FROM node:latest\n"
         }, "/home/wocker-test/preset");
 
-        utilsMock.setPromptMock({
+        promptsMock.setPromptMock({
             "Preset name": "test",
             "Preset version": "1.0.0",
             "Preset type": "dockerfile",
@@ -74,7 +73,6 @@ describe("PresetController", (): void => {
         expect(appService.config.presets).toEqual([
             {
                 name: "test",
-                source: PresetSource.EXTERNAL,
                 path: "/home/wocker-test/preset"
             }
         ]);
