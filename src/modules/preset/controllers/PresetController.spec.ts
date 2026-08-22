@@ -1,6 +1,5 @@
 import {describe, it, expect, beforeEach} from "@jest/globals";
 import {
-    PresetSource,
     AppService,
     ApplicationContext,
     FILE_SYSTEM_DRIVER_KEY,
@@ -74,7 +73,6 @@ describe("PresetController", (): void => {
         expect(appService.config.presets).toEqual([
             {
                 name: "test",
-                source: PresetSource.EXTERNAL,
                 path: "/home/wocker-test/preset"
             }
         ]);
