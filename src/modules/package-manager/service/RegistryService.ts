@@ -1,5 +1,5 @@
 import {Injectable} from "@wocker/core";
-import {Http} from "@wocker/utils";
+import {Http} from "@wocker/helpers";
 import {PackageInfo} from "../types/PackageInfo";
 
 

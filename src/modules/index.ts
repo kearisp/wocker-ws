@@ -2,6 +2,7 @@ export * from "./core";
 export * from "./dns";
 export * from "./keystore";
 export * from "./package-manager";
+export * from "./permissions";
 export * from "./plugin";
 export * from "./preset";
 export * from "./project";
