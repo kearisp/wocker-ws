@@ -9,7 +9,7 @@ import {
 } from "@wocker/core";
 import DockerModule from "@wocker/docker-module";
 import DockerMockModule, {Fixtures} from "@wocker/docker-mock-module";
-import {Test} from "@wocker/testing";
+import {Test, promptsMock} from "@wocker/testing";
 import {vol} from "memfs";
 import {CoreModule} from "../../core";
 import {KeystoreModule} from "../../keystore";
@@ -17,6 +17,14 @@ import {PresetModule} from "../../preset";
 import {ProjectModule} from "../";
 import {ROOT_DIR, WOCKER_DATA_DIR} from "../../../env";
 
+
+const trustMessage = (path: string): string => [
+    "",
+    `You're initialising a project in:`,
+    `  ${path}`,
+    "",
+    "Do you trust the authors of the code in this directory?"
+].join("\n");
 
 describe("ProjectController", (): void => {
     const fixtures = Fixtures.fromPath(`${ROOT_DIR}/fixtures`);
@@ -88,5 +96,53 @@ describe("ProjectController", (): void => {
         const config = JSON.parse(vol.readFileSync(`${WOCKER_DATA_DIR}/projects/test/config.json`).toString());
 
         expect(config.volumes).toEqual(["pgsql-data:/var/lib/postgresql/data"]);
+    });
+
+    it("should skip the trust prompt when the directory is already allowed", async (): Promise<void> => {
+        const appService = context.get(AppService);
+
+        appService.config.addMountAllow(TEST_PROJECT_DIR);
+        appService.save();
+
+        promptsMock.setPromptMock({
+            "Image name": "php:8.3-apache"
+        });
+
+        await context.run(["node", "ws", "init", "--name", "test", "--type", "image"]);
+
+        const config = JSON.parse(vol.readFileSync(`${WOCKER_DATA_DIR}/projects/test/config.json`).toString());
+
+        expect(config.image).toBe("php:8.3-apache");
+    });
+
+    it("should abort init when the directory isn't trusted", async (): Promise<void> => {
+        const appService = context.get(AppService);
+
+        promptsMock.setPromptMock({
+            [trustMessage(TEST_PROJECT_DIR)]: false
+        });
+
+        await expect(context.run([
+            "node", "ws", "init", "--name", "test", "--type", "image"
+        ])).rejects.toThrow("Aborted");
+
+        expect(appService.config.permissions?.mounts?.allow).toBeUndefined();
+    });
+
+    it("should trust the directory and persist it once confirmed", async (): Promise<void> => {
+        const appService = context.get(AppService);
+
+        promptsMock.setPromptMock({
+            [trustMessage(TEST_PROJECT_DIR)]: true,
+            "Image name": "php:8.3-apache"
+        });
+
+        await context.run(["node", "ws", "init", "--name", "test", "--type", "image"]);
+
+        expect(appService.config.permissions?.mounts?.allow).toEqual([TEST_PROJECT_DIR]);
+
+        const config = JSON.parse(vol.readFileSync(`${WOCKER_DATA_DIR}/projects/test/config.json`).toString());
+
+        expect(config.image).toBe("php:8.3-apache");
     });
 });
