@@ -1,4 +1,4 @@
-import {Injectable, KeystoreProvider} from "@wocker/core";
+import {Injectable, KeystoreProvider, LogService} from "@wocker/core";
 import {Keytar} from "../types/Keytar";
 import {KEYTAR_SERVICE} from "../../../env";
 
@@ -7,12 +7,26 @@ import {KEYTAR_SERVICE} from "../../../env";
 export class KeytarKeystoreProvider extends KeystoreProvider {
     protected _keytar?: any;
 
+    public constructor(
+        protected readonly logService: LogService
+    ) {
+        super();
+    }
+
     protected async getKeytar(): Promise<Keytar> {
         if(!this._keytar) {
             this._keytar = await import("keytar");
         }
 
         return this._keytar;
+    }
+
+    public async list() {
+        const keytar = await this.getKeytar();
+
+        const list = await keytar.findCredentials(KEYTAR_SERVICE);
+
+        return list.map(c => c.account);
     }
 
     public async get(key: string, defaultValue?: string): Promise<string | undefined> {
@@ -30,7 +44,7 @@ export class KeytarKeystoreProvider extends KeystoreProvider {
             await keytar.setPassword(KEYTAR_SERVICE, key, value);
         }
         catch(err) {
-            console.log(err.message);
+            this.logService.error(err.message);
         }
     }
 

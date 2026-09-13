@@ -21,6 +21,10 @@ export abstract class FileKeystore {
 
     public abstract save(): void;
 
+    public get keys(): string[] {
+        return Object.keys(this.secrets);
+    }
+
     public get(key: string): string | undefined {
         if(!(key in this.secrets)) {
             return undefined;
@@ -39,10 +43,6 @@ export abstract class FileKeystore {
         }
 
         delete this.secrets[key];
-    }
-
-    public toObject() {
-        return {};
     }
 
     public toString() {

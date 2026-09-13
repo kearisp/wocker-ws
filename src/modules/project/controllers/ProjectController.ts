@@ -12,10 +12,13 @@ import {
     FileSystem,
     Project,
     ProjectType,
-    Completion
+    Completion,
+    isSensitivePath
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
+import {Volume} from "@wocker/helpers";
 import {promptConfirm, promptSelect, promptInput} from "@wocker/prompts";
+import OS from "os";
 import Path from "path";
 import CliTable from "cli-table3";
 import colors from "yoctocolors-cjs";
@@ -67,7 +70,48 @@ export class ProjectController {
         @Description("The type of the project")
         type: ProjectType
     ): Promise<void> {
-        const fs = new FileSystem(this.processService.pwd());
+        const cwd = this.processService.pwd();
+
+        if(!this.appService.isAllowedPath(cwd)) {
+            const trust = await promptConfirm({
+                message: [
+                    "",
+                    `You're initialising a project in:`,
+                    `  ${cwd}`,
+                    "",
+                    "Do you trust the authors of the code in this directory?"
+                ].join("\n"),
+                default: false
+            });
+
+            if(!trust) {
+                throw new Error("Aborted");
+            }
+
+            if(isSensitivePath(cwd)) {
+                const confirmation = await promptInput({
+                    required: true,
+                    type: "text",
+                    message: [
+                        "",
+                        "You are granting mount access to a sensitive path:",
+                        `  ${cwd}`,
+                        "",
+                        "Type the path again to confirm"
+                    ].join("\n"),
+                    validate: (value: string) => value === cwd || `Input doesn't match "${cwd}"`
+                });
+
+                if(confirmation !== cwd) {
+                    throw new Error(`Confirmation doesn't match "${cwd}", aborting`);
+                }
+            }
+
+            this.appService.config.addMountAllow(cwd);
+            this.appService.save();
+        }
+
+        const fs = new FileSystem(cwd);
 
         let project = this.projectService.searchOne({
             path: fs.path()
@@ -862,7 +906,27 @@ export class ProjectController {
         const project = this.projectService.get(name);
 
         if(Array.isArray(volumes) && volumes.length > 0) {
-            project.volumeMount(...volumes)
+            for(const volume of volumes) {
+                const parsedVolume = Volume.parse(volume);
+
+                if(!parsedVolume.isHostPath()) {
+                    continue;
+                }
+
+                const {source} = parsedVolume;
+                const resolved = source.startsWith("~")
+                    ? Path.join(OS.homedir(), source.slice(1))
+                    : Path.resolve(project.path, source);
+
+                if(!this.appService.isAllowedPath(resolved)) {
+                    throw new Error(
+                        `Mount path "${resolved}" is not allowed.\n` +
+                        `Run "ws mount:allow ${resolved}" to allow it.`
+                    );
+                }
+            }
+
+            project.volumeMount(...volumes);
 
             project.save();
         }

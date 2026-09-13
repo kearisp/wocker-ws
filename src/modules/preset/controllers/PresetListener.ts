@@ -6,10 +6,9 @@ import {
     AppService,
     PresetMode
 } from "@wocker/core";
-import {Interpolator} from "@wocker/utils";
 import {DockerService} from "@wocker/docker-module";
+import {Interpolator, Volume} from "@wocker/helpers";
 import {promptInput, promptSelect} from "@wocker/prompts";
-import {Volume} from "@wocker/utils";
 import {PresetRepository} from "../repositories/PresetRepository";
 import {PresetService} from "../services/PresetService";
 

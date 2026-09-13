@@ -1,6 +1,6 @@
 import type {Entry} from "unzipper";
 import {FileSystem} from "@wocker/core";
-import {Http} from "@wocker/utils";
+import {Http} from "@wocker/helpers";
 
 
 type RepositoryInfo = {

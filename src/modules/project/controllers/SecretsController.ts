@@ -3,9 +3,11 @@ import {
     Description,
     Command,
     Param,
-    Option
+    Option,
+    KeystoreService
 } from "@wocker/core";
 import {promptInput} from "@wocker/prompts";
+import CliTable from "cli-table3";
 import {ProjectService} from "../services/ProjectService";
 
 
@@ -13,7 +15,8 @@ import {ProjectService} from "../services/ProjectService";
 @Description("Project secret commands")
 export class SecretsController {
     public constructor(
-        protected readonly projectService: ProjectService
+        protected readonly projectService: ProjectService,
+        protected readonly keystoreService: KeystoreService
     ) {}
 
     @Command("secret:create [secret]")
@@ -60,5 +63,25 @@ export class SecretsController {
         const project = this.projectService.get(name);
 
         await project.unsetSecret(secret);
+    }
+
+    @Command("secret:ls")
+    public async list(
+        @Option("name", "n")
+        name?: string
+    ) {
+        const project = this.projectService.get(name);
+
+        const table = new CliTable({
+            head: ["Name"]
+        });
+
+        const names = await project.getSecrets();
+
+        for(const name of names) {
+            table.push([name]);
+        }
+
+        return table.toString();
     }
 }

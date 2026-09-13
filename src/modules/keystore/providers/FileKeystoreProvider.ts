@@ -1,6 +1,7 @@
 import {
     Injectable,
     AppFileSystemService,
+    LogService,
     KeystoreProvider
 } from "@wocker/core";
 import {promptInput} from "@wocker/prompts";
@@ -16,7 +17,8 @@ export class FileKeystoreProvider extends KeystoreProvider {
     protected _keystore?: FileKeystore;
 
     public constructor(
-        protected readonly fs: AppFileSystemService
+        protected readonly fs: AppFileSystemService,
+        protected readonly logService: LogService
     ) {
         super();
     }
@@ -36,7 +38,7 @@ export class FileKeystoreProvider extends KeystoreProvider {
                     };
                 }
                 catch(err) {
-                    // console.error(err.message);
+                    this.logService.error(err.message);
                 }
             }
 
@@ -86,7 +88,11 @@ export class FileKeystoreProvider extends KeystoreProvider {
         return this.encryptionKey;
     }
 
-    public async get(key: string, defaultValue?: string): Promise<string|undefined> {
+    public async list() {
+        return this.keystore.keys;
+    }
+
+    public async get(key: string, defaultValue?: string): Promise<string | undefined> {
         const value = this.keystore.get(key);
 
         if(!value) {

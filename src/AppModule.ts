@@ -15,7 +15,8 @@ import {
     PluginModule,
     PresetModule, PresetRepository, PresetService,
     ProxyModule, ProxyService, CertService,
-    KeystoreModule, KeystoreService
+    KeystoreModule, KeystoreService,
+    PermissionsModule
 } from "./modules";
 
 
@@ -29,7 +30,8 @@ import {
         PresetModule,
         DockerModule,
         KeystoreModule,
-        ProxyModule
+        ProxyModule,
+        PermissionsModule
     ],
     exports: [
         DockerService,

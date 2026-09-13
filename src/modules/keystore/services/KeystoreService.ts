@@ -3,7 +3,8 @@ import {
     AppService,
     AppFileSystemService,
     KeystoreService as CoreKeystoreService,
-    KeystoreProvider
+    KeystoreProvider,
+    LogService
 } from "@wocker/core";
 import {KeytarKeystoreProvider} from "../providers/KeytarKeystoreProvider";
 import {FileKeystoreProvider} from "../providers/FileKeystoreProvider";
@@ -15,7 +16,8 @@ export class KeystoreService extends CoreKeystoreService {
 
     public constructor(
         protected readonly appService: AppService,
-        protected readonly fs: AppFileSystemService
+        protected readonly fs: AppFileSystemService,
+        protected readonly logService: LogService
     ) {
         super();
 
@@ -37,14 +39,23 @@ export class KeystoreService extends CoreKeystoreService {
 
         switch(name) {
             case "file":
-                return new FileKeystoreProvider(this.fs);
+                return new FileKeystoreProvider(
+                    this.fs,
+                    this.logService
+                );
 
             case "keytar":
-                return new KeytarKeystoreProvider();
+                return new KeytarKeystoreProvider(this.logService);
 
             default:
                 throw new Error(`Unknown keystore provider "${name}"`);
         }
+    }
+
+    public async list() {
+        const provider = this.provider();
+
+        return provider.list();
     }
 
     public async get(keys: string | string[], byDefault?: string): Promise<string | undefined> {
