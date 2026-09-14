@@ -96,6 +96,7 @@ export class ProxyService extends CoreProxyService {
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: this.imageName,
+                internal: true,
                 restart: "always",
                 env: {
                     UID: this.processService.UID,

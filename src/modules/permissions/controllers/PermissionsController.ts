@@ -2,6 +2,7 @@ import {
     Controller,
     Command,
     Description,
+    Option,
     Param,
     AppService,
     isSensitivePath
@@ -23,15 +24,33 @@ export class PermissionsController {
     @Description("Allow a host path to be used as a mount source")
     public async mountAllow(
         @Param("path")
-        path?: string
+        path?: string,
+        @Option("remove", {
+            type: "boolean",
+            alias: "r",
+            description: "Remove the path from the allow list"
+        })
+        remove?: boolean
     ): Promise<string | void> {
         const {config} = this.appService;
 
         if(!path) {
+            if(remove) {
+                throw new Error("Path is required to remove a mount permission");
+            }
+
             return this.formatList(config.permissions?.mounts?.allow, "No allowed mount paths");
         }
 
         const resolved = this.resolvePath(path);
+
+        if(remove) {
+            config.removeMountAllow(resolved);
+
+            this.appService.save();
+
+            return;
+        }
 
         if(isSensitivePath(resolved)) {
             const confirmation = await promptInput({
@@ -61,15 +80,35 @@ export class PermissionsController {
     @Description("Deny a host path from being used as a mount source")
     public async mountDeny(
         @Param("path")
-        path?: string
+        path?: string,
+        @Option("remove", {
+            type: "boolean",
+            alias: "r",
+            description: "Remove the path from the deny list"
+        })
+        remove?: boolean
     ): Promise<string | void> {
         const {config} = this.appService;
 
         if(!path) {
+            if(remove) {
+                throw new Error("Path is required to remove a mount permission");
+            }
+
             return this.formatList(config.permissions?.mounts?.deny, "No denied mount paths");
         }
 
-        config.addMountDeny(this.resolvePath(path));
+        const resolved = this.resolvePath(path);
+
+        if(remove) {
+            config.removeMountDeny(resolved);
+
+            this.appService.save();
+
+            return;
+        }
+
+        config.addMountDeny(resolved);
 
         this.appService.save();
     }
