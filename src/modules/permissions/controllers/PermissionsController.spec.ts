@@ -87,4 +87,49 @@ describe("PermissionsController", (): void => {
 
         expect(appService.config.permissions?.mounts?.allow).toBeUndefined();
     });
+
+    it("should remove an allowed path without confirmation", async (): Promise<void> => {
+        const appService = context.get(AppService);
+
+        await context.run(["node", "ws", "mount:allow", "/home/wocker-test/projects/test"]);
+
+        expect(appService.config.permissions?.mounts?.allow).toEqual([
+            "/home/wocker-test/projects/test"
+        ]);
+
+        await context.run(["node", "ws", "mount:allow", "/home/wocker-test/projects/test", "--remove"]);
+
+        expect(appService.config.permissions?.mounts?.allow).toBeUndefined();
+    });
+
+    it("should remove a denied path", async (): Promise<void> => {
+        const appService = context.get(AppService);
+
+        await context.run(["node", "ws", "mount:deny", "/home/wocker-test/projects/test"]);
+
+        expect(appService.config.permissions?.mounts?.deny).toEqual([
+            "/home/wocker-test/projects/test"
+        ]);
+
+        await context.run(["node", "ws", "mount:deny", "/home/wocker-test/projects/test", "--remove"]);
+
+        expect(appService.config.permissions?.mounts?.deny).toBeUndefined();
+    });
+
+    it("should be a no-op to remove a path that was never added", async (): Promise<void> => {
+        const appService = context.get(AppService);
+
+        await context.run(["node", "ws", "mount:allow", "/home/wocker-test/projects/test", "--remove"]);
+        await context.run(["node", "ws", "mount:deny", "/home/wocker-test/projects/test", "--remove"]);
+
+        expect(appService.config.permissions).toBeUndefined();
+    });
+
+    it("should throw when --remove is used without a path", async (): Promise<void> => {
+        await expect(context.run(["node", "ws", "mount:allow", "--remove"]))
+            .rejects.toThrow("Path is required to remove a mount permission");
+
+        await expect(context.run(["node", "ws", "mount:deny", "--remove"]))
+            .rejects.toThrow("Path is required to remove a mount permission");
+    });
 });

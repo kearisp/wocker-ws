@@ -35,6 +35,7 @@ export class DnsService {
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: this.imageName,
+                internal: true,
                 volumes: [
                     "/var/run/docker.sock.raw:/var/run/docker.sock:ro",
                     "/var/run/docker.sock.raw:/tmp/docker.sock:ro",
