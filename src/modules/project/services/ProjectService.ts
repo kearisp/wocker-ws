@@ -72,9 +72,9 @@ export class ProjectService extends CoreProjectService {
             await this.stop(project);
         }
 
-        await this.build(project, rebuild);
-
         await this.eventService.emit("project:beforeStart", project);
+
+        await this.build(project, rebuild);
 
         switch(project.type) {
             case ProjectType.IMAGE:
@@ -231,7 +231,7 @@ export class ProjectService extends CoreProjectService {
                             version: this.appService.isExperimentalEnabled("buildKit") ? "2" : "1",
                             tag: project.image,
                             labels: {
-                                "org.wocker.preset": preset.name
+                                "wocker.preset": preset.name
                             },
                             buildArgs: project.buildArgs,
                             context: project.presetMode === "project"

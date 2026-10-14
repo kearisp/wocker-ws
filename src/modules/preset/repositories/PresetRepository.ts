@@ -17,7 +17,7 @@ import {PRESETS_DIR} from "../../../env";
 
 
 type PresetData = {
-    name: string;
+    name?: string;
     version?: string;
     source: PresetSource;
     path?: string;
@@ -123,13 +123,48 @@ export class PresetRepository {
         ];
     }
 
-    public search(options: SearchOptions = {}): Preset[] {
-        const {
+    protected resolveSpec(name: string): [string, string] {
+        const at = name.lastIndexOf("@");
+
+        let version: string | undefined;
+
+        if(at > 0) {
+            version = name.slice(at + 1);
+            name = name.slice(0, at);
+        }
+
+        return [name, version];
+    }
+
+    public get(name: string): Preset | null {
+        let version: string | undefined;
+        const at = name.lastIndexOf("@");
+
+        if(at > 0) {
+            version = name.slice(at + 1);
+            name = name.slice(0, at);
+        }
+
+        return this.searchOne({
             name,
-            source,
-            path,
             version
+        });
+    }
+
+    public search(options: SearchOptions = {}): Preset[] {
+        let {
+            name,
+            version,
+            source,
+            path
         } = options;
+
+        const at = name ? name.lastIndexOf("@") : -1;
+
+        if(at > 0) {
+            version = version || name.slice(at + 1);
+            name = name.slice(0, at);
+        }
 
         const presets: Preset[] = [],
               configs = this.configs();
@@ -163,6 +198,12 @@ export class PresetRepository {
                     path: config.path
                 });
             }
+        }
+
+        if(name) {
+            return presets.sort((a, b) => {
+                return Version.parse(b.version || "0.0.0").compare(a.version || "0.0.0");
+            });
         }
 
         return presets;

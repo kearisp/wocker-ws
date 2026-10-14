@@ -127,4 +127,31 @@ export class PresetListener {
             await this.dockerService.imageRm(imageName);
         }
     }
+
+    @Event("project:beforeStart")
+    protected async onBeforeStart(project: Project): Promise<void> {
+        if(project.type !== ProjectType.PRESET) {
+            return;
+        }
+
+        let preset = this.presetRepository.searchOne({
+            name: project.preset
+        });
+
+        if(!preset) {
+            let name = project.preset,
+                version: string;
+
+            const at = name.lastIndexOf("@");
+
+            if(at > 0) {
+                version = name.slice(at + 1);
+                name = name.slice(0, at);
+            }
+
+            preset = await this.presetService.install(name, version);
+        }
+
+
+    }
 }
