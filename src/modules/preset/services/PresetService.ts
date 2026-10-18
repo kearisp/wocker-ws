@@ -371,7 +371,7 @@ export class PresetService {
         this.appService.unregisterPreset(preset.path);
     }
 
-    public async install(repository: string, version?: string): Promise<void> {
+    public async install(repository: string, version?: string): Promise<Preset> {
         if(!/^[\w-]+\/[\w-]+$/.test(repository)) {
             repository = `kearisp/wocker-${repository}-preset`;
         }
@@ -474,6 +474,11 @@ export class PresetService {
             this.fs.mv(`presets/.tmp/${config.name}`, targetDir);
 
             this.processService.write("Preset installed successfully\n");
+
+            return this.presetRepository.searchOne({
+                name: config.name,
+                version: config.version
+            });
         }
         finally {
             if(this.fs.exists("presets/.tmp")) {

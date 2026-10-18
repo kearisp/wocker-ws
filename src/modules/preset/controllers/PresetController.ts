@@ -139,7 +139,7 @@ export class PresetController {
             version: this.appService.isExperimentalEnabled("buildKit") ? "2" : "1",
             tag: imageName,
             labels: {
-                presetName: preset.name
+                "wocker.preset": preset.name
             },
             buildArgs: buildArgs,
             context: preset.path,
