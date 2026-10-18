@@ -49,6 +49,21 @@ jobs:
                 NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
             run: npm publish --provenance
 
+    canny-changelog:
+        name: Add Canny changelog entry
+        if: ${{ github.repository_owner == 'kearisp' }}
+        runs-on: ubuntu-latest
+        environment: publish
+        needs: publish
+        steps:
+          - name: Create Canny entry
+            uses: kearisp/wocker-area/.github/actions/canny-changelog@master
+            with:
+                api_key: ${{ secrets.CANNY_API_KEY }}
+                title: ${{ github.event.release.tag_name }}
+                body: ${{ github.event.release.body }}
+                labels: wocker
+
     unpublish-beta:
         name: Unpublish beta versions
         if: ${{ github.repository_owner == 'kearisp' }}
