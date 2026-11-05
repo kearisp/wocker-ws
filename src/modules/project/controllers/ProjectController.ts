@@ -431,9 +431,12 @@ export class ProjectController {
         name?: string,
         @Option("service", "s")
         @Description("The name of the service")
-        service?: string
+        service?: string,
+        @Option("local", "l")
+        local?: boolean
     ): Promise<void> {
-        const project = this.projectService.get(name);
+        const project = this.projectService.get(name),
+              config = !local ? project.configs.app : project.configs.project;
 
         const buildArgs: Project["buildArgs"] = args.reduce((env, config) => {
             let [, key = "", value = ""] = config.split(/^([^=]+)=(.*)$/);
@@ -449,7 +452,7 @@ export class ProjectController {
         }, {});
 
         for(const key in buildArgs) {
-            project.setBuildArg(key, buildArgs[key], service);
+            config.setBuildArg(key, buildArgs[key], service);
         }
 
         project.save();
@@ -465,9 +468,12 @@ export class ProjectController {
         name?: string,
         @Option("service", "s")
         @Description("The name of the service")
-        service?: string
+        service?: string,
+        @Option("local", "l")
+        local?: boolean
     ): Promise<void> {
-        const project = this.projectService.get(name);
+        const project = this.projectService.get(name),
+              config = !local ? project.configs.app : project.configs.project;
 
         const buildArgs: Project["buildArgs"] = args.reduce((env, config) => {
             let [, key = "", value = ""] = config.split(/^([^=]+)(?:=(.*))?$/);
@@ -481,8 +487,7 @@ export class ProjectController {
         }, {});
 
         for(const key in buildArgs) {
-            project.configs.app.unsetBuildArg(key, service);
-            project.configs.project.unsetBuildArg(key, service);
+            config.unsetBuildArg(key, service);
         }
 
         project.save();

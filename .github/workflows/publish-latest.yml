@@ -63,6 +63,7 @@ jobs:
                 title: ${{ github.event.release.tag_name }}
                 body: ${{ github.event.release.body }}
                 labels: wocker
+                published: "true"
 
     unpublish-beta:
         name: Unpublish beta versions

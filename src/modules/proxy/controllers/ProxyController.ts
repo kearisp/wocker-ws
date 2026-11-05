@@ -23,7 +23,7 @@ export class ProxyController {
         protected readonly proxyService: ProxyService
     ) {}
 
-    @Event("project:inti")
+    @Event("project:init")
     public async onProjectInit(project: Project) {
         return this.proxyService.init(project);
     }
