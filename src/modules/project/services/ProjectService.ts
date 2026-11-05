@@ -4,6 +4,7 @@ import {
     FileSystem,
     Injectable,
     LogService,
+    PresetMode,
     ProcessService,
     Project,
     ProjectType,
@@ -234,8 +235,11 @@ export class ProjectService extends CoreProjectService {
                                 "wocker.preset": preset.name
                             },
                             buildArgs: project.buildArgs,
-                            context: project.presetMode === "project"
-                                ? [preset.path, project.path]
+                            context: project.presetMode === PresetMode.PROJECT
+                                ? [preset.path, project.path, {
+                                    path: this.appService.fs.path("projects", project.name),
+                                    ignore: ["config.json"]
+                                }]
                                 : preset.path,
                             dockerfile: preset.dockerfile
                         });
