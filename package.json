@@ -38,7 +38,7 @@
         "@wocker/core": "1.1.9",
         "@wocker/docker-module": "^1.0.1",
         "@wocker/helpers": "^1.0.0",
-        "@wocker/prompts": "^1.0.0",
+        "@wocker/prompts": "^1.0.2",
         "async-mutex": "^0.4.0",
         "cli-table3": "^0.6.2",
         "keytar": "^7.9.0",

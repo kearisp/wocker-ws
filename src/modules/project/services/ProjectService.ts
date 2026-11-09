@@ -90,10 +90,7 @@ export class ProjectService extends CoreProjectService {
                         name: project.containerName,
                         image: project.image,
                         cmd: project.cmd,
-                        env: {
-                            ...this.appService.config.env || {},
-                            ...project.env || {}
-                        },
+                        env: project.env,
                         ports: project.ports || [],
                         volumes: (project.volumes || []).map((volume: string): string => {
                             const regVolume = /^([^:]+):([^:]+)(?::([^:]+))?$/;

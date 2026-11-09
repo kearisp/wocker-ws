@@ -102,7 +102,7 @@ export class PresetListener {
         }
 
         if(preset.dockerfile) {
-            project.imageName = this.presetService.getImageNameForProject(project, preset);
+            project.image = this.presetService.getImageNameForProject(project, preset);
         }
     }
 
