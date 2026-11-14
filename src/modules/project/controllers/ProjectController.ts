@@ -12,16 +12,19 @@ import {
     FileSystem,
     Project,
     ProjectType,
+    ProjectLayerType,
     Completion,
-    isSensitivePath
+    isSensitivePath,
+    EnvConfig
 } from "@wocker/core";
 import {DockerService} from "@wocker/docker-module";
 import {Volume} from "@wocker/helpers";
 import {promptConfirm, promptSelect, promptInput} from "@wocker/prompts";
 import OS from "os";
 import Path from "path";
-import CliTable from "cli-table3";
+import CliTable3 from "cli-table3";
 import colors from "yoctocolors-cjs";
+import {ConfigTable} from "../makes/ConfigTable";
 import {PresetService} from "../../preset";
 import {ProjectService} from "../services/ProjectService";
 
@@ -313,7 +316,7 @@ export class ProjectController {
         @Description("All projects")
         all: boolean
     ): Promise<string> {
-        const table = new CliTable({
+        const table = new CliTable3({
             head: ["Name", "Type", "Path", "Status"],
             colAligns: ["left", "center", "left", "center"]
         });
@@ -353,38 +356,66 @@ export class ProjectController {
         @Description("The name of the service")
         service?: string
     ): Promise<string> {
-        const project = this.projectService.get(name);
+        const project = this.projectService.get(name),
+              withServices = project.type === ProjectType.COMPOSE || this.appService.isExperimentalEnabled("projectComposeType");
 
-        const table = new CliTable({
-            head: ["KEY", "VALUE"]
-        });
+        const table = new ConfigTable();
 
-        for(const key in project.buildArgs) {
-            table.push([
-                key,
-                typeof project.buildArgs[key] === "string"
-                    ? project.buildArgs[key]
-                    : JSON.stringify(project.buildArgs[key])
-            ]);
+        const columns: ConfigTable.ColumnName[] = ["layer", "key", "value"];
+
+        if(withServices) {
+            columns.push("service");
         }
 
-        for(const serviceName in project.services) {
-            if(service && service !== serviceName) {
-                continue;
-            }
+        const stringify = (value: unknown): string => {
+            return typeof value === "string" ? value : JSON.stringify(value);
+        };
 
-            if(!project.services[serviceName].buildArgs) {
-                continue;
-            }
+        for(const [scope, config] of project.layers()) {
+            for(const key in config.buildArgs) {
+                const overridden = project.origin(["buildArgs", key]) !== scope;
 
-            for(const key in project.services[serviceName].buildArgs) {
-                table.options.head = ["KEY", "VALUE", "SERVICE"];
+                if(overridden && !this.processService.stdout.isTTY) {
+                    continue;
+                }
 
-                table.push([
+                table.push({
+                    overridden,
+                    layer: scope,
                     key,
-                    project.services[serviceName].buildArgs[key],
-                    serviceName
-                ]);
+                    value: stringify(config.buildArgs[key]),
+                    service: "-"
+                });
+            }
+
+            if(!withServices) {
+                continue;
+            }
+
+            for(const serviceName in config.services) {
+                if(service && service !== serviceName) {
+                    continue;
+                }
+
+                if(!config.services[serviceName].buildArgs) {
+                    continue;
+                }
+
+                for(const key in config.services[serviceName].buildArgs) {
+                    const overridden = project.origin(["services", serviceName, "buildArgs", key]) !== scope;
+
+                    if(overridden && !this.processService.stdout.isTTY) {
+                        continue;
+                    }
+
+                    table.push({
+                        overridden,
+                        layer: scope,
+                        key,
+                        value: stringify(config.services[serviceName].buildArgs[key]),
+                        service: serviceName
+                    });
+                }
             }
         }
 
@@ -392,7 +423,7 @@ export class ProjectController {
             return colors.gray("No build args found!");
         }
 
-        return table.toString();
+        return table.show(columns).toString();
     }
 
     @Command("build-args:get [...buildArgs]")
@@ -406,16 +437,55 @@ export class ProjectController {
     ): Promise<string> {
         const project = this.projectService.get(name);
 
-        const table = new CliTable({
-            head: ["KEY", "VALUE"]
-        });
+        const table = new ConfigTable();
 
         for(const key of args) {
-            if(project.buildArgs && typeof project.buildArgs[key] !== "undefined") {
-                const value = project.buildArgs[key] || "";
+            for(const [scope, config] of project.layers()) {
+                if(config.buildArgs && key in config.buildArgs) {
+                    const overridden = scope !== project.origin(["buildArgs", key]);
 
-                table.push([key, value]);
+                    if(overridden && !this.processService.stdout.isTTY) {
+                        continue;
+                    }
+
+                    const value = config.buildArgs[key];
+
+                    table.push({
+                        overridden,
+                        layer: scope,
+                        key,
+                        value: typeof value === "string" ? value : JSON.stringify(value)
+                    });
+                }
+
+                if(config.services) {
+                    for(const [serviceName, service] of Object.entries(config.services)) {
+                        if(!service.buildArgs || !(key in service.buildArgs)) {
+                            continue;
+                        }
+
+                        const overridden = project.origin(["services", serviceName, "buildArgs", key]) !== scope;
+
+                        if(overridden && !this.processService.stdout.isTTY) {
+                            continue;
+                        }
+
+                        const value = service.buildArgs[key];
+
+                        table.push({
+                            overridden,
+                            layer: scope,
+                            key,
+                            service: serviceName,
+                            value: typeof value === "string" ? value : JSON.stringify(value)
+                        });
+                    }
+                }
             }
+        }
+
+        if(table.length === 0) {
+            return colors.gray("No build args found!");
         }
 
         return table.toString();
@@ -431,9 +501,12 @@ export class ProjectController {
         name?: string,
         @Option("service", "s")
         @Description("The name of the service")
-        service?: string
+        service?: string,
+        @Option("local", "l")
+        local?: boolean
     ): Promise<void> {
-        const project = this.projectService.get(name);
+        const project = this.projectService.get(name),
+              config = project.layer(local ? ProjectLayerType.REPOSITORY : ProjectLayerType.DATA);
 
         const buildArgs: Project["buildArgs"] = args.reduce((env, config) => {
             let [, key = "", value = ""] = config.split(/^([^=]+)=(.*)$/);
@@ -449,7 +522,7 @@ export class ProjectController {
         }, {});
 
         for(const key in buildArgs) {
-            project.setBuildArg(key, buildArgs[key], service);
+            config.setBuildArg(key, buildArgs[key], service);
         }
 
         project.save();
@@ -465,9 +538,12 @@ export class ProjectController {
         name?: string,
         @Option("service", "s")
         @Description("The name of the service")
-        service?: string
+        service?: string,
+        @Option("local", "l")
+        local?: boolean
     ): Promise<void> {
-        const project = this.projectService.get(name);
+        const project = this.projectService.get(name),
+              config = project.layer(local ? ProjectLayerType.REPOSITORY : ProjectLayerType.DATA);
 
         const buildArgs: Project["buildArgs"] = args.reduce((env, config) => {
             let [, key = "", value = ""] = config.split(/^([^=]+)(?:=(.*))?$/);
@@ -481,8 +557,7 @@ export class ProjectController {
         }, {});
 
         for(const key in buildArgs) {
-            project.configs.app.unsetBuildArg(key, service);
-            project.configs.project.unsetBuildArg(key, service);
+            config.unsetBuildArg(key, service);
         }
 
         project.save();
@@ -497,7 +572,7 @@ export class ProjectController {
     ): Promise<string> {
         const project = this.projectService.get(name);
 
-        const table = new CliTable({
+        const table = new CliTable3({
             head: [colors.yellow("Domain")]
         });
 
@@ -606,13 +681,11 @@ export class ProjectController {
     public async ports(
         @Option("name", "n")
         @Description("The name of the project")
-        name?: string,
-        @Option("service", "s")
-        service?: string
+        name?: string
     ): Promise<string> {
         const project = this.projectService.get(name);
 
-        const table = new CliTable({
+        const table = new CliTable3({
             head: ["Ports"]
         });
 
@@ -693,45 +766,70 @@ export class ProjectController {
         @Description("The name of the service")
         service?: string
     ): Promise<string> {
-        const table = new CliTable({
-            head: ["KEY", "VALUE"]
-        });
+        const table = new ConfigTable();
+
+        const columns: ConfigTable.ColumnName[] = ["layer", "key", "value"];
 
         if(global) {
             for(const i in this.appService.config.env) {
-                table.push([
-                    i,
-                    this.appService.config.env[i]
-                ]);
+                table.push({
+                    layer: ProjectLayerType.GLOBAL,
+                    key: i,
+                    value: this.appService.config.env[i]
+                });
             }
         }
         else {
-            const project = this.projectService.get(name);
+            const project = this.projectService.get(name),
+                  withServices = project.type === ProjectType.COMPOSE || this.appService.isExperimentalEnabled("projectComposeType");
 
-            for(const key in project.env) {
-                table.push([
-                    key,
-                    project.env[key]
-                ]);
+            if(withServices) {
+                columns.push("service");
             }
 
-            for(const serviceName in project.services) {
-                if(service && service !== serviceName) {
-                    continue;
-                }
+            for(const [scope, config] of project.layers()) {
+                for(const key in config.env) {
+                    const overridden = scope !== project.origin(["env", key]);
 
-                if(!project.services[serviceName].env) {
-                    continue;
-                }
+                    if(overridden && !this.processService.stdout.isTTY) {
+                        continue;
+                    }
 
-                for(const key in project.services[serviceName].env) {
-                    table.options.head = ["KEY", "NAME", "SERVICE"];
-
-                    table.push([
+                    table.push({
+                        overridden,
+                        layer: scope,
                         key,
-                        project.services[serviceName].env[key],
-                        serviceName
-                    ]);
+                        value: config.env[key],
+                        service: "-"
+                    });
+                }
+
+                if(withServices) {
+                    for(const serviceName in config.services) {
+                        if(service && service !== serviceName) {
+                            continue;
+                        }
+
+                        if(!config.services[serviceName].env) {
+                            continue;
+                        }
+
+                        for(const key in config.services[serviceName].env) {
+                            const overridden = project.origin(["services", serviceName, "env", key]) !== scope;
+
+                            if(overridden && !this.processService.stdout.isTTY) {
+                                continue;
+                            }
+
+                            table.push({
+                                overridden,
+                                layer: scope,
+                                key,
+                                value: config.services[serviceName].env[key],
+                                service: serviceName
+                            });
+                        }
+                    }
                 }
             }
         }
@@ -740,7 +838,7 @@ export class ProjectController {
             return colors.gray("No environment variables found.");
         }
 
-        return table.toString();
+        return table.show(columns).toString();
     }
 
     @Command("config:get [...key]")
@@ -754,22 +852,50 @@ export class ProjectController {
         @Option("global", "g")
         global: boolean
     ): Promise<string> {
-        let config = global
-            ? this.appService.config
-            : this.projectService.get(name);
+        const table = new ConfigTable();
 
-        const table = new CliTable({
-            head: ["KEY", "VALUE"]
-        });
+        if(global) {
+            for(const key of keys) {
+                const value = this.appService.config.getEnv(key, "");
 
-        for(const key of keys) {
-            const value = config.getEnv(key, "");
+                if(!value) {
+                    continue;
+                }
 
-            if(!value) {
-                continue;
+                table.push({
+                    layer: ProjectLayerType.GLOBAL,
+                    key,
+                    value
+                });
             }
+        }
+        else {
+            const project = this.projectService.get(name);
 
-            table.push([key, value]);
+            for(const key of keys) {
+                for(const [scope, config] of project.layers()) {
+                    if(!Object.prototype.hasOwnProperty.call(config.env, key)) {
+                        continue;
+                    }
+
+                    const overridden = project.origin(["env", key]) !== scope;
+
+                    if(overridden && !this.processService.stdout.isTTY) {
+                        continue;
+                    }
+
+                    table.push({
+                        overridden,
+                        layer: scope,
+                        key,
+                        value: config.env[key]
+                    });
+                }
+            }
+        }
+
+        if(table.length === 0) {
+            return colors.gray("No environment variables found.");
         }
 
         return table.toString();
@@ -791,26 +917,34 @@ export class ProjectController {
         @Description("The name of the service")
         service?: string
     ): Promise<void> {
-        if(global) {
-            for(const variable of variables) {
-                const [key, value] = variable.split("=");
+        const env: EnvConfig = variables.reduce((res: EnvConfig, variable) => {
+            let [, key = "", value = ""] = /^([^=]+)=(.*)$/.exec(variable) || [];
 
+            key = key.trim();
+            value = value.trim();
+
+            res[key] = value;
+
+            return res;
+        }, {});
+
+        if(global) {
+            for(const [key, value] of Object.entries(env)) {
                 if(!value) {
                     console.info(colors.yellow(`No value for "${key}"`));
                     continue;
                 }
 
-                this.appService.setEnv(key.trim(), value.trim());
+                this.appService.setEnv(key, value);
             }
 
             return;
         }
 
-        const project = this.projectService.get(name);
+        const project = this.projectService.get(name),
+              config = project.layer(local ? ProjectLayerType.REPOSITORY : ProjectLayerType.DATA);
 
-        for(const variable of variables) {
-            const [, key, value] = /^([^=]+)=(.*)$/.exec(variable) || [];
-
+        for(const [key, value] of Object.entries(env)) {
             if(!key) {
                 continue;
             }
@@ -819,8 +953,6 @@ export class ProjectController {
                 console.info(colors.yellow(`No value for "${key}"`));
                 continue;
             }
-
-            const config = !local ? project.configs.app : project.configs.project;
 
             config.setEnv(key, value, service);
         }
@@ -859,13 +991,10 @@ export class ProjectController {
             return;
         }
 
-        const project = this.projectService.get(name);
+        const project = this.projectService.get(name),
+              config = project.layer(local ? ProjectLayerType.REPOSITORY : ProjectLayerType.DATA);
 
         for(const i in env) {
-            const config = !local
-                ? project.configs.app
-                : project.configs.project;
-
             config.unsetEnv(i, service)
         }
 
@@ -881,7 +1010,7 @@ export class ProjectController {
     ): Promise<string> {
         const project = this.projectService.get(name);
 
-        const table = new CliTable({
+        const table = new CliTable3({
             head: ["Volume"]
         });
 
@@ -963,7 +1092,7 @@ export class ProjectController {
             return "No extra hosts found";
         }
 
-        const table = new CliTable({
+        const table = new CliTable3({
             head: ["Host", "Domain"]
         });
 
@@ -1077,7 +1206,7 @@ export class ProjectController {
         }
 
         delete project.preset;
-        delete project.imageName;
+        delete project.image;
 
         project.save();
     }
