@@ -12,7 +12,10 @@ import {
     ProjectService as CoreProjectService
 } from "@wocker/core";
 import {ComposeService, DockerService} from "@wocker/docker-module";
+import {Volume} from "@wocker/helpers";
 import {Cli} from "@kearisp/cli";
+import OS from "os";
+import Path from "path";
 import {PresetRepository, PresetService} from "../../preset";
 
 
@@ -93,14 +96,20 @@ export class ProjectService extends CoreProjectService {
                         env: project.env,
                         ports: project.ports || [],
                         volumes: (project.volumes || []).map((volume: string): string => {
-                            const regVolume = /^([^:]+):([^:]+)(?::([^:]+))?$/;
-                            const [, source, destination, options] = regVolume.exec(volume);
+                            const parsed = Volume.parse(volume);
 
-                            if(source.startsWith("/")) {
+                            if(!parsed.isHostPath()) {
                                 return volume;
                             }
 
-                            return `${fs.path(source)}:${destination}` + (options ? `:${options}` : "");
+                            if(parsed.source.startsWith("~")) {
+                                parsed.source = Path.join(OS.homedir(), parsed.source.slice(1));
+                            }
+                            else if(parsed.source.startsWith(".")) {
+                                parsed.source = fs.path(parsed.source);
+                            }
+
+                            return parsed.toString();
                         }),
                         extraHosts: Object.keys(project.extraHosts || {}).map((host: string) => {
                             return `${project.extraHosts[host]}:${host}`;

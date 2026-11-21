@@ -7,6 +7,7 @@ import {
     LogService,
     PLUGIN_DIR_KEY
 } from "@wocker/core";
+import {SLOW_PLUGIN_IMPORT_MS} from "../../env";
 import {CoreModule} from "../core";
 import {PackageManagerModule} from "../package-manager";
 import {PluginController} from "./controllers/PluginController";
@@ -39,9 +40,15 @@ export class PluginModule {
             ) => {
                 const imports: (Type | DynamicModule)[] = [];
 
-                for(const pluginData of appService.plugins) {
+                for(const pluginRef of appService.plugins) {
                     try {
-                        const plugin = await pluginService.import(pluginData.name);
+                        const start = Date.now(),
+                              plugin = await pluginService.import(pluginRef.name),
+                              duration = Date.now() - start;
+
+                        if(duration > SLOW_PLUGIN_IMPORT_MS) {
+                            logService.warn(`Plugin ${pluginRef.name} took ${duration}ms to load`);
+                        }
 
                         imports.push({
                             module: plugin.type,
@@ -55,11 +62,11 @@ export class PluginModule {
                     }
                     catch(err) {
                         logService.error(err.message, {
-                            pluginName: pluginData.name,
-                            pluginEnv: pluginData.env
+                            pluginName: pluginRef.name,
+                            pluginEnv: pluginRef.env
                         });
 
-                        appService.removePlugin(pluginData.name);
+                        appService.removePlugin(pluginRef.name);
                     }
                 }
 
